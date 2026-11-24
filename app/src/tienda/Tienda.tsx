@@ -8,6 +8,7 @@ import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
+import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
 import { agruparPlatos, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
 import './tienda.css';
 
@@ -26,6 +27,12 @@ export function Tienda() {
   const [armando, setArmando] = useState<{ plato: Plato; linea?: LineaCarrito } | null>(null);
   const [verPedido, setVerPedido] = useState(false);
   const [aviso, setAviso] = useState('');
+  const [seguir, setSeguir] = useState<{ codigo: string; celular: string } | null | 'buscar'>(() => {
+    const c = new URLSearchParams(location.search).get('codigo');
+    return c ? 'buscar' : null;
+  });
+  const ultimo = (() => { try { return JSON.parse(localStorage.getItem(CLAVE_ULTIMO) ?? 'null') as { codigo: string; celular: string; en: number } | null; } catch { return null; } })();
+  const ultimoVigente = ultimo && Date.now() - ultimo.en < 24 * 3600e3 ? ultimo : null;
   const [carrito, setCarrito] = useGuardadoLocal<LineaCarrito[]>(`maxpizza.tienda.carrito.${sede ?? 'ninguna'}`, []);
 
   useEffect(() => { document.title = 'Max Pizza · Pide en línea'; }, []);
@@ -83,7 +90,10 @@ export function Tienda() {
     <div className="t-pagina">
       <header className="t-barra">
         <Logo alto={40} />
+        <div className="fila" style={{ gap: 8 }}>
+        <button className="t-sede" onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}>📦 {ultimoVigente ? 'Mi pedido' : 'Seguir pedido'}</button>
         {sede && <button className="t-sede" onClick={() => setCambiarSede(true)}>📍 {sedeNombre || 'Sede'} ▾</button>}
+        </div>
       </header>
 
       {error && <div className="t-error">{error}</div>}
@@ -155,11 +165,13 @@ export function Tienda() {
       {armando && <Elegir plato={armando.plato} linea={armando.linea} opciones={info.opciones} onListo={listo} onCerrar={() => setArmando(null)} />}
       {verPedido && !armando && (
         <Pedido lineas={carrito} info={info} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
-          onEnviado={(e) => { setCarrito([]); localStorage.setItem('maxpizza.tienda.ultimo', JSON.stringify({ ...e, sede, en: Date.now() })); }}
+          onSeguir={(e) => { setVerPedido(false); setSeguir({ codigo: e.codigo, celular: e.celular }); }}
+          onEnviado={(e) => { setCarrito([]); localStorage.setItem(CLAVE_ULTIMO, JSON.stringify({ ...e, sede, en: Date.now() })); }}
           onCantidad={(k, n) => setCarrito(carrito.map((l) => (l.clave === k ? { ...l, cantidad: n } : l)))}
           onQuitar={(k) => setCarrito(carrito.filter((l) => l.clave !== k))}
           onEditar={(l) => { const pl = platos.find((p) => p.id === l.plato_id); if (pl) setArmando({ plato: pl, linea: l }); }} />
       )}
+      {seguir && <Seguimiento inicial={seguir === 'buscar' ? (new URLSearchParams(location.search).get('codigo') ? { codigo: new URLSearchParams(location.search).get('codigo')!.toUpperCase(), celular: '' } : undefined) : seguir} onCerrar={() => setSeguir(null)} />}
       {aviso && <div className="t-toast">{aviso}</div>}
     </div>
   );

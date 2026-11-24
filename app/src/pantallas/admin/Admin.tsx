@@ -11,12 +11,13 @@ import { InventarioAdmin } from './InventarioAdmin';
 import { Proveedores, Compras } from './Compras';
 import { Analisis } from './Analisis';
 import { CajaAdmin } from './CajaAdmin';
+import { Domicilios } from './Domicilios';
 
-type Seccion = 'inicio' | 'equipo' | 'tareas' | 'stock' | 'compras' | 'caja' | 'sedes' | 'reglas' | 'catalogo' | 'proveedores' | 'analisis';
+type Seccion = 'inicio' | 'equipo' | 'tareas' | 'stock' | 'compras' | 'caja' | 'sedes' | 'reglas' | 'catalogo' | 'proveedores' | 'analisis' | 'domicilios';
 
 const SECCIONES: [Seccion, string, string][] = [
   ['inicio', '🏠', 'Inicio'], ['equipo', '👥', 'Equipo'], ['tareas', '☑', 'Tareas'], ['stock', '📦', 'Inventario'],
-  ['compras', '🛒', 'Compras'], ['caja', '💵', 'Caja'], ['reglas', '⚠', 'Stock bajo'], ['catalogo', '🍕', 'Catálogo'],
+  ['compras', '🛒', 'Compras'], ['caja', '💵', 'Caja'], ['domicilios', '🛵', 'Domicilios'], ['reglas', '⚠', 'Stock bajo'], ['catalogo', '🍕', 'Catálogo'],
   ['proveedores', '🚚', 'Proveedores'], ['analisis', '📊', 'Análisis'], ['sedes', '🏪', 'Sedes'],
 ];
 
@@ -52,6 +53,7 @@ export function Admin({ perfil }: { perfil: string }) {
       {seccion === 'stock' && <InventarioAdmin {...props} />}
       {seccion === 'compras' && <Compras {...props} />}
       {seccion === 'caja' && <CajaAdmin {...props} />}
+      {seccion === 'domicilios' && <Domicilios {...props} />}
       {seccion === 'reglas' && <Reglas {...props} />}
       {seccion === 'catalogo' && <Catalogo {...props} />}
       {seccion === 'proveedores' && <Proveedores {...props} />}

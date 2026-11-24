@@ -144,3 +144,15 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   Confirmar pedido · Salió · Confirmar cobro (usa el mismo `confirmar_cobro`) · Entregado · Cancelar.
 - Probado en la base real (transacción deshecha). `npm test` → 22/22.
 - Ojo: cancelar un pedido no devuelve al inventario lo de los adicionales (queda como venta). Pendiente Fase 5 y 6.
+
+## Tienda online · Fase 5 (seguimiento y domicilios) — ✅ (24 nov 2026)
+- Migración **013** (aplicada): `tienda_seguimiento(código, celular)` pública (sin el celular correcto no muestra nada),
+  historial de cada paso (también los automáticos de la cocina), `online_ajustar` (solo Administración: domiciliario,
+  notas, tarifa de domicilio mientras no esté pagado; deja auditoría).
+- Tienda: botón "📦 Seguir pedido / Mi pedido" arriba; al pedir, "Seguir mi pedido en vivo". Línea de tiempo
+  Recibido → Confirmado → En preparación → Listo → En camino (con nombre del domiciliario) → Entregado, con hora de cada paso.
+  Se actualiza sola cada 10 s. Link directo: /pedir?codigo=XXXXXX.
+- Administración → **🛵 Domicilios**: pedidos online por día y sede, estado, pagado/sin pagar, horas (llegó, salió,
+  entregado, minutos), quién lo llevó, tarifa, notas; totales, tiempo promedio y pedidos por domiciliario; "Editar".
+- `npm test` → 23/23. Probado: /pedir?codigo=ZZZZZZ consulta la base real y dice que no existe.
+- Pendiente: Fase 6 (ajustes de la tienda desde Administración: abierta/cerrada, horarios, zonas, medios, adicionales, promos).

@@ -515,3 +515,36 @@ test('Tienda · Fase 4: Caja confirma, cobra y entrega; la cocina avanza el esta
   assert.equal(await res(), 0);
   assert.equal((await b.uno(`select estado from cuentas where id = (select cuenta_id from pedidos_online where id = $1)`, [po2.id])).estado, 'anulada');
 });
+
+test('Tienda · Fase 5: el cliente sigue su pedido con código + celular; Administración ajusta la tarifa', async () => {
+  const { b, S, u } = await preparar();
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  const ham = await b.producto('Hamburguesa');
+  const r = await b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S,
+    p_lineas: JSON.stringify([{ producto_id: ham, cantidad: 1, opciones: [], nota: 'Sin cebolla' }]),
+    p_datos: JSON.stringify({ nombre: 'Ana Pérez', celular: '3001234567', entrega: 'domicilio', direccion: 'Calle 10 # 5-20', barrio: 'Centro', zona_id: info.zonas[0].id, medio: 'efectivo' }) });
+  const seguir = (c, cel) => b.uno(`select tienda_seguimiento($1, $2) as s`, [c, cel]).then((x) => x.s);
+  assert.equal(await seguir(r.codigo, '3009999999'), null, 'con otro celular no se ve');
+  let s = await seguir(r.codigo.toLowerCase(), '300 123 4567');
+  assert.equal(s.estado, 'recibido');
+  assert.deepEqual(s.lineas, [{ nombre: 'Hamburguesa', cantidad: 1, detalle: 'Sin cebolla' }]);
+
+  await b.como(u.rapidas);
+  const com = await b.uno(`select id from comandas where pedido_id = (select pedido_id from pedidos_online where codigo = $1)`, [r.codigo]);
+  await b.rpc('comanda_estado', { p_comanda: com.id, p_estado: 'en_preparacion' });
+  await b.como(u.caja);
+  const po = await b.uno(`select id from pedidos_online where codigo = $1`, [r.codigo]);
+  await assert.rejects(b.rpc('online_ajustar', { p_id: po.id, p_domiciliario: 'X', p_notas: null, p_domicilio: 0 }), /Solo Administración/);
+  await b.como(u.admin);
+  await b.rpc('online_ajustar', { p_id: po.id, p_domiciliario: 'Carlos Ruiz', p_notas: 'Cliente frecuente', p_domicilio: 0 });
+  await b.como(u.caja);
+  await b.rpc('online_estado', { p_id: po.id, p_estado: 'en_camino' });
+  await b.como(null);
+  s = await seguir(r.codigo, '3001234567');
+  assert.equal(s.estado, 'en_camino');
+  assert.equal(s.domiciliario, 'Carlos');
+  assert.equal(+s.total, 18000, 'domicilio gratis tras el ajuste');
+  assert.deepEqual(s.historial.map((h) => h.estado), ['en_preparacion', 'en_camino']);
+  assert.equal(+(await b.uno(`select total from cuentas where id = (select cuenta_id from pedidos_online where id = $1)`, [po.id])).total, 18000);
+});

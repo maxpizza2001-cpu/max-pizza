@@ -13,8 +13,8 @@ const DATOS_VACIOS: DatosCliente = { nombre: '', celular: '', entrega: 'domicili
 
 export type Enviado = { codigo: string; numero: number; total: number; celular: string; nombre: string; entrega: string };
 
-export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado }: {
-  lineas: LineaCarrito[]; info: InfoTienda; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void;
+export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
+  lineas: LineaCarrito[]; info: InfoTienda; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
   onCantidad: (clave: string, cantidad: number) => void; onEditar: (l: LineaCarrito) => void; onQuitar: (clave: string) => void; onCerrar: () => void;
 }) {
   const [paso, setPaso] = useState<'carrito' | 'datos' | 'listo'>('carrito');
@@ -166,7 +166,8 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
             <p>Pedido #{hecho.numero} · Total <b>{plata(hecho.total)}</b><br />
               {hecho.entrega === 'domicilio' ? 'Ya entró a la cocina. Te avisamos cuando salga para tu casa.' : `Te avisamos cuando esté listo para recoger en ${sedeNombre}.`}</p>
             <div className="t-info">Guarda este código: con él y tu celular podrás seguir tu pedido.</div>
-            <button className="t-btn t-btn-ancho" onClick={onCerrar}>Listo</button>
+            <button className="t-btn t-btn-ancho" onClick={() => onSeguir(hecho)}>Seguir mi pedido en vivo</button>
+            <button className="t-enlace-osc" onClick={onCerrar}>Seguir viendo el menú</button>
           </div>}
         </div>
 
