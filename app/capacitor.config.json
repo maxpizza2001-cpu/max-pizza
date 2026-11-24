@@ -1,0 +1,7 @@
+{
+  "appId": "com.maxpizza.app",
+  "appName": "Max Pizza",
+  "webDir": "dist",
+  "backgroundColor": "#000000",
+  "android": { "allowMixedContent": false }
+}
