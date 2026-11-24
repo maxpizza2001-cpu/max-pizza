@@ -16,7 +16,8 @@ Zona horaria America/Bogota · moneda COP formato `$12.000` · app en español.
 - `tests/`: pruebas de la base con PGlite (`npm test` en la raíz), cubren las 10 pruebas obligatorias.
 - Nunca poner claves en el código: `.env` (ignorado por git).
 
-## Diseño (referencia oficial: `diseno/referencias/3.jpg`)
+## Diseño (referencia: `diseno/referencias/3.jpg` · logo oficial: `diseno/logo-oficial.jpg`)
+- Logo oficial (corona + porción, "Max Pizza ¡Más sabor!") sobre fondo negro puro `#000`; recortes en `app/public/` (logo.png, icono-512/192, favicon).
 - Marfil `#F7F3EA` (fondo), negro `#141414` (barra superior, texto), mostaza `#E3A21A` (acción principal, botones de mesa, anillo).
 - Estados siempre con texto: rojo `#D9463B` · Alta, amarillo `#E3A21A` · Media, verde `#2E8B57` · Baja, `✓ Lista`.
 - Tarjetas blancas redondeadas con borde suave, números grandes, botones que dicen el resultado ("Confirmar cobro").

@@ -209,3 +209,7 @@ button, input, select, textarea { font: inherit; }
 .mesa.pagada .mesa-estado { color: var(--verde); }
 .envio { padding: 8px 0; border-top: 1px dashed var(--borde); }
 .envio:first-of-type { border-top: 0; }
+
+/* Logo oficial */
+.logo-img { display: block; width: auto; object-fit: contain; }
+.barra { background: #000; padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }

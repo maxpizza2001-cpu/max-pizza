@@ -71,7 +71,7 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
   return (
     <>
       <header className="barra">
-        <Logo size={34} />
+        <Logo alto={58} />
         <div className="barra-der">
           {area && accesos.length > 1 && (
             <button className="chip-sede" onClick={() => elegir(null)}>{area.sedeNombre} · {ROLES[area.rol]} ▾</button>

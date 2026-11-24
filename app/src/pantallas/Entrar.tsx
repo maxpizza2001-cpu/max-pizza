@@ -18,10 +18,10 @@ export function Entrar() {
   }
 
   return (
-    <div className="entrar" style={{ background: 'var(--negro)' }}>
+    <div className="entrar" style={{ background: '#000' }}>
       <div className="entrar-caja">
         <div className="entrar-logo">
-          <Logo size={72} />
+          <Logo alto={200} />
           <span style={{ color: '#BDB6A8', fontSize: 14 }}>Equipo · ingreso personal</span>
         </div>
         <form className="tarjeta pila" onSubmit={entrar} style={{ padding: 22 }}>
