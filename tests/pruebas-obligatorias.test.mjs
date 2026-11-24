@@ -360,3 +360,39 @@ test('Extra · Reposición: el área repone y su tarea queda lista; si se marca 
   assert.equal(abiertas.length, 1);
   assert.notEqual(abiertas[0].id, t.id);
 });
+
+test('Fase 4 · Administración crea usuarios con rol y sede; Caja no puede', async () => {
+  const { b, S, u } = await preparar();
+  await b.como(u.caja);
+  await assert.rejects(b.rpc('admin_crear_usuario', { p_correo: 'x@y.co', p_clave: '123456', p_nombre: 'X', p_accesos: '[]' }), /Solo Administración/);
+  await b.como(u.admin);
+  const id = await b.rpc('admin_crear_usuario', { p_correo: 'Nueva@MaxPizza.co', p_clave: 'clave123', p_nombre: 'Laura',
+    p_accesos: JSON.stringify([{ sede_id: S, rol: 'mesero' }]) });
+  const p = await b.uno(`select p.nombre, p.correo, a.rol from perfiles p join accesos_sede a on a.perfil_id = p.id where p.id = $1`, [id]);
+  assert.deepEqual(p, { nombre: 'Laura', correo: 'nueva@maxpizza.co', rol: 'mesero' });
+  await assert.rejects(b.rpc('admin_crear_usuario', { p_correo: 'nueva@maxpizza.co', p_clave: 'clave123', p_nombre: 'Otra', p_accesos: '[]' }), /Ya existe/);
+  await b.rpc('admin_activar_usuario', { p_perfil: id, p_activo: false });
+  assert.equal((await b.uno(`select activo from perfiles where id = $1`, [id])).activo, false);
+  assert.ok((await b.uno(`select banned_until from auth.users where id = $1`, [id])).banned_until);
+});
+
+test('Fase 4 · Precio editado directo por Administración deja historial; análisis cuenta uso y merma', async () => {
+  const { b, S, u } = await preparar();
+  const haw = await b.producto('Porción Hawaiana');
+  await b.como(u.admin);
+  await b.q(`update productos_sede set precio = 8000 where producto_id = $1 and sede_id = $2`, [haw, S]);
+  const h = await b.q(`select precio_ant::float, precio_nuevo::float from precios_historial where producto_id = $1 and sede_id = $2 and precio_ant is not null`, [haw, S]);
+  assert.deepEqual(h, [{ precio_ant: 7000, precio_nuevo: 8000 }]);
+  // Venta preparada y luego cancelada → merma de 2 porciones
+  await b.como(u.mesero);
+  const e = await b.rpc('enviar_pedido_mesa', { p_op: op(), p_sede: S, p_mesa: 9, p_lineas: JSON.stringify([{ producto_id: haw, cantidad: 2 }]) });
+  const [c] = await b.q(`select id from comandas where pedido_id = $1`, [e.pedido_id]);
+  await b.como(u.caja);
+  await b.rpc('comanda_estado', { p_comanda: c.id, p_estado: 'en_preparacion' });
+  await b.como(u.mesero);
+  const lp = await b.uno(`select id from lineas_pedido where pedido_id = $1`, [e.pedido_id]);
+  await b.rpc('cancelar_linea', { p_linea: lp.id, p_motivo: 'Se quemó' });
+  await b.como(u.admin);
+  const a = await b.uno(`select usado::float, merma::float, existencia::float from analisis_consumo($1, 7) where insumo = 'Porciones Hawaiana'`, [S]);
+  assert.deepEqual(a, { usado: 2, merma: 2, existencia: 14 });
+});

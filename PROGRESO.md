@@ -58,10 +58,35 @@
   ✓ Lista, 27 en stock, 2 de 3 · 67 %. Armado: ½ rueda Hawaiana (½ torta) y 2 personales (saldos separados),
   retiro de 1 L de salsa de ajo (1,9 → 2,9 L). Tortas: 20 − ½ = 19,5 → +15 = 34,5.
 
-## Siguiente: Fase 4
-Administración completa: selector de sedes, alertas primero, Sedes (＋ Nueva sede), Equipo (crear usuarios, turnos en
-vivo), Checklists, Reglas de stock bajo, Catálogo y precios, Inventario y ajustes, Proveedores, Compras, Análisis, Caja.
+## Fase 4 · Administración — ✅ hecha (23 nov 2026)
+Pantalla `app/src/pantallas/admin/` (celular y computador), selector **Todas las sedes / una sede**, 11 apartados:
+- **Inicio**: cifras (stock bajo, en turno, mesas y saldo por cobrar), **Requiere tu decisión** primero (tareas de compra,
+  alertas de stock con la tarea que se envió y a quién, reportes del equipo con Revisado / Corregir saldo), avance por área, en turno.
+- **Equipo**: en turno ahora y terminaron hoy (con duración), integrantes, ＋ Nuevo integrante (correo, clave, roles por sede),
+  cambiar roles/sedes, restablecer clave, desactivar/activar, últimos turnos y tareas terminadas por persona.
+- **Tareas (Checklists)**: avance por área y sede, detalle de quién recibió/empezó/terminó y a qué hora, ＋ Nueva tarea
+  (área o persona), editar, reasignar, archivar; plantillas por turno (agregar, prioridad, orden, pausar).
+- **Stock bajo (reglas)**: todas las reglas con saldo actual y estado, crear/editar (sede, ubicación, insumo, mínimo en L/kg,
+  área o persona, prioridad, mensaje; la acción de la tarea se pone sola), pausar/reactivar, borrar.
+- **Catálogo**: productos por categoría, crear/editar (nombre, foto, formato, estación, activo), precio y "se vende aquí" por
+  sede, receta versionada, historial de precios.
+- **Inventario**: saldos por ubicación (físico, reservado, disponible), ajustes con motivo obligatorio y "es merma",
+  movimientos con saldo antes→después (paginado y filtros), conteos reportados, insumos nuevos.
+- **Proveedores**: crear/editar, WhatsApp, días, condiciones, productos con precio e historial.
+- **Compras**: Por comprar / En camino / Recibido, faltantes agrupados por proveedor → Armar pedido, mensaje por WhatsApp,
+  marcar pedido, registrar lo que llegó (parcial), anular.
+- **Análisis**: consumo de hoy / semana / 30 días por categoría: usado, merma, existencia (y por sede).
+- **Caja**: por día: ventas registradas, pagos recibidos, saldos pendientes, gastos, por medio de pago, turnos de caja con
+  efectivo esperado, cuentas abiertas, cobros y gastos.
+- **Sedes**: ＋ Nueva sede (mesas, copia precios y reglas de otra), nombre, mesas, estaciones on/off, ubicaciones, equipo, activar/desactivar.
+- Base: migración **008** (crear usuarios por SQL seguro sin clave secreta, historial de precios automático, merma con cantidad,
+  `analisis_consumo`, permisos de compras). Aplicada en Supabase. `npm test` → 18/18.
+- **Probado en vivo** como admin: con 27 carnes de hamburguesa se subió el mínimo de 7 a 30 → al instante "Stock bajo" y
+  en Inicio "Requiere tu decisión · Tarea enviada a Producción de insumos"; se volvió a 7 → OK. Los 11 apartados cargan sin errores;
+  Caja del día cuadra ($67.000 ventas = $67.000 pagos).
+
+## Siguiente: Fase 5
+APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucciones por dispositivo, limpiar datos de prueba.
 
 ## Después
-- Fase 4: Administración completa (incluye función para crear usuarios desde la app: necesita una Edge Function con la clave service_role).
 - Fase 5: APK "Max Pizza" (Capacitor + GitHub Actions), publicación web, instrucciones por dispositivo.
