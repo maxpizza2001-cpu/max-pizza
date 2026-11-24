@@ -39,11 +39,29 @@
   base $100.000; mesero libera la mesa.
 - Datos de prueba que quedaron en la base real: esa Mesa 02 (pagada y liberada), una venta de mostrador (comanda en horno) y la base abierta.
 
-## Siguiente: Fase 3
-Nevera de Comidas rápidas (Subir a nevera con varios insumos), Armado de ruedas (ruedas, personales, retirar insumo),
-Producción de tortas y Producción de insumos (registrar producción, retiros).
+## Fase 3 · Nevera, Armado, Tortas e Insumos — ✅ hecha (23 nov 2026)
+- **Comidas rápidas · Nevera y tareas** (`Rapidas.tsx`): tarjetas "X en mi nevera · Y disponibles en Producción",
+  Subir a nevera con varios insumos en un registro (resta y suma a la vez), botón directo desde la tarea "Traer…".
+- **Armado de ruedas** (`Armado.tsx`): Ruedas (sabor, ½ = 4 / 1 = 8 porciones, tortas grandes reales con medias),
+  Pizzas personales (saldo aparte, tortas pequeñas), Retirar insumo de Producción, Mis tareas ("Armar Hawaiana" →
+  Empezar → Registrar rueda).
+- **Producción de tortas** (`Produccion.tsx`): monjes, grandes y pequeñas con mínimos, bases de las otras sedes, registro.
+- **Producción de insumos** (`Produccion.tsx`): Mis tareas (Empezar → Marcar lista pide la cantidad real), Stock con
+  mínimos y "Registrar", retiros de otras áreas (quién, cuánto, a qué hora), insumos usados opcionales.
+- Líquidos se escriben en litros y pesos en kilos (se guardan en ml y g).
+- Base: migración **006** (la tarea de reposición queda lista cuando el área repone; si se marca lista con stock bajo,
+  nace otra) y **007** (tiempo real para reglas). Aplicadas en Supabase. `npm test` → 16/16.
+- Arreglo: el tiempo real se escucha por tabla (antes, una tabla sin tiempo real apagaba los avisos de la pantalla)
+  y cada pantalla se refresca al instante tras guardar.
+- **Probado en vivo**: nevera sube 5 de hamburguesa + 20 de res en un registro → Producción queda en 7 → a Insumos le
+  llega sola "Preparar carne de hamburguesa · Quedan 7" (1 de 2 → 1 de 3 · 33 %) → Empezar → Marcar lista → 20 →
+  ✓ Lista, 27 en stock, 2 de 3 · 67 %. Armado: ½ rueda Hawaiana (½ torta) y 2 personales (saldos separados),
+  retiro de 1 L de salsa de ajo (1,9 → 2,9 L). Tortas: 20 − ½ = 19,5 → +15 = 34,5.
+
+## Siguiente: Fase 4
+Administración completa: selector de sedes, alertas primero, Sedes (＋ Nueva sede), Equipo (crear usuarios, turnos en
+vivo), Checklists, Reglas de stock bajo, Catálogo y precios, Inventario y ajustes, Proveedores, Compras, Análisis, Caja.
 
 ## Después
-- Fase 3: Nevera, Armado, Tortas, Insumos.
 - Fase 4: Administración completa (incluye función para crear usuarios desde la app: necesita una Edge Function con la clave service_role).
 - Fase 5: APK "Max Pizza" (Capacitor + GitHub Actions), publicación web, instrucciones por dispositivo.

@@ -9,6 +9,8 @@ import { Entrar } from './pantallas/Entrar';
 import { Caja } from './pantallas/Caja';
 import { Mesero } from './pantallas/Mesero';
 import { Rapidas } from './pantallas/Rapidas';
+import { Armado } from './pantallas/Armado';
+import { Insumos, Tortas } from './pantallas/Produccion';
 
 type Acceso = { sede_id: string; rol: string; sedes: { nombre: string } | null };
 type Area = { sede: string; sedeNombre: string; rol: string };
@@ -96,6 +98,9 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
       ) : area.rol === 'caja' ? <Caja key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'mesero' ? <Mesero key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'rapidas' ? <Rapidas key={area.sede} sede={area.sede} perfil={perfil} />
+        : area.rol === 'armado' ? <Armado key={area.sede} sede={area.sede} perfil={perfil} />
+        : area.rol === 'tortas' ? <Tortas key={area.sede} sede={area.sede} perfil={perfil} />
+        : area.rol === 'insumos' ? <Insumos key={area.sede} sede={area.sede} perfil={perfil} />
         : (
         <main className="contenido pila" style={{ maxWidth: 640 }}>
           <h1>{ROLES[area.rol]}</h1>

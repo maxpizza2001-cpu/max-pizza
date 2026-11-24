@@ -213,3 +213,24 @@ button, input, select, textarea { font: inherit; }
 /* Logo oficial */
 .logo-img { display: block; width: auto; object-fit: contain; }
 .barra { background: #000; padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
+
+/* ───── Fase 3: inventario ───── */
+.rejilla-saldos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.rejilla-saldos.tres { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 420px) { .rejilla-saldos.tres { grid-template-columns: 1fr 1fr; } }
+.saldo { display: grid; gap: 4px; align-content: start; }
+.saldo.bajo { border-color: var(--rojo); border-width: 2px; }
+.saldo-num { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 26px; line-height: 1.1; }
+.fila-insumo { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--borde); border-radius: 14px; background: var(--blanco); }
+.fila-insumo select, .fila-insumo input {
+  border: 1px solid var(--borde); border-radius: 10px; padding: 11px 12px; font-size: 16px; background: var(--blanco); outline: none; width: 100%;
+}
+.fila-insumo input { width: 120px; }
+.opcion {
+  flex: 1; display: grid; gap: 2px; padding: 14px; border-radius: 16px; cursor: pointer; text-align: center;
+  border: 2px solid var(--borde); background: var(--blanco); font-size: 15px;
+}
+.opcion b { font-family: 'Montserrat', sans-serif; font-size: 20px; }
+.opcion span { color: var(--gris); font-weight: 700; font-size: 13px; }
+.opcion.activa { border-color: var(--mostaza); background: #FCEFD2; }
+details summary { list-style: none; }

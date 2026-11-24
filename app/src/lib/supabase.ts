@@ -16,6 +16,8 @@ export const nuevaOperacion = () => crypto.randomUUID();
 export async function rpc<T = unknown>(fn: string, args: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await sb.rpc(fn, args);
   if (error) throw new Error(traducirError(error.message));
+  // Esta pantalla se refresca al instante (las demás se enteran por tiempo real)
+  window.dispatchEvent(new Event('mp:cambio'));
   return data as T;
 }
 

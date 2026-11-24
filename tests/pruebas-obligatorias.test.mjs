@@ -339,3 +339,24 @@ test('Extra · Turnos, base de caja y gastos: efectivo esperado', async () => {
   await b.rpc('finalizar_turno', {});
   assert.ok((await b.uno(`select fin from turnos where perfil_id = $1`, [u.caja])).fin);
 });
+
+test('Extra · Reposición: el área repone y su tarea queda lista; si se marca lista con stock bajo, nace otra', async () => {
+  const { b, S, u } = await preparar();
+  const haw = await b.insumo('porc_hawaiana');
+  await b.como(u.admin);
+  await b.rpc('ajustar_stock', { p_op: op(), p_sede: S, p_ubicacion: 'armado', p_insumo: haw, p_nuevo: 4, p_motivo: 'Prueba' });
+  let [t] = await b.tareasAbiertas(S, 'armado', 'Armar Hawaiana');
+  await b.como(u.armado);
+  await b.rpc('tarea_empezar', { p_tarea: t.id });
+  await b.rpc('registrar_armado', { p_op: op(), p_sede: S, p_tipo: 'rueda', p_resultado: haw, p_cantidad: 8, p_tortas: 1 });
+  assert.equal((await b.uno(`select estado, terminada_por from tareas where id = $1`, [t.id])).estado, 'lista');
+  // Marcar lista a mano con stock bajo: la necesidad sigue visible
+  await b.como(u.admin);
+  await b.rpc('ajustar_stock', { p_op: op(), p_sede: S, p_ubicacion: 'armado', p_insumo: haw, p_nuevo: 3, p_motivo: 'Prueba' });
+  [t] = await b.tareasAbiertas(S, 'armado', 'Armar Hawaiana');
+  await b.como(u.armado);
+  await b.rpc('tarea_completar', { p_tarea: t.id });
+  const abiertas = await b.tareasAbiertas(S, 'armado', 'Armar Hawaiana');
+  assert.equal(abiertas.length, 1);
+  assert.notEqual(abiertas[0].id, t.id);
+});

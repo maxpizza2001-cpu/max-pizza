@@ -26,19 +26,21 @@ export function useEnVivo(nombre: string, tablas: { tabla: string; filtro?: stri
   useEffect(() => {
     let t: ReturnType<typeof setTimeout> | undefined;
     const pronto = () => { clearTimeout(t); t = setTimeout(() => ref.current(), 150); };
-    let canal = sb.channel(`${nombre}-${Math.random().toString(36).slice(2)}`);
-    for (const { tabla, filtro } of tablas) {
-      canal = canal.on('postgres_changes', { event: '*', schema: 'public', table: tabla, ...(filtro ? { filter: filtro } : {}) }, pronto);
-    }
-    canal.subscribe((estado) => { if (estado === 'SUBSCRIBED') pronto(); });
+    // Un canal por tabla: si una tabla no tiene tiempo real, las demás siguen avisando
+    const canales = tablas.map(({ tabla, filtro }) =>
+      sb.channel(`${nombre}-${tabla}-${Math.random().toString(36).slice(2)}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: tabla, ...(filtro ? { filter: filtro } : {}) }, pronto)
+        .subscribe((estado) => { if (estado === 'SUBSCRIBED') pronto(); }));
     const alVolver = () => { if (document.visibilityState === 'visible') pronto(); };
     document.addEventListener('visibilitychange', alVolver);
     window.addEventListener('online', pronto);
+    window.addEventListener('mp:cambio', pronto);
     return () => {
       clearTimeout(t);
-      sb.removeChannel(canal);
+      canales.forEach((c) => sb.removeChannel(c));
       document.removeEventListener('visibilitychange', alVolver);
       window.removeEventListener('online', pronto);
+      window.removeEventListener('mp:cambio', pronto);
     };
   }, [nombre, clave]);
 }

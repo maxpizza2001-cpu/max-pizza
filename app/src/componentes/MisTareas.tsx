@@ -9,11 +9,23 @@ export type Tarea = {
   tomada_en: string | null; terminada_en: string | null;
 };
 
+/** "Quedan 7 porcion · mínimo 7" → "Quedan 7 porciones · mínimo 7"; 1500 ml → 1,5 L */
+const bonito = (d: string) => d
+  .replace(/(\d+(?:\.\d+)?) porcion\b/g, (_, n) => `${n} ${n === '1' ? 'porción' : 'porciones'}`)
+  .replace(/(\d+(?:\.\d+)?) (ml|g)\b/g, (x, n, u) =>
+    (Number(n) >= 1000 ? `${(Number(n) / 1000).toLocaleString('es-CO')} ${u === 'ml' ? 'L' : 'kg'}` : x))
+  .replace(/(\d+(?:\.\d+)?) torta\b/g, (_, n) => `${n} ${n === '1' ? 'torta' : 'tortas'}`);
+
 const ordenPrioridad = { alta: 0, media: 1, baja: 2 } as const;
 const ordenEstado = { en_proceso: 0, pendiente: 1, lista: 2, archivada: 3 } as const;
 
-/** Botón vinculado a la operación de la tarea (ej. Registrar base). Se completa sola al guardar la operación. */
-export const TEXTO_ACCION: Record<string, string> = { registrar_base: 'Registrar base', portapizzas: 'Armar portapizzas' };
+/** Botón vinculado a la operación de la tarea. 'despues' = primero Empezar y luego la operación (ej. producción). */
+const ACCIONES: [string, string, boolean][] = [
+  ['registrar_base', 'Registrar base', false], ['portapizzas', 'Armar portapizzas', false],
+  ['subir_nevera:', 'Subir a nevera', false], ['retirar:', 'Retirar insumo', false],
+  ['rueda:', 'Registrar rueda', true], ['tortas', 'Registrar tortas', true], ['produccion:', 'Marcar lista', true],
+];
+export const accionDe = (a: string | null) => (a ? ACCIONES.find(([p]) => a === p || (p.endsWith(':') && a.startsWith(p))) : undefined);
 
 /** Checklist personal con su gráfica. Se actualiza en vivo cuando entra o cambia una tarea. */
 export function MisTareas({ sede, rol, perfil, compacto = false, onAccion }: {
@@ -59,7 +71,7 @@ export function MisTareas({ sede, rol, perfil, compacto = false, onAccion }: {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="tarea-titulo">{t.titulo}</div>
               <div className="texto-sec" style={{ fontSize: 13 }}>
-                {t.detalle ?? (t.origen === 'automatica' ? 'Automática' : '')}
+                {t.detalle ? bonito(t.detalle) : (t.origen === 'automatica' ? 'Automática' : '')}
                 {t.estado === 'en_proceso' && ` · Empezó ${hora(t.tomada_en)}`}
                 {t.estado === 'lista' && ` · Lista ${hora(t.terminada_en)}`}
               </div>
@@ -70,8 +82,8 @@ export function MisTareas({ sede, rol, perfil, compacto = false, onAccion }: {
             ) : (
               <>
                 <span className={`estado estado-${t.prioridad}`}>● {PRIORIDAD[t.prioridad]}</span>
-                {onAccion && t.accion && TEXTO_ACCION[t.accion]
-                  ? <button className="btn btn-principal" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => onAccion(t.accion!, t)}>{TEXTO_ACCION[t.accion]}</button>
+                {onAccion && accionDe(t.accion) && !(accionDe(t.accion)![2] && t.estado === 'pendiente')
+                  ? <button className="btn btn-principal" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => onAccion(t.accion!, t)}>{accionDe(t.accion)![1]}</button>
                   : t.estado === 'pendiente'
                   ? <button className="btn btn-suave" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => accion('tarea_empezar', t.id)}>Empezar</button>
                   : <button className="btn btn-principal" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => accion('tarea_completar', t.id)}>Marcar lista</button>}
