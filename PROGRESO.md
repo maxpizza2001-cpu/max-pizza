@@ -97,4 +97,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   **Releases** (la última = "Latest"). Secretos puestos: VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.
   Versión 1 salió sin claves (no usar); **versión 2** ya conectada.
 - Subir cambios: el dueño corre `git push` (el modo automático no deja a Claude subir código).
-- Pendiente: web en Vercel (cuenta nueva) y limpiar datos de prueba antes de arrancar con el equipo real.
+- **Web en Vercel** (cuenta maxpizza2001-cpu, carpeta `app`, 2 variables VITE_): https://max-pizza-roan.vercel.app — se actualiza sola con cada `git push`.
+- Pendiente: limpiar datos de prueba antes de arrancar con el equipo real; revisar "pedido de prueba no aparece en la comanda".
+
+## Tienda online · Fase 1 (portada y menú) — ✅ (24 nov 2026)
+- Plan aprobado: la tienda usa el MISMO catálogo y, desde la Fase 3, el MISMO motor de pedidos (`crear_envio`). Se mantiene Vite + React (no Next.js) para no reconstruir.
+- Ruta pública **/pedir** (sin cuenta): escoger sede (se recuerda), **portada giratoria** (pizzas montadas en una rueda que gira sola y al deslizar; cada pizza gira sobre sí), menú por categorías con precios de esa sede. Sin foto → pizza dibujada según el sabor.
+- Migración **009** (aplicada en Supabase): `productos.descripcion`, `productos.destacado` (★ portada), `productos_sede.online`, funciones públicas `tienda_sedes` / `tienda_catalogo` (el público no lee tablas), carpeta de fotos `productos` en Storage (solo admin sube).
+- Administración → Catálogo: descripción, 📷 Subir foto, ★ portada, "En la tienda online" por sede.
+- `vite base '/'` + rewrites en `vercel.json` para que /pedir funcione en Vercel. `npm test` → 19/19. App interna verificada igual.
+- Siguiente: Fase 2 (personalización, carrito, checkout).

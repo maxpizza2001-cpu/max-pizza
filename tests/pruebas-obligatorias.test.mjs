@@ -396,3 +396,20 @@ test('Fase 4 · Precio editado directo por Administración deja historial; anál
   const a = await b.uno(`select usado::float, merma::float, existencia::float from analisis_consumo($1, 7) where insumo = 'Porciones Hawaiana'`, [S]);
   assert.deepEqual(a, { usado: 2, merma: 2, existencia: 14 });
 });
+
+test('Tienda · Fase 1: el menú público sale del mismo catálogo, por sede, y respeta "se vende online"', async () => {
+  const { b, S, u } = await preparar();
+  const R = b.sedes['El Refugio'];
+  await b.como(null);   // cliente sin cuenta
+  const sedes = await b.q(`select nombre from tienda_sedes()`);
+  assert.deepEqual(sedes.map((s) => s.nombre).sort(), ['El Refugio', 'Sede Principal']);
+  const menu = await b.q(`select nombre, precio::float from tienda_catalogo($1)`, [S]);
+  assert.equal(menu.length, 16);
+  const haw = await b.producto('Porción Hawaiana');
+  await b.como(u.admin);
+  await b.q(`update productos_sede set online = false where producto_id = $1 and sede_id = $2`, [haw, S]);
+  await b.q(`update productos_sede set precio = 9000 where producto_id = $1 and sede_id = $2`, [haw, R]);
+  await b.como(null);
+  assert.equal((await b.q(`select 1 from tienda_catalogo($1) where id = $2`, [S, haw])).length, 0);
+  assert.equal((await b.uno(`select precio::float from tienda_catalogo($1) where id = $2`, [R, haw])).precio, 9000);
+});

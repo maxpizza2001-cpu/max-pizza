@@ -19,7 +19,7 @@
 - Todo lo de las 8 pantallas funciona con **Supabase** (base de datos, cuentas y tiempo real). Sin internet la app guarda
   borradores de pedidos y avisa "Pendiente de envío".
 - **APK:** la arma GitHub automáticamente en cada cambio (necesita los secretos `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`).
-- **Web:** publicada en Vercel (carpeta `app`, mismas dos variables).
+- **Web:** https://max-pizza-roan.vercel.app (Vercel, carpeta `app`, mismas dos variables).
 - **WhatsApp a proveedores:** abre WhatsApp con el mensaje armado; el envío lo hace la persona.
 
 ## Cuentas de prueba

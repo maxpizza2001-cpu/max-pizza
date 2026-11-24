@@ -13,8 +13,8 @@ export function Catalogo({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
   const { datos } = useConsulta('catalogo', async () => {
     const [cats, prods, precios] = await Promise.all([
       q<any[]>(sb.from('categorias').select('id, nombre, tipo').order('orden')),
-      q<any[]>(sb.from('productos').select('id, nombre, categoria_id, formato, estacion, activo, foto_url').order('nombre')),
-      q<any[]>(sb.from('productos_sede').select('producto_id, sede_id, precio, disponible')),
+      q<any[]>(sb.from('productos').select('id, nombre, categoria_id, formato, estacion, activo, foto_url, destacado').order('nombre')),
+      q<any[]>(sb.from('productos_sede').select('producto_id, sede_id, precio, disponible, online')),
     ]);
     return { cats, prods, precios };
   }, []);
@@ -31,6 +31,8 @@ export function Catalogo({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
             return (
               <button key={p.id} className="fila entre linea fila-boton" onClick={() => setEditar(p.id)} style={{ opacity: p.activo ? 1 : 0.5 }}>
                 <span><b>{p.nombre}</b> <span className="texto-sec">· {FORMATOS[p.formato]} · {ESTACIONES[p.estacion].split(' (')[0]}</span>
+                  {p.destacado && <span className="estado estado-lista"> ★ Portada</span>}
+                  {ps && !ps.online && <span className="estado estado-proceso"> No sale en la tienda</span>}
                   {!p.activo && <span className="estado estado-proceso"> Desactivado</span>}
                   {ps && !ps.disponible && <span className="estado estado-alta"> No disponible aquí</span>}</span>
                 <b>{ps ? plata(ps.precio) : '—'}</b>
@@ -50,7 +52,7 @@ function EditarProducto({ id, cats, sedes, onCerrar }: { id: string | null; cats
     if (!id) return null;
     const [p, ps, rec, hist] = await Promise.all([
       q<any>(sb.from('productos').select('*').eq('id', id).single()),
-      q<any[]>(sb.from('productos_sede').select('sede_id, precio, disponible').eq('producto_id', id)),
+      q<any[]>(sb.from('productos_sede').select('sede_id, precio, disponible, online').eq('producto_id', id)),
       q<any[]>(sb.from('recetas').select('id, version, receta_detalles(insumo_id, cantidad, ubicacion)').eq('producto_id', id).eq('vigente', true)),
       q<any[]>(sb.from('precios_historial').select('sede_id, precio_ant, precio_nuevo, creado_en, perfiles(nombre)').eq('producto_id', id).order('creado_en', { ascending: false }).limit(10)),
     ]);
@@ -67,20 +69,33 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
   const [f, setF] = useState({
     nombre: p?.nombre ?? '', categoria_id: p?.categoria_id ?? cats[0]?.id, formato: p?.formato ?? 'unidad',
     estacion: p?.estacion ?? 'rapidas', foto_url: p?.foto_url ?? '', activo: p?.activo ?? true,
+    descripcion: p?.descripcion ?? '', destacado: p?.destacado ?? false,
   });
-  const [precios, setPrecios] = useState<Record<string, { precio: string; disponible: boolean }>>(() =>
+  const [precios, setPrecios] = useState<Record<string, { precio: string; disponible: boolean; online: boolean }>>(() =>
     Object.fromEntries(sedes.map((s: Sede) => {
       const x = datos?.ps.find((y: any) => y.sede_id === s.id);
-      return [s.id, { precio: x ? String(Number(x.precio)) : '', disponible: x ? x.disponible : true }];
+      return [s.id, { precio: x ? String(Number(x.precio)) : '', disponible: x ? x.disponible : true, online: x ? x.online : true }];
     })));
   const [receta, setReceta] = useState<{ insumo_id: string; cantidad: string; ubicacion: string }[]>(
     () => datos?.rec?.receta_detalles?.map((d: any) => ({ insumo_id: d.insumo_id, cantidad: String(Number(d.cantidad)), ubicacion: d.ubicacion })) ?? []);
   const recetaOriginal = JSON.stringify(datos?.rec?.receta_detalles?.map((d: any) => [d.insumo_id, Number(d.cantidad), d.ubicacion]) ?? []);
 
+  const [subiendo, setSubiendo] = useState(false);
+  async function subirFoto(archivo: File) {
+    setSubiendo(true);
+    try {
+      const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase();
+      const ruta = `${crypto.randomUUID()}.${ext}`;
+      const { error } = await sb.storage.from('productos').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+      if (error) throw new Error('No se pudo subir la foto: ' + error.message);
+      setF((x) => ({ ...x, foto_url: sb.storage.from('productos').getPublicUrl(ruta).data.publicUrl }));
+    } catch (e) { aviso.error(e); } finally { setSubiendo(false); }
+  }
+
   async function guardarTodo() {
     try {
       let pid = id;
-      const fila = { ...f, nombre: f.nombre.trim(), foto_url: f.foto_url.trim() || null };
+      const fila = { ...f, nombre: f.nombre.trim(), foto_url: f.foto_url.trim() || null, descripcion: f.descripcion.trim() || null };
       if (id) await guardar(sb.from('productos').update(fila).eq('id', id));
       else {
         const { data, error } = await sb.from('productos').insert(fila).select('id').single();
@@ -90,9 +105,9 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
       for (const s of sedes as Sede[]) {
         const v = precios[s.id]; if (!v || v.precio === '') continue;
         const antes = datos?.ps.find((y: any) => y.sede_id === s.id);
-        if (!antes) await guardar(sb.from('productos_sede').insert({ producto_id: pid, sede_id: s.id, precio: Number(v.precio), disponible: v.disponible }));
-        else if (Number(antes.precio) !== Number(v.precio) || antes.disponible !== v.disponible)
-          await guardar(sb.from('productos_sede').update({ precio: Number(v.precio), disponible: v.disponible }).eq('producto_id', pid).eq('sede_id', s.id));
+        if (!antes) await guardar(sb.from('productos_sede').insert({ producto_id: pid, sede_id: s.id, precio: Number(v.precio), disponible: v.disponible, online: v.online }));
+        else if (Number(antes.precio) !== Number(v.precio) || antes.disponible !== v.disponible || antes.online !== v.online)
+          await guardar(sb.from('productos_sede').update({ precio: Number(v.precio), disponible: v.disponible, online: v.online }).eq('producto_id', pid).eq('sede_id', s.id));
       }
       const nueva = receta.filter((r) => r.insumo_id && Number(r.cantidad) > 0);
       if (JSON.stringify(nueva.map((r) => [r.insumo_id, Number(r.cantidad), r.ubicacion])) !== recetaOriginal && nueva.length)
@@ -118,7 +133,16 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
           <div className="campo" style={{ flex: 1 }}><label>Estación que lo prepara</label>
             <select value={f.estacion} onChange={(e) => setF({ ...f, estacion: e.target.value })}>{Object.entries(ESTACIONES).map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
         </div>
-        <div className="campo"><label>Foto (enlace a una imagen, opcional)</label><input placeholder="https://…" value={f.foto_url} onChange={(e) => setF({ ...f, foto_url: e.target.value })} /></div>
+        <div className="campo"><label>Descripción (la ve el cliente en la tienda)</label>
+          <textarea rows={2} placeholder="Ej. Jamón, piña y mucho queso" value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} /></div>
+        <div className="fila envolver" style={{ gap: 12, alignItems: 'end' }}>
+          {f.foto_url && <img src={f.foto_url} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', background: '#000' }} />}
+          <div className="campo" style={{ flex: 1, minWidth: 200 }}><label>Foto (sube una o pega un enlace)</label>
+            <input placeholder="https://…" value={f.foto_url} onChange={(e) => setF({ ...f, foto_url: e.target.value })} /></div>
+          <label className="btn">{subiendo ? 'Subiendo…' : '📷 Subir foto'}
+            <input type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && subirFoto(e.target.files[0])} /></label>
+        </div>
+        <label className="fila" style={{ gap: 8, fontWeight: 700 }}><input type="checkbox" checked={f.destacado} onChange={(e) => setF({ ...f, destacado: e.target.checked })} /> ★ Mostrar en la portada giratoria de la tienda online</label>
 
         <b>Precio y disponibilidad por sede</b>
         {(sedes as Sede[]).map((s) => (
@@ -128,6 +152,8 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
               onChange={(e) => setPrecios({ ...precios, [s.id]: { ...precios[s.id], precio: e.target.value.replace(/\D/g, '') } })} />
             <label className="fila" style={{ gap: 6 }}><input type="checkbox" checked={precios[s.id]?.disponible ?? true}
               onChange={(e) => setPrecios({ ...precios, [s.id]: { ...precios[s.id], disponible: e.target.checked } })} /> Se vende aquí</label>
+            <label className="fila" style={{ gap: 6 }}><input type="checkbox" checked={precios[s.id]?.online ?? true}
+              onChange={(e) => setPrecios({ ...precios, [s.id]: { ...precios[s.id], online: e.target.checked } })} /> En la tienda online</label>
           </div>
         ))}
 
