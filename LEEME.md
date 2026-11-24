@@ -14,13 +14,13 @@ Proyecto **aparte de Kairos** (otra carpeta, otra base de datos, otro repositori
 | `supabase/cuentas-prueba.sql` | Crea una cuenta de prueba por rol |
 
 ## Base de datos conectada
-- Proyecto de Supabase: **Max pizza** (ref , São Paulo). Ya tiene las 5 migraciones aplicadas.
--  tiene la URL y la clave pública (anon). La clave secreta service_role **no se usa**.
-- Proyecto nuevo desde cero: pegar  completo en SQL Editor → Run, y luego .
+- Proyecto de Supabase: **Max pizza** (ref `mwrhuevxnzhxhcrfgwpn`, São Paulo). Ya tiene las 5 migraciones aplicadas.
+- `app/.env` tiene la URL y la clave pública (anon). La clave secreta service_role **no se usa**.
+- Proyecto nuevo desde cero: pegar `supabase/PEGAR-EN-SUPABASE.sql` completo en SQL Editor → Run, y luego `supabase/cuentas-prueba.sql`.
 
 ## Cuentas de prueba
-, , , , , ,  — cada una con su rol en las dos sedes.
-La clave de prueba está en  (cámbiala antes de usar la app con el equipo real).
+`admin@`, `caja@`, `mesero@`, `rapidas@`, `armado@`, `tortas@`, `insumos@maxpizza.test`: cada una con su rol en las dos sedes.
+La clave de prueba está en `supabase/cuentas-prueba.sql` (cámbiala antes de usar la app con el equipo real).
 
 ## Probar
 - Base de datos: `npm test` (en la carpeta `max-pizza`).
