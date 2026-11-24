@@ -15,8 +15,10 @@
 - **App** (`app/`): marca Max Pizza (logo corona+porción, marfil/negro/mostaza), entrada con correo y clave,
   selección de sede y rol, **Mi turno** (iniciar/finalizar) y **Mis tareas** con anillo de progreso en vivo.
 
-## Falta para conectar
-- El dueño crea el proyecto de Supabase y corre los 4 SQL (ver LEEME). Luego `scripts/crear-cuentas-prueba.mjs`.
+## Conexión — ✅ hecha (23 nov 2026)
+- Supabase "Max pizza" (ref mwrhuevxnzhxhcrfgwpn) con las migraciones 001–005 y 7 cuentas de prueba (supabase/cuentas-prueba.sql).
+- 005 da permisos de API (los proyectos nuevos de Supabase no exponen tablas solas).
+- Verificado en la app: entrar con insumos@, elegir sede, iniciar turno, tareas de plantilla, Empezar → ✓ Lista, anillo 1 de 2 · 50 %.
 
 ## Siguiente: Fase 2
 Caja (Por cobrar, Venta rápida, Nuevo pedido, Pizzas por hornear, Base/Gastos), Mesero (Mesas, Stock) y
