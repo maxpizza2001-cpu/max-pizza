@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { plata } from '../lib/formato';
 import { ImagenProducto } from './Dibujos';
-import type { ProductoTienda } from './Tienda';
+import type { Plato } from './modelo';
 
 const PASO = 34;        // grados entre una pizza y la siguiente
 const RADIO = 430;      // radio de la rueda (px)
 const GRADOS_POR_PX = 0.13;
 
-export function Rueda({ items, onElegir }: { items: ProductoTienda[]; onElegir: (p: ProductoTienda) => void }) {
+export function Rueda({ items, onElegir }: { items: Plato[]; onElegir: (p: Plato) => void }) {
   // Con pocos productos se repiten, para que la rueda siempre se vea llena
   const lista = items.length >= 8 ? items : Array.from({ length: Math.ceil(8 / Math.max(items.length, 1)) }, () => items).flat();
   const n = lista.length;

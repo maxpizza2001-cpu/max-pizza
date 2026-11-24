@@ -107,3 +107,15 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Administración → Catálogo: descripción, 📷 Subir foto, ★ portada, "En la tienda online" por sede.
 - `vite base '/'` + rewrites en `vercel.json` para que /pedir funcione en Vercel. `npm test` → 19/19. App interna verificada igual.
 - Siguiente: Fase 2 (personalización, carrito, checkout).
+
+## Tienda online · Fase 2 (personalización, carrito, checkout) — ✅ (24 nov 2026)
+- Tamaños sin tabla nueva: "Porción X" y "Personal X" del catálogo se muestran como **Pizza X** con selector de tamaño.
+- Migración **010** (aplicada): `producto_opciones` (adicionales con precio extra y el insumo que gastan, para la Fase 4),
+  `tienda_ajustes` por sede (abierta, pedido mínimo, medios de pago, Nequi/cuenta, horario, domicilio/recoger),
+  `zonas_domicilio` con tarifa (ejemplos: Cerca $3.000, Media $5.000, Lejos $7.000), función pública `tienda_info`.
+- Tienda: ventana del producto (tamaño, adicionales, "¿Algo especial?", cantidad, precio en vivo), barra "Ver mi pedido",
+  carrito (cambiar cantidad, Modificar, Quitar) guardado en el teléfono por sede, checkout en 3 pasos: datos, domicilio/recoger,
+  zona con tarifa, medio de pago, efectivo con vueltas, comprobante para Nequi/transferencia, validaciones y pedido mínimo.
+- El botón final aún NO envía el pedido (dice "muy pronto"): eso es la Fase 3.
+- Probado en celular: Hawaiana personal + extra queso × 2 = $38.000, salchipapa $14.000, recargar conserva $52.000,
+  zona Media +$5.000 = $57.000, paga con $60.000 → vueltas $3.000. `npm test` → 20/20.

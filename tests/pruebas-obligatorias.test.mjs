@@ -413,3 +413,16 @@ test('Tienda · Fase 1: el menú público sale del mismo catálogo, por sede, y 
   assert.equal((await b.q(`select 1 from tienda_catalogo($1) where id = $2`, [S, haw])).length, 0);
   assert.equal((await b.uno(`select precio::float from tienda_catalogo($1) where id = $2`, [R, haw])).precio, 9000);
 });
+
+test('Tienda · Fase 2: ajustes, zonas y adicionales por sede, públicos y de solo lectura', async () => {
+  const { b, S } = await preparar();
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  assert.equal(info.ajustes.abierta, true);
+  assert.deepEqual(info.ajustes.medios, ['efectivo', 'nequi', 'transferencia']);
+  assert.equal(info.zonas.length, 3);
+  const ham = await b.producto('Hamburguesa');
+  assert.deepEqual(info.opciones.filter((o) => o.producto_id === ham).map((o) => o.nombre), ['Doble carne', 'Extra queso', 'Porción extra de papas']);
+  const pers = await b.producto('Personal Hawaiana');
+  assert.equal(info.opciones.find((o) => o.producto_id === pers).nombre, 'Extra queso');
+});
