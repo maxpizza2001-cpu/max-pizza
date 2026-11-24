@@ -5,6 +5,7 @@ import { pitar, useCatalogo, useComandas, useEnVivo, useGuardado, type LineaCarr
 import { MedioPago, Productos, Resumen, TarjetaComanda, totalCarrito, Ventana } from '../componentes/Piezas';
 import { MisTareas } from '../componentes/MisTareas';
 import { MiTurno } from '../componentes/MiTurno';
+import { PedidosOnline } from '../componentes/PedidosOnline';
 
 type PorCobrar = { cuenta_id: string; mesa: number; total: number; pagado: number; saldo: number };
 type Venta = { lineas: LineaCarrito[]; op: string; tipo: 'mostrador' | 'llevar'; medio: string };
@@ -68,6 +69,7 @@ export function Caja({ sede, perfil }: { sede: string; perfil: string }) {
 
       <div className="caja-columnas">
         <section className="pila">
+          <PedidosOnline sede={sede} />
           <div className="tarjeta">
             <h2 style={{ marginBottom: 12 }}>Por cobrar</h2>
             {porCobrar.length === 0 && <div className="texto-sec">No hay mesas con saldo pendiente.</div>}

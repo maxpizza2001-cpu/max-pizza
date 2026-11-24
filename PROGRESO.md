@@ -133,3 +133,14 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Probado en la base real como cliente sin cuenta (dentro de una transacción deshecha): código BAWBHT, $18.000 + $3.000.
   `npm test` → 21/21.
 - Pendiente: Fase 4 (Caja ve y cobra los online; adicionales descuentan su insumo), Fase 5 (seguimiento y domicilios), Fase 6.
+
+## Tienda online · Fase 4 (Caja maneja los pedidos online) — ✅ (24 nov 2026)
+- Migración **012** (aplicada): `online_estado` (Caja confirma, "Salió" con domiciliario, Entregado, Cancelar con motivo
+  → libera reservas y anula la cuenta; solo avanza, nunca devuelve), `online_comprobante` (✓ llegó / ✗ no llegó),
+  disparador: cuando el horno o la tablet empiezan → "En preparación"; todas listas → "Listo" (solo hacia adelante),
+  `descontar_adicionales`: cada adicional descuenta su insumo al pedir (ej. Doble carne −1 carne). Tiempo real en `pedidos_online`.
+- Caja: tarjeta **🛵 Pedidos online** arriba de "Por cobrar", con pito al llegar uno nuevo, estado con texto, "revisar pago".
+  Al abrir: cliente (llamar / WhatsApp), dirección, productos con notas en rojo, vueltas, comprobante, y botones
+  Confirmar pedido · Salió · Confirmar cobro (usa el mismo `confirmar_cobro`) · Entregado · Cancelar.
+- Probado en la base real (transacción deshecha). `npm test` → 22/22.
+- Ojo: cancelar un pedido no devuelve al inventario lo de los adicionales (queda como venta). Pendiente Fase 5 y 6.

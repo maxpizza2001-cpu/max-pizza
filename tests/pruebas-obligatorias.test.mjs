@@ -467,3 +467,51 @@ test('Tienda · Fase 3: el pedido online entra al mismo motor, precio del servid
   const vistos = await b.q(`select 1 from pedidos_online where puede_ver_sede(sede_id)`);
   assert.equal(vistos.length, 0, "un cliente no ve pedidos de otros");
 });
+
+test('Tienda · Fase 4: Caja confirma, cobra y entrega; la cocina avanza el estado; adicionales descuentan; cancelar libera', async () => {
+  const { b, S, u } = await preparar();
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  const pers = await b.producto('Personal Hawaiana');
+  const queso = info.opciones.find((o) => o.producto_id === pers).id;
+  const zona = info.zonas[0].id;
+  const datos = { nombre: 'Ana Pérez', celular: '3001234567', entrega: 'domicilio', direccion: 'Calle 10 # 5-20', barrio: 'Centro', zona_id: zona, medio: 'nequi' };
+  const quesoId = await b.insumo('queso');
+  const saldo = async () => +(await b.uno(`select fisico from saldos_stock s join ubicaciones_stock u on u.id = s.ubicacion_id
+    where u.sede_id = $1 and u.codigo = 'armado' and s.insumo_id = $2`, [S, quesoId])).fisico;
+  const antes = await saldo();
+  const pedir = () => b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S,
+    p_lineas: JSON.stringify([{ producto_id: pers, cantidad: 2, opciones: [queso] }]), p_datos: JSON.stringify(datos) });
+  const r = await pedir();
+  assert.equal(await saldo(), antes - 160, 'extra queso × 2 = 160 g');
+
+  const po = await b.uno(`select id, cuenta_id, estado, comprobante_estado from pedidos_online where codigo = $1`, [r.codigo]);
+  assert.equal(po.comprobante_estado, 'pendiente');
+  await b.como(u.mesero);
+  await assert.rejects(b.rpc('online_estado', { p_id: po.id, p_estado: 'confirmado' }), /permiso/);
+  await b.como(u.caja);
+  await b.rpc('online_comprobante', { p_id: po.id, p_ok: true });
+  await b.rpc('online_estado', { p_id: po.id, p_estado: 'confirmado' });
+  const com = await b.uno(`select id from comandas where pedido_id = (select pedido_id from pedidos_online where id = $1)`, [po.id]);
+  await b.rpc('comanda_estado', { p_comanda: com.id, p_estado: 'en_preparacion' });
+  assert.equal((await b.uno(`select estado from pedidos_online where id = $1`, [po.id])).estado, 'en_preparacion');
+  await b.rpc('comanda_estado', { p_comanda: com.id, p_estado: 'lista' });
+  assert.equal((await b.uno(`select estado from pedidos_online where id = $1`, [po.id])).estado, 'listo');
+  await b.rpc('online_estado', { p_id: po.id, p_estado: 'en_camino', p_domiciliario: 'Carlos' });
+  await assert.rejects(b.rpc('online_estado', { p_id: po.id, p_estado: 'confirmado' }), /ya pasó/);
+  await b.rpc('confirmar_cobro', { p_op: op(), p_cuenta: po.cuenta_id, p_monto: r.total, p_medio: 'nequi' });
+  await b.rpc('online_estado', { p_id: po.id, p_estado: 'entregado' });
+  const fin = await b.uno(`select o.estado, o.domiciliario, c.estado cuenta from pedidos_online o join cuentas c on c.id = o.cuenta_id where o.id = $1`, [po.id]);
+  assert.deepEqual(fin, { estado: 'entregado', domiciliario: 'Carlos', cuenta: 'pagada' });
+
+  // Cancelar uno sin preparar: libera las porciones reservadas
+  await b.como(null);
+  const r2 = await pedir();
+  await b.como(u.caja);
+  const po2 = await b.uno(`select id from pedidos_online where codigo = $1`, [r2.codigo]);
+  const res = async () => +(await b.uno(`select coalesce(sum(cantidad),0) q from reservas_stock where estado = 'activa'`)).q;
+  assert.ok(await res() > 0);
+  await b.rpc('online_estado', { p_id: po2.id, p_estado: 'cancelado', p_motivo: 'Cliente no contestó' });
+  assert.equal(await res(), 0);
+  assert.equal((await b.uno(`select estado from cuentas where id = (select cuenta_id from pedidos_online where id = $1)`, [po2.id])).estado, 'anulada');
+});

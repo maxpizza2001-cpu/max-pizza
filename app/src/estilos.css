@@ -266,3 +266,11 @@ details summary { list-style: none; }
 .cols3 { display: grid; grid-template-columns: 90px 90px 90px 60px; gap: 6px; text-align: right; align-items: center; }
 @media (max-width: 560px) { .cols3 { grid-template-columns: 72px 70px 72px 50px; font-size: 13px; } }
 .txt-verde { color: var(--verde); }
+
+/* Caja · pedidos online */
+.online-fila { display: grid; gap: 4px; text-align: left; width: 100%; background: var(--marfil, #F7F3EA); border: 1px solid var(--borde);
+  border-radius: 14px; padding: 10px 12px; cursor: pointer; font: inherit; color: inherit; }
+.online-fila:hover { border-color: var(--mostaza); }
+.online-cliente { display: grid; gap: 4px; background: #F7F3EA; border-radius: 14px; padding: 12px; }
+.online-cliente a { color: var(--negro); font-weight: 700; }
+.online-campo { flex: 1; padding: 12px; border-radius: 12px; border: 1px solid var(--borde); font: inherit; }
