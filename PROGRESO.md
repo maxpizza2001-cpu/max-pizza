@@ -119,3 +119,17 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - El botón final aún NO envía el pedido (dice "muy pronto"): eso es la Fase 3.
 - Probado en celular: Hawaiana personal + extra queso × 2 = $38.000, salchipapa $14.000, recargar conserva $52.000,
   zona Media +$5.000 = $57.000, paga con $60.000 → vueltas $3.000. `npm test` → 20/20.
+
+## Tienda online · Fase 3 (el pedido entra al sistema) — ✅ (24 nov 2026)
+- Migración **011** (aplicada): cuentas tipo `online`, tabla `pedidos_online` (código de 6 letras, cliente, entrega, zona,
+  pago, vueltas, comprobante y su estado, estado del pedido Recibido→Entregado, domiciliario y horas para la Fase 5),
+  bucket privado `comprobantes` (el cliente sube, solo el equipo ve).
+- `tienda_crear_pedido` (pública): recalcula TODO en el servidor (precio de sede, adicionales, domicilio por zona, pedido
+  mínimo, tienda abierta, medios permitidos), idempotente con `operacion_id`, y usa el MISMO `crear_envio`:
+  pizzas → comanda de horno con reserva de porciones, comidas rápidas → tablet, bebidas descuentan stock.
+  Cada línea llega a la comanda como "ONLINE · + Extra queso · Sin piña". Notifica a Caja "🛵 Pedido online #N".
+- Tienda: "Confirmar pedido" sube el comprobante (si hay), envía, vacía el carrito y muestra el código grande.
+  Si se cae la conexión y el cliente toca otra vez, NO se duplica.
+- Probado en la base real como cliente sin cuenta (dentro de una transacción deshecha): código BAWBHT, $18.000 + $3.000.
+  `npm test` → 21/21.
+- Pendiente: Fase 4 (Caja ve y cobra los online; adicionales descuentan su insumo), Fase 5 (seguimiento y domicilios), Fase 6.

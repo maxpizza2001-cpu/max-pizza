@@ -1,5 +1,6 @@
 // Carrito y checkout: revisar productos, datos del cliente, domicilio o recoger, y medio de pago.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito } from './modelo';
 
@@ -10,14 +11,19 @@ export type DatosCliente = {
 const DATOS_VACIOS: DatosCliente = { nombre: '', celular: '', entrega: 'domicilio', direccion: '', barrio: '', zona_id: '',
   referencia: '', indicaciones: '', medio: 'efectivo', paga_con: '' };
 
-export function Pedido({ lineas, info, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar }: {
-  lineas: LineaCarrito[]; info: InfoTienda; sedeNombre: string;
+export type Enviado = { codigo: string; numero: number; total: number; celular: string; nombre: string; entrega: string };
+
+export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado }: {
+  lineas: LineaCarrito[]; info: InfoTienda; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void;
   onCantidad: (clave: string, cantidad: number) => void; onEditar: (l: LineaCarrito) => void; onQuitar: (clave: string) => void; onCerrar: () => void;
 }) {
   const [paso, setPaso] = useState<'carrito' | 'datos' | 'listo'>('carrito');
   const [d, setD] = useGuardadoLocal<DatosCliente>('maxpizza.tienda.cliente', DATOS_VACIOS);
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [errores, setErrores] = useState<string[]>([]);
+  const [enviando, setEnviando] = useState(false);
+  const [hecho, setHecho] = useState<Enviado | null>(null);
+  const op = useRef(nuevaOperacion());   // mismo id si el cliente reintenta: el pedido no se duplica
   const aj = info.ajustes;
   const medios = aj?.medios?.length ? aj.medios : ['efectivo'];
   const entrega = aj && !aj.domicilio ? 'recoger' : aj && !aj.recoger ? 'domicilio' : d.entrega;
@@ -45,7 +51,32 @@ export function Pedido({ lineas, info, sedeNombre, onCantidad, onEditar, onQuita
     if (medio === 'efectivo' && d.paga_con && pagaCon < total) e.push(`Con ${plata(pagaCon)} no alcanza: el total es ${plata(total)}.`);
     if (subtotal < minimo) e.push(`El pedido mínimo es ${plata(minimo)}.`);
     setErrores(e);
-    if (!e.length) setPaso('listo');
+    if (!e.length) enviar();
+  }
+
+  async function enviar() {
+    setEnviando(true);
+    try {
+      let ruta = '';
+      if (comprobante && medio !== 'efectivo') {
+        const ext = (comprobante.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+        ruta = `${sede}/${op.current}.${ext}`;
+        const { error } = await sb.storage.from('comprobantes').upload(ruta, comprobante, { upsert: false });
+        if (error && !/exists|duplicate/i.test(error.message)) throw new Error('No pudimos subir el comprobante. Intenta otra vez o envíalo sin él.');
+      }
+      const { data, error } = await sb.rpc('tienda_crear_pedido', {
+        p_op: op.current, p_sede: sede,
+        p_lineas: lineas.map((l) => ({ producto_id: l.producto_id, cantidad: l.cantidad, opciones: l.opciones.map((o) => o.id), nota: l.nota })),
+        p_datos: { ...d, entrega, medio, paga_con: medio === 'efectivo' ? d.paga_con : '', comprobante: ruta },
+      });
+      if (error) throw new Error(/fetch|network/i.test(error.message) ? 'Se cayó la conexión. Toca otra vez: tu pedido no se va a repetir.' : error.message);
+      const r = data as { codigo: string; numero: number; total: number };
+      const e: Enviado = { codigo: r.codigo, numero: r.numero, total: Number(r.total), celular: d.celular.replace(/D/g, ''), nombre: d.nombre.trim(), entrega };
+      op.current = nuevaOperacion();
+      setHecho(e); setPaso('listo'); onEnviado(e);
+    } catch (x) {
+      setErrores([(x as Error).message || 'No pudimos enviar el pedido.']);
+    } finally { setEnviando(false); }
   }
 
   return (
@@ -128,12 +159,14 @@ export function Pedido({ lineas, info, sedeNombre, onCantidad, onEditar, onQuita
             {errores.length > 0 && <div className="t-errores">{errores.map((e) => <div key={e}>• {e}</div>)}</div>}
           </>}
 
-          {paso === 'listo' && <div className="t-listo">
-            <div className="t-listo-icono">🍕</div>
-            <h2>¡Todo listo, {d.nombre.trim().split(' ')[0]}!</h2>
-            <p>Revisamos tu pedido: {lineas.reduce((s, l) => s + l.cantidad, 0)} productos, {entrega === 'domicilio' ? `domicilio a ${d.barrio}` : `para recoger en ${sedeNombre}`}, pago con {(MEDIOS[medio] ?? medio).replace(/^\S+\s/, '')}.</p>
-            <div className="t-info">Muy pronto podrás enviarlo desde aquí y seguirlo en vivo. Tu carrito y tus datos quedan guardados en este teléfono.</div>
-            <button className="t-enlace-osc" onClick={() => setPaso('datos')}>← Volver a mis datos</button>
+          {paso === 'listo' && hecho && <div className="t-listo">
+            <div className="t-listo-icono">🎉</div>
+            <h2>¡Recibimos tu pedido, {hecho.nombre.split(' ')[0]}!</h2>
+            <div className="t-codigo">{hecho.codigo}</div>
+            <p>Pedido #{hecho.numero} · Total <b>{plata(hecho.total)}</b><br />
+              {hecho.entrega === 'domicilio' ? 'Ya entró a la cocina. Te avisamos cuando salga para tu casa.' : `Te avisamos cuando esté listo para recoger en ${sedeNombre}.`}</p>
+            <div className="t-info">Guarda este código: con él y tu celular podrás seguir tu pedido.</div>
+            <button className="t-btn t-btn-ancho" onClick={onCerrar}>Listo</button>
           </div>}
         </div>
 
@@ -147,9 +180,9 @@ export function Pedido({ lineas, info, sedeNombre, onCantidad, onEditar, onQuita
             {aj && !aj.abierta && <div className="t-errores">La tienda está cerrada en este momento. {aj.horario_texto}</div>}
             <div className="fila" style={{ gap: 10 }}>
               {paso === 'datos' && <button className="t-btn-sec" onClick={() => setPaso('carrito')}>← Carrito</button>}
-              <button className="t-btn t-btn-ancho" disabled={!!aj && !aj.abierta}
+              <button className="t-btn t-btn-ancho" disabled={(!!aj && !aj.abierta) || enviando}
                 onClick={() => paso === 'carrito' ? setPaso('datos') : revisar()}>
-                {paso === 'carrito' ? 'Continuar' : `Confirmar pedido · ${plata(total)}`}
+                {paso === 'carrito' ? 'Continuar' : enviando ? 'Enviando…' : `Confirmar pedido · ${plata(total)}`}
               </button>
             </div>
           </div>

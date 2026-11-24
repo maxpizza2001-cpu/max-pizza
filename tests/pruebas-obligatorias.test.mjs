@@ -426,3 +426,44 @@ test('Tienda · Fase 2: ajustes, zonas y adicionales por sede, públicos y de so
   const pers = await b.producto('Personal Hawaiana');
   assert.equal(info.opciones.find((o) => o.producto_id === pers).nombre, 'Extra queso');
 });
+
+test('Tienda · Fase 3: el pedido online entra al mismo motor, precio del servidor, idempotente', async () => {
+  const { b, S, u } = await preparar();
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  const pers = await b.producto('Personal Hawaiana');
+  const ham = await b.producto('Hamburguesa');
+  const queso = info.opciones.find((o) => o.producto_id === pers).id;
+  const zona = info.zonas.find((z) => +z.tarifa === 5000).id;
+  const datos = { nombre: 'Ana Pérez', celular: '300 123 4567', entrega: 'domicilio', direccion: 'Calle 10 # 5-20',
+    barrio: 'Centro', zona_id: zona, medio: 'efectivo', paga_con: '70000' };
+  // El navegador manda un precio inventado: el servidor lo ignora
+  const lineas = [{ producto_id: pers, cantidad: 2, opciones: [queso], nota: 'Sin piña', precio: 1 }, { producto_id: ham, cantidad: 1, opciones: [] }];
+  const o = op();
+  const r = await b.rpc('tienda_crear_pedido', { p_op: o, p_sede: S, p_lineas: JSON.stringify(lineas), p_datos: JSON.stringify(datos) });
+  assert.equal(r.subtotal, 2 * 19000 + 18000);
+  assert.equal(r.total, 2 * 19000 + 18000 + 5000);
+  assert.match(r.codigo, /^[A-Z2-9]{6}$/);
+  const r2 = await b.rpc('tienda_crear_pedido', { p_op: o, p_sede: S, p_lineas: JSON.stringify(lineas), p_datos: JSON.stringify(datos) });
+  assert.equal(r2.codigo, r.codigo, 'doble toque no duplica');
+
+  await b.como(u.caja);
+  const ped = await b.uno(`select count(*)::int n, sum(total)::float total from pedidos_online where sede_id = $1`, [S]);
+  assert.deepEqual(ped, { n: 1, total: 61000 });
+  const com = await b.q(`select e.codigo est, lp.observacion obs, lp.precio_unit::float precio from comandas c join estaciones e on e.id = c.estacion_id
+    join lineas_comanda lc on lc.comanda_id = c.id join lineas_pedido lp on lp.id = lc.linea_pedido_id where c.sede_id = $1 order by e.codigo`, [S]);
+  assert.deepEqual(com, [
+    { est: 'horno', obs: 'ONLINE · + Extra queso · Sin piña', precio: 19000 },
+    { est: 'rapidas', obs: 'ONLINE', precio: 18000 },
+  ]);
+
+  // Validaciones del servidor
+  await b.como(null);
+  const mal = (d, l = lineas) => b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S, p_lineas: JSON.stringify(l), p_datos: JSON.stringify({ ...datos, ...d }) });
+  await assert.rejects(mal({ celular: '123' }), /celular/);
+  await assert.rejects(mal({ zona_id: '' }), /zona/);
+  await assert.rejects(mal({ paga_con: '20000' }), /no alcanza/);
+  await assert.rejects(mal({}, [{ producto_id: ham, cantidad: 1, opciones: [queso] }]), /adicional/);
+  const vistos = await b.q(`select 1 from pedidos_online where puede_ver_sede(sede_id)`);
+  assert.equal(vistos.length, 0, "un cliente no ve pedidos de otros");
+});

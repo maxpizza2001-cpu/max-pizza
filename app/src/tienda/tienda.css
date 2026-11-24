@@ -185,3 +185,6 @@
 .t-listo { text-align: center; display: grid; gap: 12px; padding-top: 20px; }
 .t-listo-icono { font-size: 64px; animation: t-girar 6s linear infinite; width: fit-content; margin: 0 auto; }
 .t-enlace-osc { background: none; border: 0; color: var(--negro); text-decoration: underline; cursor: pointer; }
+
+.t-codigo { font-family: Montserrat, sans-serif; font-weight: 800; font-size: 34px; letter-spacing: 6px; background: #141414; color: #E3A21A;
+  border-radius: 14px; padding: 10px 18px; margin: 8px auto 12px; display: inline-block; }

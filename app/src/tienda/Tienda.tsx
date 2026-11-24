@@ -154,7 +154,8 @@ export function Tienda() {
 
       {armando && <Elegir plato={armando.plato} linea={armando.linea} opciones={info.opciones} onListo={listo} onCerrar={() => setArmando(null)} />}
       {verPedido && !armando && (
-        <Pedido lineas={carrito} info={info} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
+        <Pedido lineas={carrito} info={info} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
+          onEnviado={(e) => { setCarrito([]); localStorage.setItem('maxpizza.tienda.ultimo', JSON.stringify({ ...e, sede, en: Date.now() })); }}
           onCantidad={(k, n) => setCarrito(carrito.map((l) => (l.clave === k ? { ...l, cantidad: n } : l)))}
           onQuitar={(k) => setCarrito(carrito.filter((l) => l.clave !== k))}
           onEditar={(l) => { const pl = platos.find((p) => p.id === l.plato_id); if (pl) setArmando({ plato: pl, linea: l }); }} />
