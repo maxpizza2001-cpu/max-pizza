@@ -169,3 +169,14 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Tienda: cintas verdes "🎁 promo" en la portada, campo "¿Tienes un código?" si hay códigos, y descuento en los totales.
 - `npm test` → 24/24. Las zonas y adicionales de ejemplo siguen ahí: cambiarlos por los reales en 🌐 Tienda online.
 - **Tienda online completa (Fases 1–6).**
+
+## Domiciliarios — ✅ (25 nov 2026)
+- Migración **015** (aplicada): rol **Domiciliario**; `pedidos_online.domiciliario_id` y `tomado_en`;
+  `domicilio_tomar` (atómico: el primero que toca gana, al otro le dice "Ya lo tomó X"), `domicilio_soltar`,
+  `domicilio_avanzar` (Salí solo con el pedido Listo → En camino → Entregado). Avisos: a los domiciliarios cuando Caja
+  confirma un domicilio; a Caja cuando alguien lo toma y cuando lo entrega ("Trae el efectivo: $X").
+- Pantalla **Domicilios** (rol domiciliario): "Disponibles" con pito y botón grande **🙋 Yo lo llevo** (solo los confirmados
+  por Caja), "Mis domicilios" con dirección, 🗺️ Mapa, 📞 Llamar, 💬 WhatsApp, productos, cuánto cobrar y vueltas,
+  🛵 Salí / ✓ Entregado / Soltar; al final, entregados hoy y efectivo para entregar en Caja.
+- Caja sigue cobrando con "Confirmar cobro" (el domiciliario le entrega el efectivo).
+- Para usarlo: Administración → Equipo → ＋ Nuevo integrante con rol Domiciliario. `npm test` → 25/25.

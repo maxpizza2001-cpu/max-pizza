@@ -17,6 +17,7 @@ export const ROLES: Record<string, string> = {
   armado: 'Armado de ruedas',
   tortas: 'Producción de tortas',
   insumos: 'Producción de insumos',
+  domiciliario: 'Domiciliario',
 };
 
 export const PRIORIDAD: Record<string, string> = { alta: 'Alta', media: 'Media', baja: 'Baja' };

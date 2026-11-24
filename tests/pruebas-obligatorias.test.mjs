@@ -583,3 +583,38 @@ test('Tienda · Fase 6: Administración edita la tienda; promociones automática
   await b.como(u.caja);
   assert.equal(+(await b.uno(`select total from cuentas where id = (select cuenta_id from pedidos_online where codigo = $1)`, [r1.codigo])).total, 41400);
 });
+
+test('Domiciliarios: el primero que toca "Yo lo llevo" se lo queda; sale con el pedido listo y lo entrega', async () => {
+  const { b, S, u } = await preparar();
+  const d1 = await b.usuario('Carlos Ruiz', [[S, 'domiciliario']]);
+  const d2 = await b.usuario('Pedro Gómez', [[S, 'domiciliario']]);
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  const ham = await b.producto('Hamburguesa');
+  const r = await b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S, p_lineas: JSON.stringify([{ producto_id: ham, cantidad: 1, opciones: [] }]),
+    p_datos: JSON.stringify({ nombre: 'Ana Pérez', celular: '3001234567', entrega: 'domicilio', direccion: 'Calle 10 # 5-20', barrio: 'Centro', zona_id: info.zonas[0].id, medio: 'efectivo' }) });
+  const po = await b.uno(`select id, pedido_id from pedidos_online where codigo = $1`, [r.codigo]);
+
+  await b.como(d1);
+  await assert.rejects(b.rpc('domicilio_tomar', { p_id: po.id }), /no está disponible/, 'sin confirmar por Caja no se puede tomar');
+  await b.como(u.caja);
+  await b.rpc('online_estado', { p_id: po.id, p_estado: 'confirmado' });
+  assert.equal((await b.uno(`select count(*)::int n from notificaciones where rol = 'domiciliario'`)).n, 1);
+
+  await b.como(d1);
+  await b.rpc('domicilio_tomar', { p_id: po.id });
+  await b.como(d2);
+  await assert.rejects(b.rpc('domicilio_tomar', { p_id: po.id }), /Ya lo tomó Carlos Ruiz/);
+  await assert.rejects(b.rpc('domicilio_avanzar', { p_id: po.id, p_estado: 'en_camino' }), /no es tuyo/);
+
+  await b.como(d1);
+  await assert.rejects(b.rpc('domicilio_avanzar', { p_id: po.id, p_estado: 'en_camino' }), /esté listo/);
+  await b.como(u.rapidas);
+  const com = await b.uno(`select id from comandas where pedido_id = $1`, [po.pedido_id]);
+  await b.rpc('comanda_estado', { p_comanda: com.id, p_estado: 'lista' });
+  await b.como(d1);
+  await b.rpc('domicilio_avanzar', { p_id: po.id, p_estado: 'en_camino' });
+  await b.rpc('domicilio_avanzar', { p_id: po.id, p_estado: 'entregado' });
+  const fin = await b.uno(`select estado, domiciliario from pedidos_online where id = $1`, [po.id]);
+  assert.deepEqual(fin, { estado: 'entregado', domiciliario: 'Carlos Ruiz' });
+});

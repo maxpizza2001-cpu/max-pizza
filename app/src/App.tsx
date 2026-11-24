@@ -1,3 +1,4 @@
+import { Domiciliario } from './pantallas/Domiciliario';
 import { useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { configurado, sb } from './lib/supabase';
@@ -109,6 +110,7 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
         : area.rol === 'armado' ? <Armado key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'tortas' ? <Tortas key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'insumos' ? <Insumos key={area.sede} sede={area.sede} perfil={perfil} />
+        : area.rol === 'domiciliario' ? <Domiciliario key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'admin' ? <Admin perfil={perfil} />
         : (
         <main className="contenido pila" style={{ maxWidth: 640 }}>
