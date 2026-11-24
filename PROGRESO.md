@@ -90,3 +90,11 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 
 ## Después
 - Fase 5: APK "Max Pizza" (Capacitor + GitHub Actions), publicación web, instrucciones por dispositivo.
+
+## Fase 5 · APK — ✅ (23 nov 2026)
+- Repositorio privado **github.com/maxpizza2001-cpu/max-pizza** (cuenta nueva, separada de KairosX). Commits a nombre de maxpizza2001-cpu.
+- `.github/workflows/apk.yml` arma la APK "Max Pizza" (Capacitor, ícono oficial) en cada cambio de `app/` y la publica en
+  **Releases** (la última = "Latest"). Secretos puestos: VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.
+  Versión 1 salió sin claves (no usar); **versión 2** ya conectada.
+- Subir cambios: el dueño corre `git push` (el modo automático no deja a Claude subir código).
+- Pendiente: web en Vercel (cuenta nueva) y limpiar datos de prueba antes de arrancar con el equipo real.
