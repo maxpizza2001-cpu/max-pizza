@@ -21,16 +21,16 @@
 - Verificado en la app: entrar con insumos@, elegir sede, iniciar turno, tareas de plantilla, Empezar → ✓ Lista, anillo 1 de 2 · 50 %.
 
 ## Fase 2 · Caja, Mesero y tablet de comandas — ✅ hecha (23 nov 2026)
-- **Caja** (, computador): Por cobrar (solo mesas con pedido y saldo, botón mostaza con el número;
+- **Caja** (`app/src/pantallas/Caja.tsx`, computador): Por cobrar (solo mesas con pedido y saldo, botón mostaza con el número;
   una sola cuenta abierta a la vez; cobro parcial; medio de pago; "Verificar si quedó cobrado" si se cae la conexión),
   Venta rápida de porciones (toques suman, cantidad editable, mostrador/para llevar, borrador guardado),
   Nuevo pedido (pizzas, rápidas, bebidas; mesa = se prepara y queda abierta; mostrador = se cobra primero),
   Pizzas por hornear con contador y cola (Empezar/Lista), Base con efectivo esperado y cierre, Gastos, Tareas sin perder la venta.
-- **Mesero** (, celular): Mesas (libre / ocupada con saldo / pagada), tomar pedido con notas ("Sin cebolla"),
+- **Mesero** (`Mesero.tsx`, celular): Mesas (libre / ocupada con saldo / pagada), tomar pedido con notas ("Sin cebolla"),
   agregar a la misma cuenta, borrador guardado en el teléfono y "Pendiente de envío" si falla, estado por línea, cancelar línea,
   🔔 Listos para llevar → Entregado (con sonido), Liberar mesa, Stock de servicio con Queda poco / Se acabó / Reportar conteo,
   Armar portapizzas (también desde la tarea automática).
-- **Comidas rápidas** (): tablet de comandas solo con lo de su estación, tarjetas grandes, tiempo de espera,
+- **Comidas rápidas** (`Rapidas.tsx`): tablet de comandas solo con lo de su estación, tarjetas grandes, tiempo de espera,
   notas en rojo, aviso sonoro, Empezar/Listo; vista personal con turno y tareas.
 - Todo en tiempo real entre dispositivos (Supabase Realtime) y recarga al volver a la app o recuperar internet.
 - **Probado en vivo** con 3 cuentas: Mesa 02 pide 2 Hawaianas + hamburguesa "Sin cebolla", luego agrega 1 porción →
