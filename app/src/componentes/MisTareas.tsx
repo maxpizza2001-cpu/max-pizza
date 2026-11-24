@@ -12,8 +12,13 @@ export type Tarea = {
 const ordenPrioridad = { alta: 0, media: 1, baja: 2 } as const;
 const ordenEstado = { en_proceso: 0, pendiente: 1, lista: 2, archivada: 3 } as const;
 
+/** Botón vinculado a la operación de la tarea (ej. Registrar base). Se completa sola al guardar la operación. */
+export const TEXTO_ACCION: Record<string, string> = { registrar_base: 'Registrar base', portapizzas: 'Armar portapizzas' };
+
 /** Checklist personal con su gráfica. Se actualiza en vivo cuando entra o cambia una tarea. */
-export function MisTareas({ sede, rol, perfil, compacto = false }: { sede: string; rol: string; perfil: string; compacto?: boolean }) {
+export function MisTareas({ sede, rol, perfil, compacto = false, onAccion }: {
+  sede: string; rol: string; perfil: string; compacto?: boolean; onAccion?: (accion: string, tarea: Tarea) => void;
+}) {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [error, setError] = useState('');
 
@@ -65,7 +70,9 @@ export function MisTareas({ sede, rol, perfil, compacto = false }: { sede: strin
             ) : (
               <>
                 <span className={`estado estado-${t.prioridad}`}>● {PRIORIDAD[t.prioridad]}</span>
-                {t.estado === 'pendiente'
+                {onAccion && t.accion && TEXTO_ACCION[t.accion]
+                  ? <button className="btn btn-principal" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => onAccion(t.accion!, t)}>{TEXTO_ACCION[t.accion]}</button>
+                  : t.estado === 'pendiente'
                   ? <button className="btn btn-suave" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => accion('tarea_empezar', t.id)}>Empezar</button>
                   : <button className="btn btn-principal" style={{ padding: '9px 12px', fontSize: 14 }} onClick={() => accion('tarea_completar', t.id)}>Marcar lista</button>}
               </>

@@ -20,9 +20,28 @@
 - 005 da permisos de API (los proyectos nuevos de Supabase no exponen tablas solas).
 - Verificado en la app: entrar con insumos@, elegir sede, iniciar turno, tareas de plantilla, Empezar → ✓ Lista, anillo 1 de 2 · 50 %.
 
-## Siguiente: Fase 2
-Caja (Por cobrar, Venta rápida, Nuevo pedido, Pizzas por hornear, Base/Gastos), Mesero (Mesas, Stock) y
-Tablet de comandas. Borrador que sobrevive a fallos de conexión ("Pendiente de envío").
+## Fase 2 · Caja, Mesero y tablet de comandas — ✅ hecha (23 nov 2026)
+- **Caja** (, computador): Por cobrar (solo mesas con pedido y saldo, botón mostaza con el número;
+  una sola cuenta abierta a la vez; cobro parcial; medio de pago; "Verificar si quedó cobrado" si se cae la conexión),
+  Venta rápida de porciones (toques suman, cantidad editable, mostrador/para llevar, borrador guardado),
+  Nuevo pedido (pizzas, rápidas, bebidas; mesa = se prepara y queda abierta; mostrador = se cobra primero),
+  Pizzas por hornear con contador y cola (Empezar/Lista), Base con efectivo esperado y cierre, Gastos, Tareas sin perder la venta.
+- **Mesero** (, celular): Mesas (libre / ocupada con saldo / pagada), tomar pedido con notas ("Sin cebolla"),
+  agregar a la misma cuenta, borrador guardado en el teléfono y "Pendiente de envío" si falla, estado por línea, cancelar línea,
+  🔔 Listos para llevar → Entregado (con sonido), Liberar mesa, Stock de servicio con Queda poco / Se acabó / Reportar conteo,
+  Armar portapizzas (también desde la tarea automática).
+- **Comidas rápidas** (): tablet de comandas solo con lo de su estación, tarjetas grandes, tiempo de espera,
+  notas en rojo, aviso sonoro, Empezar/Listo; vista personal con turno y tareas.
+- Todo en tiempo real entre dispositivos (Supabase Realtime) y recarga al volver a la app o recuperar internet.
+- **Probado en vivo** con 3 cuentas: Mesa 02 pide 2 Hawaianas + hamburguesa "Sin cebolla", luego agrega 1 porción →
+  Caja ve solo "02" y 2 comandas de horno; tablet solo la hamburguesa; al marcar Lista el mesero recibe el aviso sin recargar;
+  Caja cobra $39.000 y el 02 desaparece; disponibilidad 16→13 sin doble descuento; venta rápida de 4 con doble toque → 13→9;
+  base $100.000; mesero libera la mesa.
+- Datos de prueba que quedaron en la base real: esa Mesa 02 (pagada y liberada), una venta de mostrador (comanda en horno) y la base abierta.
+
+## Siguiente: Fase 3
+Nevera de Comidas rápidas (Subir a nevera con varios insumos), Armado de ruedas (ruedas, personales, retirar insumo),
+Producción de tortas y Producción de insumos (registrar producción, retiros).
 
 ## Después
 - Fase 3: Nevera, Armado, Tortas, Insumos.
