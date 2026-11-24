@@ -17,7 +17,8 @@ export type Ajustes = {
   abierta: boolean; pedido_minimo: number; medios: string[]; nequi_numero: string | null; cuenta_texto: string | null;
   horario_texto: string | null; recoger: boolean; domicilio: boolean;
 };
-export type InfoTienda = { ajustes: Ajustes | null; zonas: Zona[]; opciones: Opcion[] };
+export type Promo = { nombre: string; tipo: 'porcentaje' | 'valor'; valor: number; minimo: number };
+export type InfoTienda = { ajustes: Ajustes | null; zonas: Zona[]; opciones: Opcion[]; promos?: Promo[]; hay_codigos?: boolean };
 
 export type LineaCarrito = {
   clave: string; plato_id: string; producto_id: string; nombre: string; tamano: string | null;

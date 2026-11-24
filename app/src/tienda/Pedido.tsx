@@ -1,12 +1,12 @@
 // Carrito y checkout: revisar productos, datos del cliente, domicilio o recoger, y medio de pago.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito } from './modelo';
 
 export type DatosCliente = {
   nombre: string; celular: string; entrega: 'domicilio' | 'recoger'; direccion: string; barrio: string; zona_id: string;
-  referencia: string; indicaciones: string; medio: string; paga_con: string;
+  referencia: string; indicaciones: string; medio: string; paga_con: string; codigo_promo?: string;
 };
 const DATOS_VACIOS: DatosCliente = { nombre: '', celular: '', entrega: 'domicilio', direccion: '', barrio: '', zona_id: '',
   referencia: '', indicaciones: '', medio: 'efectivo', paga_con: '' };
@@ -32,7 +32,15 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
   const subtotal = lineas.reduce((s, l) => s + precioLinea(l) * l.cantidad, 0);
   const zona = info.zonas.find((z) => z.id === d.zona_id);
   const domicilio = entrega === 'domicilio' ? Number(zona?.tarifa ?? 0) : 0;
-  const descuento = 0;   // promociones: Fase 6
+  const [promo, setPromo] = useState<{ nombre: string; descuento: number } | null>(null);
+  const codigoPromo = (d.codigo_promo ?? '').trim();
+  useEffect(() => {   // el servidor dice qué promoción aplica (el valor final lo vuelve a calcular al pedir)
+    if (!subtotal) { setPromo(null); return; }
+    const t = setTimeout(() => sb.rpc('tienda_promo', { p_sede: sede, p_subtotal: subtotal, p_codigo: codigoPromo || null })
+      .then(({ data }) => setPromo(data ? { nombre: (data as any).nombre, descuento: Number((data as any).descuento) } : null)), 350);
+    return () => clearTimeout(t);
+  }, [sede, subtotal, codigoPromo]);
+  const descuento = promo?.descuento ?? 0;
   const total = subtotal + domicilio - descuento;
   const minimo = Number(aj?.pedido_minimo ?? 0);
   const pagaCon = Number(d.paga_con || 0);
@@ -156,6 +164,10 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
               <label className="t-adjuntar">📎 {comprobante ? comprobante.name : 'Adjuntar comprobante'}
                 <input type="file" accept="image/*,application/pdf" hidden onChange={(e) => setComprobante(e.target.files?.[0] ?? null)} /></label>
             </div>}
+            {info.hay_codigos && <>
+              <h3 className="t-sub">¿Tienes un código de promoción?</h3>
+              <input className="t-campo t-campo-codigo" placeholder="Código" value={d.codigo_promo ?? ''} onChange={(e) => cambiar({ codigo_promo: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })} />
+            </>}
             {errores.length > 0 && <div className="t-errores">{errores.map((e) => <div key={e}>• {e}</div>)}</div>}
           </>}
 
@@ -175,7 +187,7 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
           <div className="t-hoja-pie t-totales">
             <div className="t-fila"><span>Subtotal</span><span>{plata(subtotal)}</span></div>
             {paso === 'datos' && entrega === 'domicilio' && <div className="t-fila"><span>Domicilio</span><span>{zona ? plata(domicilio) : 'Escoge la zona'}</span></div>}
-            {descuento > 0 && <div className="t-fila t-verde"><span>Descuento</span><span>− {plata(descuento)}</span></div>}
+            {descuento > 0 && <div className="t-fila t-verde"><span>🎁 {promo?.nombre}</span><span>− {plata(descuento)}</span></div>}
             <div className="t-fila t-total"><span>Total</span><span>{plata(total)}</span></div>
             {minimo > 0 && subtotal < minimo && <div className="t-gris">Pedido mínimo {plata(minimo)}</div>}
             {aj && !aj.abierta && <div className="t-errores">La tienda está cerrada en este momento. {aj.horario_texto}</div>}

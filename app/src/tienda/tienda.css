@@ -204,3 +204,5 @@
 .t-linea-tiempo li.ahora .t-lt-icono { border-color: #E3A21A; background: #E3A21A; animation: t-latido 1.6s ease-in-out infinite; }
 .t-lt-txt { display: grid; }
 @keyframes t-latido { 50% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(227,162,26,.18); } }
+
+.t-promo { display: inline-block; margin: 6px 4px 0; background: #2E8B57; color: #fff; font-weight: 700; border-radius: 999px; padding: 6px 14px; font-size: 14px; }

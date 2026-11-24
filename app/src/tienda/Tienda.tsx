@@ -55,7 +55,7 @@ export function Tienda() {
       setError('');
       setMenu((m.data as ProductoTienda[]).map((p) => ({ ...p, precio: Number(p.precio) })));
       const inf = i.data as InfoTienda;
-      setInfo({ ajustes: inf.ajustes, zonas: (inf.zonas ?? []).map((z) => ({ ...z, tarifa: Number(z.tarifa) })), opciones: inf.opciones ?? [] });
+      setInfo({ ajustes: inf.ajustes, zonas: (inf.zonas ?? []).map((z) => ({ ...z, tarifa: Number(z.tarifa) })), opciones: inf.opciones ?? [], promos: inf.promos ?? [], hay_codigos: !!inf.hay_codigos });
     });
   }, [sede]);
 
@@ -117,6 +117,7 @@ export function Tienda() {
         <>
           <section className="t-portada">
             <div className="t-lema">¡Más sabor!<span>Recién salidas del horno, directo a tu puerta</span></div>
+            {(info.promos ?? []).map((p) => <div key={p.nombre} className="t-promo">🎁 {p.nombre}</div>)}
             {info.ajustes && !info.ajustes.abierta && <div className="t-cerrado">Ahora estamos cerrados · {info.ajustes.horario_texto}</div>}
             {menu ? <Rueda items={portada} onElegir={(p) => setArmando({ plato: p })} /> : <div className="t-cargando">Calentando el horno…</div>}
           </section>

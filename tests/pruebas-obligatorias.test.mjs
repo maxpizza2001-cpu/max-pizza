@@ -548,3 +548,38 @@ test('Tienda · Fase 5: el cliente sigue su pedido con código + celular; Admini
   assert.deepEqual(s.historial.map((h) => h.estado), ['en_preparacion', 'en_camino']);
   assert.equal(+(await b.uno(`select total from cuentas where id = (select cuenta_id from pedidos_online where id = $1)`, [po.id])).total, 18000);
 });
+
+test('Tienda · Fase 6: Administración edita la tienda; promociones automáticas y con código se calculan en el servidor', async () => {
+  const { b, S, u } = await preparar();
+  await b.como(u.admin);
+  await b.q(`update tienda_ajustes set pedido_minimo = 20000, medios = array['efectivo','nequi'], nequi_numero = '3110000000' where sede_id = $1`, [S]);
+  await b.q(`insert into zonas_domicilio (sede_id, nombre, tarifa) values ($1, 'Vereda', 9000)`, [S]);
+  await b.q(`insert into promociones (nombre, tipo, valor, minimo) values ('10% en pedidos de $30.000', 'porcentaje', 10, 30000)`);
+  await b.q(`insert into promociones (sede_id, nombre, tipo, valor, codigo) values ($1, 'Bienvenida', 'valor', 5000, 'HOLA')`, [S]);
+  await b.como(u.caja);
+  assert.equal((await b.uno(`select es_admin() a`)).a, false, "Caja no edita la tienda (la política exige es_admin)");
+
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  assert.equal(+info.ajustes.pedido_minimo, 20000);
+  assert.deepEqual(info.ajustes.medios, ['efectivo', 'nequi']);
+  assert.ok(info.zonas.some((z) => z.nombre === 'Vereda'));
+  assert.deepEqual(info.promos.map((p) => p.nombre), ['10% en pedidos de $30.000'], 'la de código no se revela');
+  assert.equal(info.hay_codigos, true);
+
+  const ham = await b.producto('Hamburguesa');
+  const vereda = info.zonas.find((z) => z.nombre === 'Vereda').id;
+  const pedir = (cant, extra = {}) => b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S,
+    p_lineas: JSON.stringify([{ producto_id: ham, cantidad: cant, opciones: [] }]),
+    p_datos: JSON.stringify({ nombre: 'Ana Pérez', celular: '3001234567', entrega: 'domicilio', direccion: 'Calle 10 # 5-20', barrio: 'Centro', zona_id: vereda, medio: 'efectivo', ...extra }) });
+  await assert.rejects(pedir(1, { medio: 'transferencia' }), /Medio de pago/);
+  const r1 = await pedir(2);                       // 36.000 → 10% = 3.600
+  assert.deepEqual([+r1.descuento, +r1.total], [3600, 36000 + 9000 - 3600]);
+  const r2 = await pedir(2, { codigo_promo: 'hola' });   // la mejor: 5.000 con código
+  assert.deepEqual([+r2.descuento, r2.promocion], [5000, 'Bienvenida']);
+  await assert.rejects(pedir(2, { codigo_promo: 'NOEXISTE' }), /código de promoción/);
+  const prev = (await b.uno(`select tienda_promo($1, 18000, null) p`, [S])).p;
+  assert.equal(prev, null, 'con $18.000 no alcanza el mínimo de la promo');
+  await b.como(u.caja);
+  assert.equal(+(await b.uno(`select total from cuentas where id = (select cuenta_id from pedidos_online where codigo = $1)`, [r1.codigo])).total, 41400);
+});

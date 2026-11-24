@@ -156,3 +156,16 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   entregado, minutos), quién lo llevó, tarifa, notas; totales, tiempo promedio y pedidos por domiciliario; "Editar".
 - `npm test` → 23/23. Probado: /pedir?codigo=ZZZZZZ consulta la base real y dice que no existe.
 - Pendiente: Fase 6 (ajustes de la tienda desde Administración: abierta/cerrada, horarios, zonas, medios, adicionales, promos).
+
+## Tienda online · Fase 6 (Administración de la tienda) — ✅ (24 nov 2026)
+- Migración **014** (aplicada): tabla `promociones` (porcentaje o valor, pedido mínimo, código opcional, fecha final, por sede
+  o todas), `promo_mejor` (la que más descuenta), `tienda_promo` (vista previa pública), `tienda_info` ahora trae las promos
+  automáticas (las de código no se revelan), y `tienda_crear_pedido` aplica el descuento en el servidor
+  (`pedidos_online.descuento` y `promocion_id`). Código inválido → "Ese código de promoción no existe o ya venció".
+- Administración → **🌐 Tienda online** (por sede): ⏸ pausar / ▶ abrir pedidos, horario, pedido mínimo, domicilio/recoger,
+  medios de pago, número Nequi y datos de transferencia; zonas con tarifa (editar, quitar, agregar); promociones (crear,
+  pausar); adicionales por producto (precio, quitar, agregar con el insumo que gasta y de dónde sale). Botón "Ver la tienda".
+  Fotos, precios, "se vende online" y portada siguen en Catálogo.
+- Tienda: cintas verdes "🎁 promo" en la portada, campo "¿Tienes un código?" si hay códigos, y descuento en los totales.
+- `npm test` → 24/24. Las zonas y adicionales de ejemplo siguen ahí: cambiarlos por los reales en 🌐 Tienda online.
+- **Tienda online completa (Fases 1–6).**
