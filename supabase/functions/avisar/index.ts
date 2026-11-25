@@ -5,10 +5,12 @@ import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-webpush.setVapidDetails('https://max-pizza-roan.vercel.app', Deno.env.get('VAPID_PUBLIC')!, Deno.env.get('VAPID_PRIVATE')!);
 
 Deno.serve(async (req) => {
   try {
+    const pub = Deno.env.get('VAPID_PUBLIC'), priv = Deno.env.get('VAPID_PRIVATE');
+    if (!pub || !priv) return new Response('faltan las llaves VAPID', { status: 500 });
+    webpush.setVapidDetails('https://max-pizza-roan.vercel.app', pub, priv);
     const { id } = await req.json();
     // Solo se avisa de notificaciones reales y recientes (nadie puede inventar el texto desde afuera)
     const { data: n } = await sb.from('notificaciones').select('*').eq('id', id).maybeSingle();
