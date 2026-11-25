@@ -191,3 +191,12 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   la pantalla del domiciliario. Funciona desde Chrome (Android) o la app agregada a inicio (iPhone); no dentro de la APK.
 - Verificado: la función responde 200 con las llaves; la página publicada trae la llave pública. Falta la prueba en un
   celular real con un domiciliario. `npm test` → 26/26.
+
+## Tienda: rediseño limpio tipo app de domicilios — ✅ (25 nov 2026)
+- Barra blanca: logo en placa negra, "Pides en [sede] ▾", botón 📦 Mi pedido (punto rojo si hay uno activo).
+- Fila de estado: ● Abierto/Cerrado, horario, "Domicilio desde $X", "Recoger gratis", mínimo.
+- Portada giratoria dentro de una tarjeta oscura redondeada (más compacta); promociones como tarjetas verdes deslizables.
+- Buscador + categorías fijos arriba; tocar una categoría baja hasta ella y se marca sola al ir bajando.
+- "⭐ Los favoritos" en carrusel; menú en filas (texto a la izquierda, foto a la derecha con ＋ que muestra cuántos llevas);
+  2 columnas en tablet y 3 en computador. Pantalla de sede y pie en claro; barra del carrito negra.
+- Probado en 375 px y 1280 px: sin desbordes, buscador ("hambur" → Hamburguesa), categorías y agregar al carrito.

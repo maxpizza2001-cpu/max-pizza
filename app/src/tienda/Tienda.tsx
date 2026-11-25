@@ -23,6 +23,7 @@ export function Tienda() {
   const [info, setInfo] = useState<InfoTienda>(INFO_VACIA);
   const [error, setError] = useState('');
   const [cat, setCat] = useState('Todo');
+  const [busca, setBusca] = useState('');
   const [cambiarSede, setCambiarSede] = useState(false);
   const [armando, setArmando] = useState<{ plato: Plato; linea?: LineaCarrito } | null>(null);
   const [verPedido, setVerPedido] = useState(false);
@@ -76,6 +77,18 @@ export function Tienda() {
   const unidades = carrito.reduce((s, l) => s + l.cantidad, 0);
   const subtotal = carrito.reduce((s, l) => s + precioLinea(l) * l.cantidad, 0);
 
+  // La categoría que se está viendo queda marcada arriba mientras se baja por el menú
+  useEffect(() => {
+    const ver = () => {
+      const secs = [...document.querySelectorAll<HTMLElement>('[data-cat]')];
+      const actual = secs.filter((el) => el.getBoundingClientRect().top < 190).pop();
+      if (actual) setCat(actual.dataset.cat!);
+    };
+    window.addEventListener('scroll', ver, { passive: true });
+    return () => window.removeEventListener('scroll', ver);
+  }, []);
+  useEffect(() => { document.querySelector('.t-chips .on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }, [cat]);
+
   function listo(l: LineaCarrito) {
     const existe = carrito.some((x) => x.clave === l.clave);
     setCarrito(existe ? carrito.map((x) => (x.clave === l.clave ? l : x)) : [...carrito, l]);
@@ -86,26 +99,42 @@ export function Tienda() {
   const sedeNombre = sedes?.find((s) => s.id === sede)?.nombre ?? '';
   if (!configurado) return <div className="t-pagina t-centro">La tienda aún no está conectada.</div>;
 
+  const aj = info.ajustes;
+  const tarifaMin = info.zonas.length ? Math.min(...info.zonas.map((z) => z.tarifa)) : null;
+  const q = busca.trim().toLowerCase();
+  const visibles = q ? platos.filter((p) => (p.nombre + ' ' + (p.descripcion ?? '') + ' ' + p.categoria).toLowerCase().includes(q)) : platos;
+  const cats = categorias.filter((c) => c !== 'Todo' && visibles.some((p) => p.categoria === c));
+  const enCarrito = (id: string) => carrito.filter((l) => l.plato_id === id).reduce((t, l) => t + l.cantidad, 0);
+  const irA = (c: string) => {
+    setCat(c);
+    const el = document.getElementById('cat-' + c);
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 170, behavior: 'smooth' });
+  };
+
   return (
     <div className="t-pagina">
       <header className="t-barra">
-        <Logo alto={40} />
-        <div className="fila" style={{ gap: 8 }}>
-        <button className="t-sede" onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}>📦 {ultimoVigente ? 'Mi pedido' : 'Seguir pedido'}</button>
-        {sede && <button className="t-sede" onClick={() => setCambiarSede(true)}>📍 {sedeNombre || 'Sede'} ▾</button>}
-        </div>
+        <div className="t-marca"><Logo alto={34} /></div>
+        {sede && !cambiarSede && <button className="t-ubicacion" onClick={() => setCambiarSede(true)}>
+          <span>Pides en</span><b>{sedeNombre || 'Sede'} ▾</b></button>}
+        <button className="t-icono-btn" aria-label="Seguir mi pedido"
+          onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}>
+          📦<span>{ultimoVigente ? 'Mi pedido' : 'Seguir'}</span>
+          {ultimoVigente && <i className="t-punto" />}
+        </button>
       </header>
 
       {error && <div className="t-error">{error}</div>}
 
       {(!sede || cambiarSede) && sedes && (
         <div className="t-elegir">
+          <div className="t-elegir-logo"><Logo alto={90} /></div>
           <h1>¿Desde qué sede pides?</h1>
-          <p>Cada sede tiene su menú y sus precios.</p>
+          <p>Cada sede tiene su menú, sus precios y su zona de domicilio.</p>
           <div className="t-sedes">
             {sedes.map((s) => (
-              <button key={s.id} className={'t-sede-tarjeta' + (s.id === sede ? ' on' : '')} onClick={() => { setSede(s.id); setCambiarSede(false); }}>
-                <span className="t-sede-icono">🍕</span><b>{s.nombre}</b><span>Ver menú →</span>
+              <button key={s.id} className={'t-sede-tarjeta' + (s.id === sede ? ' on' : '')} onClick={() => { setSede(s.id); setCambiarSede(false); window.scrollTo(0, 0); }}>
+                <span className="t-sede-icono">📍</span><b>{s.nombre}</b><span>Ver menú →</span>
               </button>
             ))}
           </div>
@@ -115,43 +144,90 @@ export function Tienda() {
 
       {sede && !cambiarSede && (
         <>
+          <div className="t-estado-tienda">
+            <span className={aj && !aj.abierta ? 't-cerrada' : 't-abierta'}>{aj && !aj.abierta ? '● Cerrado' : '● Abierto'}</span>
+            {aj?.horario_texto && <span>🕓 {aj.horario_texto}</span>}
+            {(!aj || aj.domicilio) && tarifaMin != null && <span>🛵 Domicilio desde {plata(tarifaMin)}</span>}
+            {(!aj || aj.recoger) && <span>🏪 Recoger gratis</span>}
+            {aj && Number(aj.pedido_minimo) > 0 && <span>Mínimo {plata(aj.pedido_minimo)}</span>}
+          </div>
+
           <section className="t-portada">
             <div className="t-lema">¡Más sabor!<span>Recién salidas del horno, directo a tu puerta</span></div>
-            {(info.promos ?? []).map((p) => <div key={p.nombre} className="t-promo">🎁 {p.nombre}</div>)}
-            {info.ajustes && !info.ajustes.abierta && <div className="t-cerrado">Ahora estamos cerrados · {info.ajustes.horario_texto}</div>}
+            {aj && !aj.abierta && <div className="t-cerrado">Ahora estamos cerrados · puedes ver el menú</div>}
             {menu ? <Rueda items={portada} onElegir={(p) => setArmando({ plato: p })} /> : <div className="t-cargando">Calentando el horno…</div>}
           </section>
 
-          <nav className="t-chips">
-            {categorias.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => setCat(c)}>{c}</button>)}
-          </nav>
+          {(info.promos ?? []).length > 0 && (
+            <div className="t-promos">
+              {(info.promos ?? []).map((p) => (
+                <div key={p.nombre} className="t-promo-tarjeta">
+                  <b>{p.tipo === 'porcentaje' ? `${Number(p.valor)}%` : plata(p.valor)}<small> menos</small></b>
+                  <span>{p.nombre}</span>
+                  {Number(p.minimo) > 0 && <small>En pedidos desde {plata(p.minimo)}</small>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="t-pegado">
+            <label className="t-buscar">
+              <span aria-hidden>🔍</span>
+              <input placeholder="Buscar pizzas, hamburguesas, bebidas…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+              {busca && <button aria-label="Borrar búsqueda" onClick={() => setBusca('')}>✕</button>}
+            </label>
+            <nav className="t-chips">
+              {cats.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => irA(c)}>{c}</button>)}
+            </nav>
+          </div>
 
           <main className="t-menu">
-            {categorias.filter((c) => c !== 'Todo' && (cat === 'Todo' || cat === c)).map((c) => (
-              <section key={c}>
-                <h2 className="t-titulo-cat">{c}</h2>
-                <div className="t-grilla">
-                  {platos.filter((p) => p.categoria === c).map((p) => (
-                    <article key={p.id} className="t-tarjeta" onClick={() => setArmando({ plato: p })}>
-                      <div className="t-tarjeta-img"><ImagenProducto p={p} tam={120} /></div>
-                      <div className="t-tarjeta-txt">
-                        <b>{p.nombre}</b>
-                        {p.descripcion && <span className="t-desc">{p.descripcion}</span>}
-                        {p.variantes.length > 1 && <span className="t-tamanos">{p.variantes.map((v) => v.etiqueta).join(' · ')}</span>}
-                        <div className="fila entre"><span className="t-precio">{p.variantes.length > 1 ? 'Desde ' : ''}{plata(p.precio)}</span>
-                          <button className="t-mas" aria-label={`Agregar ${p.nombre}`}>＋</button></div>
-                      </div>
-                    </article>
+            {!q && portada.length > 0 && (
+              <section>
+                <h2 className="t-titulo-cat">⭐ Los favoritos</h2>
+                <div className="t-carrusel">
+                  {portada.slice(0, 8).map((p) => (
+                    <button key={p.id} className="t-fav" onClick={() => setArmando({ plato: p })}>
+                      <div className="t-fav-img"><ImagenProducto p={p} tam={118} /></div>
+                      <b>{p.nombre}</b>
+                      <span>{p.variantes.length > 1 ? 'Desde ' : ''}{plata(p.precio)}</span>
+                    </button>
                   ))}
                 </div>
               </section>
+            )}
+
+            {cats.map((c) => (
+              <section key={c} id={'cat-' + c} data-cat={c}>
+                <h2 className="t-titulo-cat">{c}</h2>
+                <div className="t-grilla">
+                  {visibles.filter((p) => p.categoria === c).map((p) => {
+                    const n = enCarrito(p.id);
+                    return (
+                      <article key={p.id} className="t-tarjeta" onClick={() => setArmando({ plato: p })}>
+                        <div className="t-tarjeta-txt">
+                          <b>{p.nombre}</b>
+                          {p.descripcion && <span className="t-desc">{p.descripcion}</span>}
+                          {p.variantes.length > 1 && <span className="t-tamanos">{p.variantes.map((v) => v.etiqueta).join(' · ')}</span>}
+                          <span className="t-precio">{p.variantes.length > 1 ? <small>Desde </small> : null}{plata(p.precio)}</span>
+                        </div>
+                        <div className="t-tarjeta-img">
+                          <ImagenProducto p={p} tam={96} />
+                          <button className={'t-mas' + (n ? ' con' : '')} aria-label={`Agregar ${p.nombre}`}>{n ? n : '＋'}</button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
             ))}
+            {q && !visibles.length && <div className="t-centro">No encontramos “{busca}”. Prueba con otra palabra.</div>}
             {menu && !menu.length && <div className="t-centro">Esta sede aún no tiene productos en línea.</div>}
           </main>
 
           <footer className="t-pie">
-            <Logo alto={34} />
-            <span>Max Pizza · {sedeNombre}{info.ajustes?.horario_texto ? ` · ${info.ajustes.horario_texto}` : ''}</span>
+            <div className="t-marca"><Logo alto={44} /></div>
+            <span>Max Pizza · {sedeNombre}{aj?.horario_texto ? ` · ${aj.horario_texto}` : ''}</span>
             <a href="/">¿Trabajas en Max Pizza? Entrar</a>
           </footer>
 
