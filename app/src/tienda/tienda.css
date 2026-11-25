@@ -391,3 +391,68 @@
 .t-card-agotado { font-size: 11.5px; font-weight: 700; color: #9a958b; }
 .t-opcion-agotada { opacity: .5; cursor: not-allowed; }
 .t-opcion-agotada small { color: var(--rojo); font-weight: 700; }
+
+/* ═════════ La pizza que se arma: caja que se llena + niveles ═════════ */
+.caja-zona { margin: 16px 14px 0; background: #fff; border-radius: 24px; padding: 14px 16px 16px; box-shadow: 0 6px 22px rgba(0,0,0,.08);
+  border: 2px solid #F3EDE1; transition: border-color .4s, box-shadow .4s; }
+.caja-zona.nivel-1 { border-color: #F4C46A; }
+.caja-zona.nivel-2 { border-color: var(--mostaza); box-shadow: 0 8px 26px rgba(227,162,26,.28); }
+.caja-zona.nivel-3 { border-color: var(--mostaza); background: radial-gradient(circle at 85% 0%, #FFF3D1, #fff 55%); box-shadow: 0 10px 30px rgba(227,162,26,.35); }
+.caja-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.caja-insignia { background: #141414; color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.caja-insignia b { color: var(--mostaza); font-family: 'Montserrat', sans-serif; }
+.caja-frase { font-size: 12.5px; color: var(--gris); font-weight: 600; }
+
+.caja-escena { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 10px; padding: 18px 0 6px; cursor: default; }
+.caja-escena[role=button] { cursor: pointer; }
+.caja { position: relative; width: 200px; perspective: 600px; }
+.caja-tapa { position: relative; height: 54px; margin: 0 4px -4px; border-radius: 10px 10px 2px 2px; background: #141414; color: var(--mostaza);
+  display: grid; place-items: center; align-content: center; transform-origin: bottom; transform: rotateX(48deg); box-shadow: inset 0 -6px 12px rgba(0,0,0,.4); }
+.caja-tapa span { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 15px; letter-spacing: .08em; line-height: 1; }
+.caja-tapa small { color: #cfc8b8; font-size: 9px; }
+.caja-corona { position: absolute; top: -26px; font-style: normal; font-size: 30px; animation: caja-flotar 2.4s ease-in-out infinite; }
+@keyframes caja-flotar { 50% { transform: translateY(-5px) rotate(-6deg); } }
+.caja-fondo { position: relative; height: 172px; border-radius: 6px; padding: 12px; background: linear-gradient(#E9C98F, #DDB672);
+  box-shadow: inset 0 0 0 6px #C99A52, inset 0 10px 18px rgba(0,0,0,.18), 0 10px 20px rgba(0,0,0,.18);
+  display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; place-items: center; }
+.caja-vacia { grid-column: 1 / -1; grid-row: 1 / -1; text-align: center; color: #8a6a35; font-weight: 800; font-size: 14px; line-height: 1.3; }
+.caja-vacia small { font-weight: 600; }
+.caja-pizza { width: 100%; aspect-ratio: 1; max-width: 72px; border-radius: 50%; animation: caja-caer .55s cubic-bezier(.2, 1.4, .4, 1) both;
+  filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); }
+.caja-pizza img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.caja-pizza.n1 { grid-column: 1 / -1; grid-row: 1 / -1; max-width: 146px; }
+.caja-pizza.n2 { grid-row: 1 / -1; max-width: 82px; }
+.caja-pizza.n3.p2 { grid-column: 1 / -1; }
+@keyframes caja-caer { from { transform: translateY(-70px) scale(.6) rotate(-90deg); opacity: 0; } }
+.caja-mas { position: absolute; right: 8px; bottom: 8px; background: #141414; color: var(--mostaza); border-radius: 999px; padding: 3px 9px; font-weight: 800; font-size: 12px; }
+.caja-lado { display: flex; flex-direction: column-reverse; flex-wrap: wrap; gap: 4px; max-height: 172px; align-content: flex-start; }
+.caja-extra { width: 38px; height: 38px; border-radius: 12px; background: #FFF6DF; display: grid; place-items: center; font-size: 22px;
+  animation: caja-caer .5s cubic-bezier(.2, 1.4, .4, 1) both; box-shadow: 0 3px 8px rgba(0,0,0,.1); }
+.caja-extra-mas { font-size: 12px; font-weight: 800; background: #141414; color: var(--mostaza); }
+
+.caja-progreso { display: grid; gap: 6px; margin-top: 8px; }
+.caja-barra { height: 10px; border-radius: 99px; background: #F1ECE2; overflow: hidden; }
+.caja-barra span { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #F4C46A, var(--mostaza)); transition: width .6s cubic-bezier(.2, .9, .3, 1); }
+.caja-meta { font-size: 13px; text-align: center; }
+.caja-niveles { display: flex; justify-content: space-between; font-size: 18px; padding: 0 4px; }
+.caja-niveles span { filter: grayscale(1); opacity: .35; transition: all .4s; }
+.caja-niveles span.on { filter: none; opacity: 1; }
+
+/* Subir de nivel: salto + confeti */
+.caja-zona.fiesta .caja { animation: caja-salto .6s ease; }
+@keyframes caja-salto { 30% { transform: translateY(-12px) scale(1.04); } 60% { transform: translateY(2px); } }
+.caja-confeti { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+.caja-confeti i { position: absolute; left: 50%; top: 40%; width: 8px; height: 12px; border-radius: 2px;
+  background: hsl(calc(var(--k) * 37), 85%, 55%); animation: caja-confeti 1.6s ease-out forwards;
+  --x: calc((var(--k) - 9) * 18px); }
+.caja-confeti i:nth-child(3n) { background: var(--mostaza); }
+@keyframes caja-confeti { to { transform: translate(var(--x), calc(-120px + var(--k) * 9px)) rotate(calc(var(--k) * 80deg)); opacity: 0; } }
+
+/* Versión compacta (dentro del carrito) */
+.caja-zona.compacta { margin: 0 0 6px; padding: 10px 12px; box-shadow: none; }
+.caja-zona.compacta .caja { width: 150px; }
+.caja-zona.compacta .caja-fondo { height: 126px; }
+.caja-zona.compacta .caja-tapa { height: 40px; }
+.caja-zona.compacta .caja-pizza.n1 { max-width: 104px; }
+@media (prefers-reduced-motion: reduce) { .caja-pizza, .caja-extra, .caja-corona, .caja-zona.fiesta .caja, .caja-confeti i { animation: none !important; } }
+@media (min-width: 760px) { .caja-zona:not(.compacta) { max-width: 1072px; margin-left: auto; margin-right: auto; } }

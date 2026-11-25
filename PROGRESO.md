@@ -232,3 +232,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   combos con un producto agotado salen agotados; si algo del carrito se agota, se quita con aviso.
 - Real hoy (Sede Principal): Hawaiana y Mexicana agotadas (porción y personal), Pepperoni personal agotada.
   Era la causa de "la tienda no toma pedidos". `npm test` → 28/28.
+
+## Tienda: "La pizza que se arma" (idea tomada de una tienda tipo videojuego) — ✅ (25 nov 2026)
+- `app/src/tienda/Caja.tsx`: caja de Max Pizza (tapa negra con logo) que se llena con lo que hay en el carrito: las pizzas
+  caen adentro (1 grande, 2 lado a lado, hasta 4 y "+N"), bebidas y comidas rápidas se apilan al lado.
+- Niveles según el valor: 🍕 Antojado · 🔥 Hambre seria ($40.000) · 👑 Rey de la pizza ($60.000, sale corona) ·
+  🎉 Fiesta Max ($90.000). Barra de avance, "Te faltan $X para…", salto + confeti al subir de nivel.
+- Aviso al agregar con personalidad ("¡Esa Hawaiana va a quedar brutal! 🍍 Te faltan $8.000 para 👑 Rey de la pizza").
+- Va debajo de la portada (tocarla abre el pedido) y en pequeño dentro del carrito. Respeta "reducir movimiento".
+- Probado en 375 px: 0 → Antojado → Hambre seria → Rey → Fiesta Max, sin desbordes.
+- Ideas pendientes: premio real por nivel (domicilio gratis / gaseosa de regalo, calculado en el servidor) y música opcional.

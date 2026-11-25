@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
-import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito } from './modelo';
+import { Caja } from './Caja';
+import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato } from './modelo';
 
 export type DatosCliente = {
   nombre: string; celular: string; entrega: 'domicilio' | 'recoger'; direccion: string; barrio: string; zona_id: string;
@@ -13,8 +14,8 @@ const DATOS_VACIOS: DatosCliente = { nombre: '', celular: '', entrega: 'domicili
 
 export type Enviado = { codigo: string; numero: number; total: number; celular: string; nombre: string; entrega: string };
 
-export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
-  lineas: LineaCarrito[]; info: InfoTienda; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
+export function Pedido({ lineas, platos, info, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
+  lineas: LineaCarrito[]; platos: Plato[]; info: InfoTienda; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
   onCantidad: (clave: string, cantidad: number) => void; onEditar: (l: LineaCarrito) => void; onQuitar: (clave: string) => void; onCerrar: () => void;
 }) {
   const [paso, setPaso] = useState<'carrito' | 'datos' | 'listo'>('carrito');
@@ -101,6 +102,7 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
 
           {paso === 'carrito' && <>
             <h2>Tu pedido <span className="t-gris">· {sedeNombre}</span></h2>
+            {lineas.length > 0 && <Caja lineas={lineas} platos={platos} compacta />}
             {!lineas.length && <div className="t-vacio">🍕<br />Tu carrito está vacío.<br />Agrega algo rico del menú.</div>}
             {lineas.map((l) => (
               <div key={l.clave} className="t-linea">

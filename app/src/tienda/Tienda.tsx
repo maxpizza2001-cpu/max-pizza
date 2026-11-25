@@ -6,6 +6,7 @@ import { plata } from '../lib/formato';
 import { Logo } from '../componentes/Logo';
 import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
+import { Caja, fraseAgregado } from './Caja';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
 import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
@@ -101,14 +102,17 @@ export function Tienda() {
     setCarrito(ya ? carrito.map((l) => (l === ya ? { ...l, cantidad: Math.min(50, l.cantidad + 1) } : l))
       : [...carrito, { clave: crypto.randomUUID(), plato_id: 'combo:' + c.id, producto_id: '', combo_id: c.id, nombre: c.nombre, tamano: null,
         precio_base: c.precio, opciones: [], nota: '', cantidad: 1, detalle: c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ') }]);
-    setAviso(`✓ ${c.nombre} agregado`); setTimeout(() => setAviso(''), 2200);
+    setAviso(fraseAgregado('combo ' + c.nombre, subtotal + c.precio)); setTimeout(() => setAviso(''), 3200);
   }
 
   function listo(l: LineaCarrito) {
     const existe = carrito.some((x) => x.clave === l.clave);
     setCarrito(existe ? carrito.map((x) => (x.clave === l.clave ? l : x)) : [...carrito, l]);
     setArmando(null);
-    if (!existe) { setAviso(`✓ ${l.cantidad} × ${l.nombre} agregado`); setTimeout(() => setAviso(''), 2200); }
+    if (!existe) {
+      const nuevo = subtotal + precioLinea(l) * l.cantidad;
+      setAviso(fraseAgregado(l.nombre, nuevo)); setTimeout(() => setAviso(''), 3200);
+    }
   }
 
   const sedeNombre = sedes?.find((s) => s.id === sede)?.nombre ?? '';
@@ -223,6 +227,8 @@ export function Tienda() {
               {menu ? <Rueda items={portada} onElegir={(p) => setArmando({ plato: p })} /> : <div className="t-cargando">Calentando el horno…</div>}
             </section>
           )}
+
+          {!q && <Caja lineas={carrito} platos={platos} onVerPedido={unidades ? () => setVerPedido(true) : undefined} />}
 
           <nav className="t-circulos" id="menu">
             {['Todo', ...cats].map((c) => (
@@ -352,7 +358,7 @@ export function Tienda() {
 
       {armando && <Elegir plato={armando.plato} linea={armando.linea} opciones={info.opciones} onListo={listo} onCerrar={() => setArmando(null)} />}
       {verPedido && !armando && (
-        <Pedido lineas={carrito} info={info} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
+        <Pedido lineas={carrito} platos={platos} info={info} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
           onSeguir={(e) => { setVerPedido(false); setSeguir({ codigo: e.codigo, celular: e.celular }); }}
           onEnviado={(e) => { setCarrito([]); localStorage.setItem(CLAVE_ULTIMO, JSON.stringify({ ...e, sede, en: Date.now() })); }}
           onCantidad={(k, n) => setCarrito(carrito.map((l) => (l.clave === k ? { ...l, cantidad: n } : l)))}
