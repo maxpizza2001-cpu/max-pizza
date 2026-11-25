@@ -81,7 +81,7 @@ export function Tienda() {
   useEffect(() => {
     const ver = () => {
       const secs = [...document.querySelectorAll<HTMLElement>('[data-cat]')];
-      const actual = secs.filter((el) => el.getBoundingClientRect().top < 190).pop();
+      const actual = secs.filter((el) => el.getBoundingClientRect().top < 120).pop();
       if (actual) setCat(actual.dataset.cat!);
     };
     window.addEventListener('scroll', ver, { passive: true });
@@ -107,20 +107,47 @@ export function Tienda() {
   const enCarrito = (id: string) => carrito.filter((l) => l.plato_id === id).reduce((t, l) => t + l.cantidad, 0);
   const irA = (c: string) => {
     setCat(c);
-    const el = document.getElementById('cat-' + c);
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 170, behavior: 'smooth' });
+    const el = document.getElementById(c === 'Todo' ? 'menu' : 'cat-' + c);
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 76, behavior: 'smooth' });
+  };
+  const mejorPromo = (info.promos ?? []).slice().sort((a, b) => Number(b.valor) - Number(a.valor))[0];
+  const abrirCarrito = () => (unidades ? setVerPedido(true) : irA('Todo'));
+  const iconoCat = (c: string) => {
+    const p = platos.find((x) => x.categoria === c);
+    if (p?.categoria_tipo === 'pizza') return <ImagenProducto p={p} tam={58} />;
+    return <span style={{ fontSize: 30 }}>{p?.categoria_tipo === 'bebida' ? '🥤' : p ? '🍔' : '🍽️'}</span>;
+  };
+
+  const Tarjeta = ({ p, sello }: { p: Plato; sello?: string }) => {
+    const n = enCarrito(p.id);
+    return (
+      <article className="t-card" onClick={() => setArmando({ plato: p })}>
+        {sello && <span className="t-sello">{sello}</span>}
+        <div className="t-card-img"><ImagenProducto p={p} tam={132} /></div>
+        <b className="t-card-nombre">{p.nombre}</b>
+        <span className="t-card-desc">{p.descripcion || (p.variantes.length > 1 ? p.variantes.map((v) => v.etiqueta).join(' · ') : p.categoria)}</span>
+        <div className="t-card-pie">
+          <span className="t-card-precio">{p.variantes.length > 1 && <small>Desde </small>}{plata(p.precio)}</span>
+          <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${p.nombre}`}>{n || '＋'}</button>
+        </div>
+      </article>
+    );
   };
 
   return (
-    <div className="t-pagina">
+    <div className="t-pagina t-con-nav">
       <header className="t-barra">
-        <div className="t-marca"><Logo alto={34} /></div>
-        {sede && !cambiarSede && <button className="t-ubicacion" onClick={() => setCambiarSede(true)}>
-          <span>Pides en</span><b>{sedeNombre || 'Sede'} ▾</b></button>}
-        <button className="t-icono-btn" aria-label="Seguir mi pedido"
+        <button className="t-icono-redondo" aria-label="Cambiar de sede" onClick={() => setCambiarSede(true)}>📍</button>
+        <div className="t-saludo">
+          <span>¡Hola! Pides en <b>{sedeNombre || 'tu sede'}</b> 🍕</span>
+          <div className="t-marca"><Logo alto={30} /></div>
+        </div>
+        <button className="t-icono-redondo" aria-label="Seguir mi pedido"
           onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}>
-          📦<span>{ultimoVigente ? 'Mi pedido' : 'Seguir'}</span>
-          {ultimoVigente && <i className="t-punto" />}
+          📦{ultimoVigente && <i className="t-contador">1</i>}
+        </button>
+        <button className="t-icono-redondo" aria-label="Mi carrito" onClick={abrirCarrito}>
+          🛍️{unidades > 0 && <i className="t-contador">{unidades}</i>}
         </button>
       </header>
 
@@ -144,85 +171,75 @@ export function Tienda() {
 
       {sede && !cambiarSede && (
         <>
-          <div className="t-estado-tienda">
-            <span className={aj && !aj.abierta ? 't-cerrada' : 't-abierta'}>{aj && !aj.abierta ? '● Cerrado' : '● Abierto'}</span>
-            {aj?.horario_texto && <span>🕓 {aj.horario_texto}</span>}
-            {(!aj || aj.domicilio) && tarifaMin != null && <span>🛵 Domicilio desde {plata(tarifaMin)}</span>}
-            {(!aj || aj.recoger) && <span>🏪 Recoger gratis</span>}
-            {aj && Number(aj.pedido_minimo) > 0 && <span>Mínimo {plata(aj.pedido_minimo)}</span>}
-          </div>
-
-          <section className="t-portada">
-            <div className="t-lema">¡Más sabor!<span>Recién salidas del horno, directo a tu puerta</span></div>
-            {aj && !aj.abierta && <div className="t-cerrado">Ahora estamos cerrados · puedes ver el menú</div>}
-            {menu ? <Rueda items={portada} onElegir={(p) => setArmando({ plato: p })} /> : <div className="t-cargando">Calentando el horno…</div>}
-          </section>
-
-          {(info.promos ?? []).length > 0 && (
-            <div className="t-promos">
-              {(info.promos ?? []).map((p) => (
-                <div key={p.nombre} className="t-promo-tarjeta">
-                  <b>{p.tipo === 'porcentaje' ? `${Number(p.valor)}%` : plata(p.valor)}<small> menos</small></b>
-                  <span>{p.nombre}</span>
-                  {Number(p.minimo) > 0 && <small>En pedidos desde {plata(p.minimo)}</small>}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="t-pegado">
+          <div className="t-buscar-fila">
             <label className="t-buscar">
               <span aria-hidden>🔍</span>
-              <input placeholder="Buscar pizzas, hamburguesas, bebidas…" value={busca} onChange={(e) => setBusca(e.target.value)} />
+              <input placeholder="Busca tu pizza favorita…" value={busca} onChange={(e) => { setBusca(e.target.value); if (e.target.value) irA('Todo'); }} />
               {busca && <button aria-label="Borrar búsqueda" onClick={() => setBusca('')}>✕</button>}
             </label>
-            <nav className="t-chips">
-              {cats.map((c) => <button key={c} className={c === cat ? 'on' : ''} onClick={() => irA(c)}>{c}</button>)}
-            </nav>
+            <span className={'t-estado-chip ' + (aj && !aj.abierta ? 'cerrada' : 'abierta')}>{aj && !aj.abierta ? 'Cerrado' : 'Abierto'}</span>
           </div>
+
+          {!q && (
+            <section className="t-portada">
+              <div className="t-portada-txt">
+                <span className="t-etiqueta">{aj && !aj.abierta ? 'AHORA CERRADO' : 'RECIÉN HORNEADA'}</span>
+                <div className="t-lema">¡MÁS SABOR!<em>MÁS QUESO.</em></div>
+                <p>{aj?.horario_texto ?? 'Hecha con amor, directo a tu puerta.'}</p>
+              </div>
+              {menu ? <Rueda items={portada} onElegir={(p) => setArmando({ plato: p })} /> : <div className="t-cargando">Calentando el horno…</div>}
+            </section>
+          )}
+
+          <nav className="t-circulos" id="menu">
+            {['Todo', ...cats].map((c) => (
+              <button key={c} className={c === cat ? 'on' : ''} onClick={() => irA(c)}>
+                <span className="t-circulo">{c === 'Todo' ? <span style={{ fontSize: 28 }}>🍽️</span> : iconoCat(c)}</span>
+                {c}
+              </button>
+            ))}
+          </nav>
 
           <main className="t-menu">
             {!q && portada.length > 0 && (
               <section>
-                <h2 className="t-titulo-cat">⭐ Los favoritos</h2>
-                <div className="t-carrusel">
-                  {portada.slice(0, 8).map((p) => (
-                    <button key={p.id} className="t-fav" onClick={() => setArmando({ plato: p })}>
-                      <div className="t-fav-img"><ImagenProducto p={p} tam={118} /></div>
-                      <b>{p.nombre}</b>
-                      <span>{p.variantes.length > 1 ? 'Desde ' : ''}{plata(p.precio)}</span>
-                    </button>
-                  ))}
+                <div className="t-titulo-fila"><h2 className="t-titulo-cat">Los más pedidos</h2>
+                  <button className="t-ver-todo" onClick={() => irA(cats[0] ?? 'Todo')}>Ver todo →</button></div>
+                <div className="t-cards t-cards-deslizar">
+                  {portada.slice(0, 6).map((p, i) => <Tarjeta key={p.id} p={p} sello={i === 0 ? '★ FAVORITA' : p.destacado ? 'RECOMENDADA' : undefined} />)}
                 </div>
               </section>
+            )}
+
+            {!q && mejorPromo && (
+              <div className="t-banner-promo">
+                <div>
+                  <span className="t-etiqueta oscura">PROMOCIÓN</span>
+                  <b>{mejorPromo.tipo === 'porcentaje' ? `${Number(mejorPromo.valor)}% MENOS` : `${plata(mejorPromo.valor)} MENOS`}</b>
+                  <span>{mejorPromo.nombre}{Number(mejorPromo.minimo) > 0 ? ` · desde ${plata(mejorPromo.minimo)}` : ''}</span>
+                  <button className="t-btn-negro" onClick={() => irA(cats[0] ?? 'Todo')}>Pedir ahora →</button>
+                </div>
+                <div className="t-banner-img">{portada[0] && <ImagenProducto p={portada[0]} tam={120} />}</div>
+              </div>
             )}
 
             {cats.map((c) => (
               <section key={c} id={'cat-' + c} data-cat={c}>
                 <h2 className="t-titulo-cat">{c}</h2>
-                <div className="t-grilla">
-                  {visibles.filter((p) => p.categoria === c).map((p) => {
-                    const n = enCarrito(p.id);
-                    return (
-                      <article key={p.id} className="t-tarjeta" onClick={() => setArmando({ plato: p })}>
-                        <div className="t-tarjeta-txt">
-                          <b>{p.nombre}</b>
-                          {p.descripcion && <span className="t-desc">{p.descripcion}</span>}
-                          {p.variantes.length > 1 && <span className="t-tamanos">{p.variantes.map((v) => v.etiqueta).join(' · ')}</span>}
-                          <span className="t-precio">{p.variantes.length > 1 ? <small>Desde </small> : null}{plata(p.precio)}</span>
-                        </div>
-                        <div className="t-tarjeta-img">
-                          <ImagenProducto p={p} tam={96} />
-                          <button className={'t-mas' + (n ? ' con' : '')} aria-label={`Agregar ${p.nombre}`}>{n ? n : '＋'}</button>
-                        </div>
-                      </article>
-                    );
-                  })}
+                <div className="t-cards">
+                  {visibles.filter((p) => p.categoria === c).map((p) => <Tarjeta key={p.id} p={p} />)}
                 </div>
               </section>
             ))}
             {q && !visibles.length && <div className="t-centro">No encontramos “{busca}”. Prueba con otra palabra.</div>}
             {menu && !menu.length && <div className="t-centro">Esta sede aún no tiene productos en línea.</div>}
+
+            <div className="t-confianza">
+              {(!aj || aj.domicilio) && <div><span>🛵</span><b>Domicilio</b><small>{tarifaMin != null ? `desde ${plata(tarifaMin)}` : 'a tu puerta'}</small></div>}
+              <div><span>🔥</span><b>Recién hecha</b><small>Siempre fresca</small></div>
+              <div><span>🎁</span><b>Promociones</b><small>{(info.promos ?? []).length ? 'Activas hoy' : 'Muy pronto'}</small></div>
+              <div><span>🔒</span><b>Pago fácil</b><small>Efectivo o Nequi</small></div>
+            </div>
           </main>
 
           <footer className="t-pie">
@@ -236,6 +253,14 @@ export function Tienda() {
               <span className="t-burbuja">{unidades}</span><b>Ver mi pedido</b><span>{plata(subtotal)}</span>
             </button>
           )}
+
+          <nav className="t-nav-abajo">
+            <button className="on" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span>🏠</span>Inicio</button>
+            <button onClick={() => irA('Todo')}><span>📋</span>Menú</button>
+            <button className="t-nav-pedir" onClick={abrirCarrito}><span>🍕</span>{unidades ? plata(subtotal) : 'Pedir'}</button>
+            <button onClick={() => (mejorPromo ? document.querySelector('.t-banner-promo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : irA('Todo'))}><span>🎁</span>Promos</button>
+            <button onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}><span>📦</span>Mi pedido</button>
+          </nav>
         </>
       )}
 

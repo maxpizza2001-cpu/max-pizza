@@ -200,3 +200,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - "⭐ Los favoritos" en carrusel; menú en filas (texto a la izquierda, foto a la derecha con ＋ que muestra cuántos llevas);
   2 columnas en tablet y 3 en computador. Pantalla de sede y pie en claro; barra del carrito negra.
 - Probado en 375 px y 1280 px: sin desbordes, buscador ("hambur" → Hamburguesa), categorías y agregar al carrito.
+
+## Tienda: diseño tipo app de pizzería (según referencia del dueño) — ✅ (25 nov 2026)
+- Se tomó solo la estructura de la referencia (sin marca ajena ni calificaciones inventadas), en blanco · negro · mostaza:
+  cabecera con 📍 sede, saludo + logo, 📦 seguimiento y 🛍️ bolsa con contador; buscador con chip Abierto/Cerrado;
+  portada negra con "¡MÁS SABOR! MÁS QUESO." y la rueda giratoria (en computador, texto a la izquierda y rueda a la derecha);
+  categorías en círculos; "Los más pedidos" en tarjetas deslizables con sello; banner amarillo con la mejor promoción;
+  menú en tarjetas (2 columnas celular, 3 tablet, 4 computador) con ＋ mostaza que muestra cuántos llevas;
+  franja de confianza (domicilio desde, recién hecha, promociones, pago fácil); barra de abajo Inicio · Menú · 🍕 Pedir
+  (muestra el total) · Promos · Mi pedido.
+- Probado en 375 px y 1280 px: sin desbordes; Pedir lleva al menú, agregar suma en la bolsa y en el botón, Pedir abre el carrito.
