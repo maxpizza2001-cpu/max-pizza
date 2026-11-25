@@ -8,7 +8,9 @@ const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 
 Deno.serve(async (req) => {
   try {
-    const pub = Deno.env.get('VAPID_PUBLIC'), priv = Deno.env.get('VAPID_PRIVATE');
+    // Limpia la llave por si se pegó con el nombre, comillas, espacios o "=" de más
+    const limpia = (v?: string) => (v ?? '').trim().replace(/^VAPID_(PUBLIC|PRIVATE)\s*=\s*/i, '').replace(/["'\s]/g, '').replace(/=+$/, '');
+    const pub = limpia(Deno.env.get('VAPID_PUBLIC')), priv = limpia(Deno.env.get('VAPID_PRIVATE'));
     if (!pub || !priv) return new Response('faltan las llaves VAPID', { status: 500 });
     webpush.setVapidDetails('https://max-pizza-roan.vercel.app', pub, priv);
     const { id } = await req.json();
