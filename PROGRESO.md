@@ -307,3 +307,9 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   Sigue sin sonar sola. El panel dice "Sonando: [nombre]".
 - Ícono nuevo: porción de pizza con carita y audífonos (SVG propio); al sonar, los audífonos se ponen dorados, laten y
   salen notas ♪. Probado con un audio de prueba en el navegador. 28/28.
+
+## Música prendida de entrada — ✅ (25 nov 2026, pedido del dueño)
+- `sonido.ts`: la música viene PRENDIDA por defecto. Se intenta sonar apenas carga /pedir (algunos navegadores lo
+  permiten); si el navegador lo bloquea (celulares, Safari), arranca sola en el PRIMER toque en cualquier parte
+  (pointerup/touchend/click/keydown). Quien no la quiera la apaga con la pizza con audífonos y queda guardado.
+- Probado: en el navegador de pruebas sonó al cargar; quitar → se apaga y se guarda `musica:false`. 28/28.

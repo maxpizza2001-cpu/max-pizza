@@ -5,7 +5,7 @@
 type Efecto = 'agregar' | 'quitar' | 'nivel' | 'confirmar';
 type Prefs = { musica: boolean; efectos: boolean; volumen: number };
 const CLAVE = 'maxpizza.tienda.sonido';
-const leer = (): Prefs => { try { return { musica: false, efectos: true, volumen: 0.6, ...JSON.parse(localStorage.getItem(CLAVE) ?? '{}') }; } catch { return { musica: false, efectos: true, volumen: 0.6 }; } };
+const leer = (): Prefs => { try { return { musica: true, efectos: true, volumen: 0.6, ...JSON.parse(localStorage.getItem(CLAVE) ?? '{}') }; } catch { return { musica: true, efectos: true, volumen: 0.6 }; } };
 
 let ctx: AudioContext | null = null;
 let maestro: GainNode, busMusica: GainNode, busEfectos: GainNode, eco: ConvolverNode;
@@ -113,10 +113,22 @@ function sonarMusica(si: boolean) {
   avisar();
 }
 
-// La primera vez que el cliente toca la página, si dejó la música activada antes, arranca (nunca antes)
+// Arranque de la música de la tienda
 if (typeof window !== 'undefined') {
-  const primerToque = () => { interactuo = true; if (prefs.musica) sonarMusica(true); window.removeEventListener('pointerdown', primerToque); window.removeEventListener('keydown', primerToque); };
-  window.addEventListener('pointerdown', primerToque); window.addEventListener('keydown', primerToque);
+  // La música viene PRENDIDA. Los navegadores no dejan sonar hasta que la persona toque algo, así que:
+  //  1) se intenta sonar apenas carga (algunos computadores lo permiten);
+  //  2) si no, arranca sola en el PRIMER toque en cualquier parte de la página.
+  // Quien no la quiera la apaga con la pizza con audífonos y queda guardado.
+  const eventos = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+  const primerToque = () => { interactuo = true; if (prefs.musica) sonarMusica(true); eventos.forEach((ev) => window.removeEventListener(ev, primerToque, true)); };
+  eventos.forEach((ev) => window.addEventListener(ev, primerToque, true));
+  if (prefs.musica && location.pathname.replace(/\/+$/, '') === '/pedir') {
+    setTimeout(() => {
+      if (interactuo) return;
+      const c = iniciar(); if (!c) return;
+      c.resume().then(() => { if (c.state === 'running' && !interactuo) { interactuo = true; sonarMusica(true); } }).catch(() => {});
+    }, 600);
+  }
   document.addEventListener('visibilitychange', () => { if (!ctx) return; document.hidden ? ctx.suspend() : (prefs.musica || prefs.efectos) && ctx.resume(); });
 }
 
