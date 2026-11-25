@@ -180,3 +180,14 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   🛵 Salí / ✓ Entregado / Soltar; al final, entregados hoy y efectivo para entregar en Caja.
 - Caja sigue cobrando con "Confirmar cobro" (el domiciliario le entrega el efectivo).
 - Para usarlo: Administración → Equipo → ＋ Nuevo integrante con rol Domiciliario. `npm test` → 25/25.
+
+## Avisos al celular bloqueado (Web Push) — ✅ configurado (25 nov 2026)
+- Migración **016** (aplicada): `push_suscripciones`, `push_guardar`, `config_app.url_avisar`, disparador en `notificaciones`
+  que llama (pg_net) a la Edge Function **avisar** solo si hay celulares suscritos a ese rol y sede.
+- Edge Function `supabase/functions/avisar` (subida; "Verify JWT" apagado por el dueño: solo reenvía notificaciones reales
+  de menos de 5 min). Llaves VAPID: privada y pública en Supabase → Secrets; pública en Vercel como `VITE_VAPID_PUBLIC`.
+  Copia local en `llaves-avisos.txt` (ignorado por git).
+- App: `public/sw.js` (aviso con vibración, queda en pantalla), `manifest.webmanifest`, botón **🔔 Activar avisos** en
+  la pantalla del domiciliario. Funciona desde Chrome (Android) o la app agregada a inicio (iPhone); no dentro de la APK.
+- Verificado: la función responde 200 con las llaves; la página publicada trae la llave pública. Falta la prueba en un
+  celular real con un domiciliario. `npm test` → 26/26.
