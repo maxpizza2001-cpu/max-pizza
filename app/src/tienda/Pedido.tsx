@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { Caja } from './Caja';
+import { FilaSugerencias, sugerencias } from './Recomendaciones';
 import { MaxDibujo } from './Max';
 import { confeti, pop } from './efectos';
 import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type Combo } from './modelo';
@@ -16,13 +17,15 @@ const DATOS_VACIOS: DatosCliente = { nombre: '', celular: '', entrega: 'domicili
 
 export type Enviado = { codigo: string; numero: number; total: number; celular: string; nombre: string; entrega: string };
 
-export function Pedido({ lineas, platos, info, onCambiarCombo, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
-  lineas: LineaCarrito[]; platos: Plato[]; info: InfoTienda; onCambiarCombo: (c: Combo) => void; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
+export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, onAgregarCombo, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
+  lineas: LineaCarrito[]; platos: Plato[]; info: InfoTienda; onCambiarCombo: (c: Combo) => void; onAgregarPlato: (p: Plato) => void; onAgregarCombo: (c: Combo) => void; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
   onCantidad: (clave: string, cantidad: number) => void; onEditar: (l: LineaCarrito) => void; onQuitar: (clave: string) => void; onCerrar: () => void;
 }) {
   const [paso, setPaso] = useState<'carrito' | 'datos' | 'listo'>('carrito');
   // Quitar con efecto: la línea se desliza y se desvanece antes de salir del carrito
   const [saliendo, setSaliendo] = useState<string | null>(null);
+  const completar = sugerencias(lineas, platos, info.combos ?? [], 4);
+  const faltaBebida = completar.some((s) => s.plato?.categoria_tipo === 'bebida');
   const quitar = (clave: string) => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return onQuitar(clave);
     setSaliendo(clave); setTimeout(() => { onQuitar(clave); setSaliendo(null); }, 280);
@@ -145,6 +148,11 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, sede, sedeNombre,
                 </div>
               </div>
             ))}
+            {completar.length > 0 && <div className="t-completa">
+              <h3 className="t-sub">Completa tu pedido</h3>
+              <span className="t-gris">{faltaBebida ? 'Agrega una gaseosa y completa tu pedido 🥤' : 'Para que no le falte nada a tu pedido'}</span>
+              <FilaSugerencias items={completar} onPlato={onAgregarPlato} onCombo={onAgregarCombo} />
+            </div>}
           </>}
 
           {paso === 'datos' && <>

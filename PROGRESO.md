@@ -276,3 +276,14 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   aparece la tarjeta con el ahorro real y "Cambiar al combo" (cambia las líneas por el combo + confeti).
 - MAX sigue reaccionando (etapa 2). Probado en 375 px: vuelo 350→728 px y se limpia, quitar animado, combo armado
   (1 porción no, 2 sí, con nota no) con datos de prueba en el navegador. 28/28.
+
+## Max Pizza Experience 2.0 · Etapa 4 (recomendaciones) — ✅ (25 nov 2026)
+- `app/src/tienda/Recomendaciones.tsx`: reglas claras SOLO con productos/combos reales y sus precios del sistema
+  (sin descuentos inventados): hay comida y no bebida → 2 bebidas más baratas · hay pizza y no acompañante → papas/
+  salchipapa · combo con ahorro real (normal > precio) que no esté en el carrito. Nunca sugiere agotados ni lo que ya lleva.
+- Al agregar comida sale "¡Tu pizza ya está lista para acompañarse!" (o "¡Completa tu pedido!") con hasta 3 sugerencias;
+  se cierra sola a los 10 s, con ✕, o al agregar una bebida; MAX se esconde mientras está.
+- Un toque agrega directo si el producto tiene un solo tamaño y no tiene adicionales (si no, abre su ventana); también vuela.
+- Carrito: "Completa tu pedido" ("Agrega una gaseosa y completa tu pedido 🥤" cuando falta bebida).
+- Probado: Pepperoni → sugiere Agua $3.000, Gaseosa $4.000, Salchipapa $14.000; Agua con un toque → total $10.000; el
+  carrito sugiere Salchipapa. 28/28.

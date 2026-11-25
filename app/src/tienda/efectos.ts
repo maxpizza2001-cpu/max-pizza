@@ -6,9 +6,9 @@ let origen: { rect: DOMRect; imagen: Element | null } | null = null;
 
 /** Guarda desde dónde tocó el cliente (la foto de la tarjeta), para que el vuelo salga de ahí */
 export function recordarOrigen(e: Event) {
-  const t = (e.target as Element | null)?.closest?.('.t-card-premium, .t-combo, .rueda-pizza, .t-fav');
+  const t = (e.target as Element | null)?.closest?.('.t-card-premium, .t-combo, .rueda-pizza, .t-fav, .t-sug');
   if (!t) return;
-  const img = t.querySelector('.t-card-foto svg, .t-card-foto img, .t-combo-img, .rueda-gira, svg, img');
+  const img = t.querySelector('.t-card-foto svg, .t-card-foto img, .t-combo-img, .rueda-gira, .t-sug-img svg, .t-sug-img img, svg, img');
   origen = { rect: (img ?? t).getBoundingClientRect(), imagen: img };
 }
 

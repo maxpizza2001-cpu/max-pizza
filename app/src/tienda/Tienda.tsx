@@ -8,6 +8,7 @@ import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
 import { Max } from './Max';
+import { SugerenciaFlotante, agregaDirecto, sugerencias as recomendar, type Sugerencia } from './Recomendaciones';
 import { confeti, recordarOrigen, volarAlCarrito } from './efectos';
 import { Tarjeta as TarjetaPremium } from './Tarjeta';
 import { Elegir } from './Elegir';
@@ -28,6 +29,7 @@ export function Tienda() {
   const [error, setError] = useState('');
   const [cat, setCat] = useState('Todo');
   const [busca, setBusca] = useState('');
+  const [sugFlot, setSugFlot] = useState<{ titulo: string; items: Sugerencia[] } | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [cambiarSede, setCambiarSede] = useState(false);
   const [armando, setArmando] = useState<{ plato: Plato; linea?: LineaCarrito } | null>(null);
@@ -107,6 +109,7 @@ export function Tienda() {
         precio_base: c.precio, opciones: [], nota: '', cantidad: 1, detalle: c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ') }]);
     setAviso(fraseAgregado('combo ' + c.nombre, subtotal + c.precio)); setTimeout(() => setAviso(''), 3200);
     volarAlCarrito(); setTimeout(() => confeti(), 600);
+    setSugFlot(null);
   }
 
   /** El cliente armó un combo con productos sueltos: se cambian por el combo (con su precio real, que es menor) */
@@ -129,9 +132,30 @@ export function Tienda() {
     confeti(); setAviso(`🎉 ¡Combo ${c.nombre} completo! Ahorraste ${plata(c.normal - c.precio)}`); setTimeout(() => setAviso(''), 3500);
   }
 
+  // La sugerencia se esconde sola para no estorbar
+  useEffect(() => { if (!sugFlot) return; const t = setTimeout(() => setSugFlot(null), 10000); return () => clearTimeout(t); }, [sugFlot]);
+
+  function sugerirDespues(nuevo: LineaCarrito[], agregado: { tipo: string }) {
+    if (agregado.tipo === 'bebida') { setSugFlot(null); return; }
+    const items = recomendar(nuevo, platos, info.combos ?? [], 3);
+    if (!items.length) { setSugFlot(null); return; }
+    const titulo = agregado.tipo === 'pizza' ? '¡Tu pizza ya está lista para acompañarse!' : '¡Completa tu pedido!';
+    setSugFlot({ titulo, items });
+  }
+
+  /** Un toque: si el producto tiene un solo tamaño y no tiene adicionales se agrega directo; si no, se abre su ventana */
+  function agregarRapido(p: Plato) {
+    if (!agregaDirecto(p, info.opciones)) { setArmando({ plato: p }); return; }
+    const v = p.variantes[0];
+    listo({ clave: crypto.randomUUID(), plato_id: p.id, producto_id: v.producto_id, nombre: p.nombre, tamano: v.etiqueta || null,
+      precio_base: v.precio, opciones: [], nota: '', cantidad: 1 });
+  }
+
   function listo(l: LineaCarrito) {
     const existe = carrito.some((x) => x.clave === l.clave);
-    setCarrito(existe ? carrito.map((x) => (x.clave === l.clave ? l : x)) : [...carrito, l]);
+    const nuevoCarrito = existe ? carrito.map((x) => (x.clave === l.clave ? l : x)) : [...carrito, l];
+    setCarrito(nuevoCarrito);
+    if (!existe) sugerirDespues(nuevoCarrito, { tipo: platos.find((p) => p.id === l.plato_id)?.categoria_tipo ?? '' });
     setArmando(null);
     if (!existe) {
       const nuevo = subtotal + precioLinea(l) * l.cantidad;
@@ -362,7 +386,11 @@ export function Tienda() {
             </button>
           )}
 
-          <Max unidades={unidades} oculto={!!armando || verPedido || !!seguir} />
+          <Max unidades={unidades} oculto={!!armando || verPedido || !!seguir || !!sugFlot} />
+          {sugFlot && !armando && !verPedido && (
+            <SugerenciaFlotante titulo={sugFlot.titulo} items={sugFlot.items} onCerrar={() => setSugFlot(null)}
+              onPlato={(p) => { setSugFlot(null); agregarRapido(p); }} onCombo={(c) => { setSugFlot(null); agregarCombo(c); }} />
+          )}
 
           <nav className="t-nav-abajo">
             <button className="on" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span>🏠</span>Inicio</button>
@@ -376,7 +404,7 @@ export function Tienda() {
 
       {armando && <Elegir plato={armando.plato} linea={armando.linea} opciones={info.opciones} onListo={listo} onCerrar={() => setArmando(null)} />}
       {verPedido && !armando && (
-        <Pedido lineas={carrito} platos={platos} info={info} onCambiarCombo={cambiarACombo} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
+        <Pedido lineas={carrito} platos={platos} info={info} onCambiarCombo={cambiarACombo} onAgregarPlato={agregarRapido} onAgregarCombo={agregarCombo} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
           onSeguir={(e) => { setVerPedido(false); setSeguir({ codigo: e.codigo, celular: e.celular }); }}
           onEnviado={(e) => { setCarrito([]); localStorage.setItem(CLAVE_ULTIMO, JSON.stringify({ ...e, sede, en: Date.now() })); }}
           onCantidad={(k, n) => setCarrito(carrito.map((l) => (l.clave === k ? { ...l, cantidad: n } : l)))}
