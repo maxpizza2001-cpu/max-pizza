@@ -13,8 +13,9 @@ let prefs = leer();
 let interactuo = false;
 let reloj: number | null = null;
 let siguiente = 0, paso = 0;
-const oyentes = new Set<(p: Prefs & { sonando: boolean }) => void>();
-const avisar = () => oyentes.forEach((f) => f({ ...prefs, sonando: reloj != null }));
+const oyentes = new Set<(p: Prefs & { sonando: boolean; cancion: string | null }) => void>();
+const avisar = () => oyentes.forEach((f) => f({ ...prefs, sonando: reloj != null || sonandoCancion, cancion: cancionNombre }));
+let cancionNombre: string | null = null;
 
 function iniciar() {
   if (ctx) return ctx;
@@ -70,18 +71,44 @@ function programar() {
   }
 }
 
+// ── Canción propia (la que sube Administración). Si no hay, suena la música original generada arriba. ──
+let cancionUrl: string | null = null;
+let audio: HTMLAudioElement | null = null;
+let sonandoCancion = false;
+
+function prepararCancion() {
+  if (!cancionUrl || !ctx) return null;
+  if (audio && audio.dataset.url === cancionUrl) return audio;
+  if (audio) { audio.pause(); audio.removeAttribute('src'); }
+  audio = new Audio();
+  audio.crossOrigin = 'anonymous'; audio.loop = true; audio.preload = 'none';
+  audio.src = cancionUrl; audio.dataset.url = cancionUrl;
+  // Pasa por el mismo control de volumen que la música original
+  try { ctx.createMediaElementSource(audio).connect(busMusica); } catch { /* si el navegador no deja, suena directo */ }
+  return audio;
+}
+
 function sonarMusica(si: boolean) {
   if (si) {
-    if (reloj != null || !interactuo) return;
+    if (reloj != null || sonandoCancion || !interactuo) return;
     const c = iniciar(); if (!c) return;
     c.resume();
     busMusica.gain.cancelScheduledValues(c.currentTime);
-    busMusica.gain.setValueAtTime(0.0001, c.currentTime); busMusica.gain.exponentialRampToValueAtTime(0.22, c.currentTime + 1.5);
-    siguiente = c.currentTime + 0.05; paso = 0;
-    reloj = window.setInterval(programar, 100); programar();
-  } else if (reloj != null && ctx) {
-    window.clearInterval(reloj); reloj = null;
-    busMusica.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.2);
+    busMusica.gain.setValueAtTime(0.0001, c.currentTime);
+    const a = prepararCancion();
+    if (a) {
+      busMusica.gain.exponentialRampToValueAtTime(0.9, c.currentTime + 1.2);
+      sonandoCancion = true;
+      a.play().catch(() => { sonandoCancion = false; avisar(); });
+    } else {
+      busMusica.gain.exponentialRampToValueAtTime(0.22, c.currentTime + 1.5);
+      siguiente = c.currentTime + 0.05; paso = 0;
+      reloj = window.setInterval(programar, 100); programar();
+    }
+  } else if (ctx) {
+    if (reloj != null) { window.clearInterval(reloj); reloj = null; }
+    if (sonandoCancion && audio) { const a = audio; setTimeout(() => a.pause(), 400); sonandoCancion = false; }
+    busMusica.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.15);
   }
   avisar();
 }
@@ -94,8 +121,16 @@ if (typeof window !== 'undefined') {
 }
 
 export const sonido = {
-  prefs: () => ({ ...prefs, sonando: reloj != null }),
-  escuchar(f: (p: Prefs & { sonando: boolean }) => void) { oyentes.add(f); return () => { oyentes.delete(f); }; },
+  prefs: () => ({ ...prefs, sonando: reloj != null || sonandoCancion, cancion: cancionNombre }),
+  /** La canción de la sede (o null para la música original). Si estaba sonando, cambia en vivo. */
+  usarCancion(url: string | null, nombre: string | null = null) {
+    if (url === cancionUrl) return;
+    const sonaba = reloj != null || sonandoCancion;
+    if (sonaba) sonarMusica(false);
+    cancionUrl = url; cancionNombre = url ? nombre ?? 'Canción de Max Pizza' : null;
+    if (sonaba) setTimeout(() => sonarMusica(true), 450); else avisar();
+  },
+  escuchar(f: (p: Prefs & { sonando: boolean; cancion: string | null }) => void) { oyentes.add(f); return () => { oyentes.delete(f); }; },
   cambiar(c: Partial<Prefs>) {
     interactuo = true;
     prefs = { ...prefs, ...c };

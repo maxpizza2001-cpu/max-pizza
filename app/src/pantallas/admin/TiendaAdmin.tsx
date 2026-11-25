@@ -22,6 +22,7 @@ export function TiendaAdmin({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
       <div className="texto-sec">Fotos, precios, qué productos salen en la tienda y cuáles van en la portada giratoria se cambian en <b>Catálogo</b>.</div>
       {s && <>
         <Ajustes sede={s} />
+        <Musica sede={s} />
         <div className="dos-columnas">
           <Zonas sede={s} />
           <Promos sede={s} sedes={sedes} />
@@ -353,6 +354,59 @@ function Combos({ sede, sedes }: { sede: string; sedes: Sede[] }) {
           <label className="fila texto-sec" style={{ gap: 4, fontSize: 13 }}><input type="checkbox" checked={n.todas} onChange={(e) => setN({ ...n, todas: e.target.checked })} /> Para todas las sedes</label>
           <button className="btn btn-principal" onClick={crear}>Crear combo</button>
         </div>
+      </div>
+      {aviso.vista}
+    </div>
+  );
+}
+
+// ───────── Música de la tienda: la canción que quiera el dueño (si no hay, suena la original de Max Pizza) ─────────
+function Musica({ sede }: { sede: string }) {
+  const aviso = useAviso();
+  const { datos } = useConsulta('tienda-musica', () => q<any>(sb.from('tienda_ajustes').select('sede_id, musica_url, musica_nombre').eq('sede_id', sede).maybeSingle()), [sede], ['tienda_ajustes']);
+  const [subiendo, setSubiendo] = useState(false);
+
+  async function subir(archivo: File) {
+    if (!/^audio\//.test(archivo.type)) return aviso.error(new Error('Escoge un archivo de audio (MP3, M4A u OGG).'));
+    if (archivo.size > 15 * 1024 * 1024) return aviso.error(new Error('La canción pesa mucho (máx. 15 MB). Prueba con un MP3 más liviano.'));
+    setSubiendo(true);
+    try {
+      const ext = (archivo.name.split('.').pop() || 'mp3').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const ruta = `musica/${crypto.randomUUID()}.${ext}`;
+      const { error } = await sb.storage.from('productos').upload(ruta, archivo, { contentType: archivo.type, upsert: false, cacheControl: '31536000' });
+      if (error) throw new Error('No se pudo subir la canción: ' + error.message);
+      const url = sb.storage.from('productos').getPublicUrl(ruta).data.publicUrl;
+      const nombre = archivo.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 60);
+      await guardar(sb.from('tienda_ajustes').upsert({ sede_id: sede, musica_url: url, musica_nombre: nombre }));
+      aviso.ok('✓ Canción lista. Ya suena en la tienda cuando el cliente prende la música.');
+    } catch (e) { aviso.error(e); } finally { setSubiendo(false); }
+  }
+  async function quitar() {
+    try { await guardar(sb.from('tienda_ajustes').upsert({ sede_id: sede, musica_url: null, musica_nombre: null })); aviso.ok('Volvió la música original de Max Pizza.'); }
+    catch (e) { aviso.error(e); }
+  }
+
+  return (
+    <div className="tarjeta pila">
+      <h2>🍕🎧 Música de la tienda</h2>
+      <div className="texto-sec" style={{ fontSize: 13 }}>
+        Sube la canción que quieres que suene cuando el cliente prende la música. Si no subes ninguna, suena la música original de Max Pizza.
+        La música nunca arranca sola: el cliente la prende con el botón de la pizza con audífonos.
+      </div>
+      <div className="aviso" style={{ fontSize: 13 }}>
+        ⚠️ Usa solo música que tengas derecho a usar en tu negocio (propia, comprada con licencia comercial o libre de derechos).
+        Las canciones de radio o de Spotify normalmente <b>no</b> se pueden poner en una tienda en línea sin permiso.
+      </div>
+      {datos?.musica_url ? (
+        <div className="pila" style={{ gap: 8 }}>
+          <div>Sonando ahora: <b>{datos.musica_nombre || 'Canción de Max Pizza'}</b></div>
+          <audio controls preload="none" src={datos.musica_url} style={{ width: '100%' }} />
+        </div>
+      ) : <div className="texto-sec">Ahora suena: <b>la música original de Max Pizza</b>.</div>}
+      <div className="fila envolver" style={{ gap: 8 }}>
+        <label className="btn btn-principal">{subiendo ? 'Subiendo…' : datos?.musica_url ? '🎵 Cambiar canción' : '🎵 Subir canción'}
+          <input type="file" accept="audio/*" hidden disabled={subiendo} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) subir(f); }} /></label>
+        {datos?.musica_url && <button className="btn btn-suave" onClick={quitar}>Volver a la música original</button>}
       </div>
       {aviso.vista}
     </div>

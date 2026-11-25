@@ -600,3 +600,14 @@
 .t-volumen { display: flex; align-items: center; gap: 6px; }
 .t-volumen input { flex: 1; accent-color: var(--mostaza); }
 @media (prefers-reduced-motion: reduce) { .t-ondas i { animation: none; height: 6px; } }
+/* Pizza con audífonos */
+.t-sonido .t-icono-redondo { padding: 0; }
+.t-pizza-audio .t-audifono { transition: fill .3s; }
+.t-pizza-audio.on .t-audifono { fill: var(--mostaza); animation: t-latir-aud .9s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.t-pizza-audio.on { animation: t-cabecea 1.8s ease-in-out infinite; }
+@keyframes t-latir-aud { 50% { transform: scale(1.12); } }
+@keyframes t-cabecea { 50% { transform: rotate(-6deg); } }
+.t-notas { animation: t-notas 1.6s ease-in-out infinite; }
+@keyframes t-notas { 50% { transform: translateY(-2px); opacity: .6; } }
+.t-sonando .t-ondas { display: none; }
+@media (prefers-reduced-motion: reduce) { .t-pizza-audio, .t-pizza-audio .t-audifono, .t-notas { animation: none !important; } }

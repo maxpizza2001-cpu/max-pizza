@@ -9,6 +9,7 @@ import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
 import { Max } from './Max';
 import { ControlSonido } from './ControlSonido';
+import { sonido } from './sonido';
 import { SugerenciaFlotante, agregaDirecto, sugerencias as recomendar, type Sugerencia } from './Recomendaciones';
 import { confeti, recordarOrigen, volarAlCarrito } from './efectos';
 import { Tarjeta as TarjetaPremium } from './Tarjeta';
@@ -64,6 +65,7 @@ export function Tienda() {
       setError('');
       setMenu((m.data as ProductoTienda[]).map((p) => ({ ...p, precio: Number(p.precio), disponibles: p.disponibles == null ? null : Number(p.disponibles) })));
       const inf = i.data as InfoTienda;
+      sonido.usarCancion(inf.ajustes?.musica_url ?? null, inf.ajustes?.musica_nombre ?? null);
       setInfo({ ajustes: inf.ajustes, zonas: (inf.zonas ?? []).map((z) => ({ ...z, tarifa: Number(z.tarifa) })), opciones: inf.opciones ?? [], promos: inf.promos ?? [], hay_codigos: !!inf.hay_codigos,
         combos: (inf.combos ?? []).map((c) => ({ ...c, precio: Number(c.precio), normal: Number(c.normal) })) });
     });

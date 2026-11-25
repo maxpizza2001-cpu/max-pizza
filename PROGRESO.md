@@ -297,3 +297,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - `ControlSonido.tsx`: botón 🔈/🎵 (con ondas animadas) en la barra de arriba → panel con Música, Sonidos y Volumen.
 - Conectado: vuelo al carrito = "agregar", quitar línea = "quitar", subir de nivel en la caja = "nivel", pedido confirmado =
   "confirmar". Probado en 375 px (estado, panel dentro de la pantalla, volumen guardado). Falta oírlo en un celular real. 28/28.
+
+## Música propia del dueño + ícono de pizza con audífonos — ✅ (25 nov 2026)
+- Migración **019** (aplicada): `tienda_ajustes.musica_url` y `musica_nombre`; `tienda_info` los devuelve.
+- Administración → 🌐 Tienda online → **🍕🎧 Música de la tienda**: subir canción (audio, máx. 15 MB, bucket público
+  `productos/musica/`, solo admin), escucharla ahí mismo, cambiarla o "Volver a la música original". Aviso sobre derechos
+  de autor (solo música propia, con licencia comercial o libre de derechos).
+- Tienda: si la sede tiene canción, la música suena con esa (en bucle, mismo volumen y botón); si no, la original generada.
+  Sigue sin sonar sola. El panel dice "Sonando: [nombre]".
+- Ícono nuevo: porción de pizza con carita y audífonos (SVG propio); al sonar, los audífonos se ponen dorados, laten y
+  salen notas ♪. Probado con un audio de prueba en el navegador. 28/28.

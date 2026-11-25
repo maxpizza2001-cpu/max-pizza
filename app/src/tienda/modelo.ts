@@ -20,6 +20,7 @@ export type Zona = { id: string; nombre: string; tarifa: number; minutos_min?: n
 export type Ajustes = {
   abierta: boolean; pedido_minimo: number; medios: string[]; nequi_numero: string | null; cuenta_texto: string | null;
   horario_texto: string | null; recoger: boolean; domicilio: boolean;
+  musica_url?: string | null; musica_nombre?: string | null;
   whatsapp?: string | null; instagram?: string | null; facebook?: string | null; tiktok?: string | null;
   banner?: { etiqueta: string | null; titulo: string; texto: string | null } | null;
 };
