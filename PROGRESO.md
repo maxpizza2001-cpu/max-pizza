@@ -287,3 +287,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Carrito: "Completa tu pedido" ("Agrega una gaseosa y completa tu pedido 🥤" cuando falta bebida).
 - Probado: Pepperoni → sugiere Agua $3.000, Gaseosa $4.000, Salchipapa $14.000; Agua con un toque → total $10.000; el
   carrito sugiere Salchipapa. 28/28.
+
+## Max Pizza Experience 2.0 · Etapa 5 (música y sonidos) — ✅ (25 nov 2026)
+- `app/src/tienda/sonido.ts`: música instrumental ORIGINAL generada en el navegador (Web Audio, sin archivos ni canciones
+  de terceros): progresión Do maj7 · La m7 · Re m7 · Sol 7 a 84 bpm, colchón suave + bajo + punteo tipo mandolina, eco suave.
+  Efectos: agregar (dos notas hacia arriba), quitar (hacia abajo), subir de nivel (arpegio), confirmar (fanfarria).
+- Nunca suena sin interacción: la música arranca APAGADA; si el cliente la deja activada, vuelve a sonar solo después de su
+  primer toque en la siguiente visita. Se pausa al cambiar de pestaña. Preferencias en el teléfono.
+- `ControlSonido.tsx`: botón 🔈/🎵 (con ondas animadas) en la barra de arriba → panel con Música, Sonidos y Volumen.
+- Conectado: vuelo al carrito = "agregar", quitar línea = "quitar", subir de nivel en la caja = "nivel", pedido confirmado =
+  "confirmar". Probado en 375 px (estado, panel dentro de la pantalla, volumen guardado). Falta oírlo en un celular real. 28/28.

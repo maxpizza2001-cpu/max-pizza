@@ -579,3 +579,24 @@
 .t-completa .t-sub { margin: 0; }
 @media (min-width: 760px) { .t-sug-flotante { bottom: 110px; } }
 @media (prefers-reduced-motion: reduce) { .t-sug-flotante { animation: none; } }
+
+/* ═════════ Etapa 5 · Música y sonidos ═════════ */
+.t-sonido { position: relative; flex: none; }
+.t-sonando { background: #141414 !important; color: var(--mostaza); }
+.t-ondas { position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; align-items: flex-end; height: 8px; }
+.t-ondas i { width: 3px; background: var(--mostaza); border-radius: 2px; animation: t-onda .9s ease-in-out infinite; }
+.t-ondas i:nth-child(2) { animation-delay: .2s; } .t-ondas i:nth-child(3) { animation-delay: .4s; }
+@keyframes t-onda { 0%, 100% { height: 2px; } 50% { height: 8px; } }
+.t-sonido-panel { position: absolute; right: -52px; top: 52px; z-index: 40; width: 250px; display: grid; gap: 8px; background: #fff; border-radius: 18px;
+  padding: 14px; box-shadow: 0 14px 34px rgba(0,0,0,.2); border-top: 3px solid var(--mostaza); animation: t-subir .25s ease; }
+.t-sonido-panel b { font-family: 'Montserrat', sans-serif; }
+.t-sonido-panel small { color: var(--gris); font-size: 12px; }
+.t-interruptor { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; cursor: pointer; }
+.t-interruptor input { appearance: none; width: 42px; height: 24px; border-radius: 99px; background: #DDD6C8; position: relative; cursor: pointer; transition: background .2s; flex: none; }
+.t-interruptor input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.t-interruptor input:checked { background: var(--mostaza); }
+.t-interruptor input:checked::after { transform: translateX(18px); }
+.t-interruptor input:focus-visible { outline: 3px solid #141414; outline-offset: 2px; }
+.t-volumen { display: flex; align-items: center; gap: 6px; }
+.t-volumen input { flex: 1; accent-color: var(--mostaza); }
+@media (prefers-reduced-motion: reduce) { .t-ondas i { animation: none; height: 6px; } }

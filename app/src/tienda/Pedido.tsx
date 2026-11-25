@@ -6,6 +6,7 @@ import { Caja } from './Caja';
 import { FilaSugerencias, sugerencias } from './Recomendaciones';
 import { MaxDibujo } from './Max';
 import { confeti, pop } from './efectos';
+import { sonido } from './sonido';
 import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type Combo } from './modelo';
 
 export type DatosCliente = {
@@ -27,6 +28,7 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
   const completar = sugerencias(lineas, platos, info.combos ?? [], 4);
   const faltaBebida = completar.some((s) => s.plato?.categoria_tipo === 'bebida');
   const quitar = (clave: string) => {
+    sonido.efecto('quitar');
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return onQuitar(clave);
     setSaliendo(clave); setTimeout(() => { onQuitar(clave); setSaliendo(null); }, 280);
   };
@@ -98,7 +100,7 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
       const r = data as { codigo: string; numero: number; total: number };
       const e: Enviado = { codigo: r.codigo, numero: r.numero, total: Number(r.total), celular: d.celular.replace(/D/g, ''), nombre: d.nombre.trim(), entrega };
       op.current = nuevaOperacion();
-      setHecho(e); setPaso('listo'); onEnviado(e); confeti(60);
+      setHecho(e); setPaso('listo'); onEnviado(e); confeti(60); sonido.efecto('confirmar');
     } catch (x) {
       setErrores([(x as Error).message || 'No pudimos enviar el pedido.']);
     } finally { setEnviando(false); }

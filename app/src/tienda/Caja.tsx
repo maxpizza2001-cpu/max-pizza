@@ -1,6 +1,7 @@
 // "La pizza que se arma": una caja de Max Pizza que se va llenando con lo que el cliente agrega,
 // y sube de nivel según el valor del pedido (Antojado → Hambre seria → Rey de la pizza → Fiesta Max).
 import { useEffect, useRef, useState } from 'react';
+import { sonido } from './sonido';
 import { plata } from '../lib/formato';
 import { PizzaDibujo, iconoDe } from './Dibujos';
 import { precioLinea, type LineaCarrito, type Plato } from './modelo';
@@ -50,7 +51,7 @@ export function Caja({ lineas, platos, compacta = false, onVerPedido }: {
   const antes = useRef(i);
   const [fiesta, setFiesta] = useState(false);
   useEffect(() => {
-    if (i > antes.current) { setFiesta(true); const t = setTimeout(() => setFiesta(false), 1800); antes.current = i; return () => clearTimeout(t); }
+    if (i > antes.current) { setFiesta(true); if (!compacta) sonido.efecto('nivel'); const t = setTimeout(() => setFiesta(false), 1800); antes.current = i; return () => clearTimeout(t); }
     antes.current = i;
   }, [i]);
 

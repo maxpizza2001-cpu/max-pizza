@@ -1,5 +1,6 @@
 // Efectos del carrito: el producto "vuela" hasta la bolsa, el contador salta y el confeti celebra.
 // Todo es decoración: no bloquea toques (pointer-events: none) y se apaga con "reducir movimiento".
+import { sonido } from './sonido';
 
 const sinMovimiento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let origen: { rect: DOMRect; imagen: Element | null } | null = null;
@@ -28,6 +29,7 @@ export function pop(el: Element | null) {
 
 /** El producto vuela desde la tarjeta hasta el carrito; al llegar, el carrito salta */
 export function volarAlCarrito() {
+  sonido.efecto('agregar');
   const meta = destino();
   const o = origen; origen = null;
   if (!meta) return;

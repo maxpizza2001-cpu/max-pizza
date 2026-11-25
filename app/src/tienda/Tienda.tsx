@@ -8,6 +8,7 @@ import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
 import { Max } from './Max';
+import { ControlSonido } from './ControlSonido';
 import { SugerenciaFlotante, agregaDirecto, sugerencias as recomendar, type Sugerencia } from './Recomendaciones';
 import { confeti, recordarOrigen, volarAlCarrito } from './efectos';
 import { Tarjeta as TarjetaPremium } from './Tarjeta';
@@ -211,6 +212,7 @@ export function Tienda() {
           <span>¡Hola! Pides en <b>{sedeNombre || 'tu sede'}</b> 🍕</span>
           <div className="t-marca"><Logo alto={30} /></div>
         </div>
+        <ControlSonido />
         <button className="t-icono-redondo" aria-label="Seguir mi pedido"
           onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}>
           📦{ultimoVigente && <i className="t-contador">1</i>}
