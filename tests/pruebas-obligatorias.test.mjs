@@ -631,3 +631,47 @@ test('Avisos push: cada quien guarda su celular solo para un rol que tiene', asy
   await b.como(u.admin);
   await b.q(`select notificar($1, 'domiciliario', null, 'prueba', 'Hola', null, null)`, [S]);
 });
+
+test('Combos: el combo se abre en sus productos, cada uno va a su cocina, y el total es el precio del combo', async () => {
+  const { b, S, u } = await preparar();
+  const pers = await b.producto('Personal Hawaiana');   // $16.000 · horno
+  const gas = await b.producto('Gaseosa');              // $4.000 · sale de una vez
+  const ham = await b.producto('Hamburguesa');          // $18.000 · tablet
+  await b.como(u.admin);
+  const c = await b.uno(`insert into combos (nombre, precio) values ('Personal + gaseosa', 18000) returning id`);
+  await b.q(`insert into combo_items (combo_id, producto_id, cantidad) values ($1, $2, 1), ($1, $3, 1)`, [c.id, pers, gas]);
+  await b.q(`update zonas_domicilio set minutos_min = 30, minutos_max = 45 where sede_id = $1`, [S]);
+  await b.q(`update tienda_ajustes set whatsapp = '3001112233', banner_activo = true, banner_titulo = 'Noche de partido' where sede_id = $1`, [S]);
+
+  await b.como(null);
+  const info = (await b.uno(`select tienda_info($1) as i`, [S])).i;
+  const combo = info.combos.find((x) => x.nombre === 'Personal + gaseosa');
+  assert.equal(+combo.normal, 20000, 'por separado vale $20.000');
+  assert.equal(info.ajustes.banner.titulo, 'Noche de partido');
+  assert.equal(info.ajustes.whatsapp, '3001112233');
+  assert.equal(info.zonas[0].minutos_max, 45);
+
+  const r = await b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S,
+    p_lineas: JSON.stringify([{ combo_id: c.id, cantidad: 2, nota: 'Bien fría' }, { producto_id: ham, cantidad: 1, opciones: [] }]),
+    p_datos: JSON.stringify({ nombre: 'Ana Pérez', celular: '3001234567', entrega: 'recoger', medio: 'efectivo' }) });
+  assert.equal(+r.subtotal, 2 * 18000 + 18000);
+
+  await b.como(u.caja);
+  const lineas = await b.q(`select pr.nombre, lp.cantidad::int cant, lp.precio_unit::float precio, lp.observacion obs from lineas_pedido lp
+    join productos pr on pr.id = lp.producto_id join pedidos_online o on o.pedido_id = lp.pedido_id where o.codigo = $1 order by pr.nombre`, [r.codigo]);
+  assert.deepEqual(lineas, [
+    { nombre: 'Gaseosa', cant: 2, precio: 4000, obs: 'ONLINE · COMBO Personal + gaseosa' },
+    { nombre: 'Hamburguesa', cant: 1, precio: 18000, obs: 'ONLINE' },
+    { nombre: 'Personal Hawaiana', cant: 2, precio: 14000, obs: 'ONLINE · COMBO Personal + gaseosa · Bien fría' },
+  ]);
+  const est = await b.q(`select e.codigo from comandas c join estaciones e on e.id = c.estacion_id join pedidos_online o on o.pedido_id = c.pedido_id where o.codigo = $1 order by 1`, [r.codigo]);
+  assert.deepEqual(est.map((x) => x.codigo), ['horno', 'rapidas']);
+
+  // Si un producto del combo deja de venderse en línea, el combo desaparece y no se puede pedir
+  await b.como(u.admin);
+  await b.q(`update productos_sede set online = false where producto_id = $1 and sede_id = $2`, [gas, S]);
+  await b.como(null);
+  assert.equal((await b.uno(`select tienda_info($1) as i`, [S])).i.combos.length, 0);
+  await assert.rejects(b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S, p_lineas: JSON.stringify([{ combo_id: c.id, cantidad: 1 }]),
+    p_datos: JSON.stringify({ nombre: 'Ana Pérez', celular: '3001234567', entrega: 'recoger', medio: 'efectivo' }) }), /del combo/);
+});

@@ -74,7 +74,8 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
       }
       const { data, error } = await sb.rpc('tienda_crear_pedido', {
         p_op: op.current, p_sede: sede,
-        p_lineas: lineas.map((l) => ({ producto_id: l.producto_id, cantidad: l.cantidad, opciones: l.opciones.map((o) => o.id), nota: l.nota })),
+        p_lineas: lineas.map((l) => (l.combo_id ? { combo_id: l.combo_id, cantidad: l.cantidad, nota: l.nota }
+          : { producto_id: l.producto_id, cantidad: l.cantidad, opciones: l.opciones.map((o) => o.id), nota: l.nota })),
         p_datos: { ...d, entrega, medio, paga_con: medio === 'efectivo' ? d.paga_con : '', comprobante: ruta },
       });
       if (error) throw new Error(/fetch|network/i.test(error.message) ? 'Se cayó la conexión. Toca otra vez: tu pedido no se va a repetir.' : error.message);
@@ -107,7 +108,8 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
                   <b>{l.nombre}{l.tamano ? ` · ${l.tamano}` : ''}</b>
                   {l.opciones.map((o) => <span key={o.id} className="t-gris">+ {o.nombre}</span>)}
                   {l.nota && <span className="t-nota">“{l.nota}”</span>}
-                  <span className="t-acciones"><button onClick={() => onEditar(l)}>Modificar</button><button onClick={() => onQuitar(l.clave)}>Quitar</button></span>
+                  {l.detalle && <span className="t-gris">{l.detalle}</span>}
+                  <span className="t-acciones">{!l.combo_id && <button onClick={() => onEditar(l)}>Modificar</button>}<button onClick={() => onQuitar(l.clave)}>Quitar</button></span>
                 </div>
                 <div className="t-linea-der">
                   <b>{plata(precioLinea(l) * l.cantidad)}</b>
@@ -138,7 +140,7 @@ export function Pedido({ lineas, info, sede, sedeNombre, onCantidad, onEditar, o
               <input className="t-campo" placeholder="Barrio" value={d.barrio} onChange={(e) => cambiar({ barrio: e.target.value })} />
               <select className="t-campo" value={d.zona_id} onChange={(e) => cambiar({ zona_id: e.target.value })}>
                 <option value="">Zona de entrega…</option>
-                {info.zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre} · domicilio {plata(z.tarifa)}</option>)}
+                {info.zonas.map((z) => <option key={z.id} value={z.id}>{z.nombre} · domicilio {plata(z.tarifa)}{z.minutos_min ? ` · ${z.minutos_min}–${z.minutos_max ?? z.minutos_min} min` : ''}</option>)}
               </select>
               <input className="t-campo" placeholder="Referencia (ej. frente al parque, casa azul)" value={d.referencia} onChange={(e) => cambiar({ referencia: e.target.value })} />
             </>}

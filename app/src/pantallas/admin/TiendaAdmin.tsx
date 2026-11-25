@@ -26,6 +26,7 @@ export function TiendaAdmin({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
           <Zonas sede={s} />
           <Promos sede={s} sedes={sedes} />
         </div>
+        <Combos sede={s} sedes={sedes} />
         <Adicionales sede={s} />
       </>}
     </div>
@@ -53,7 +54,9 @@ function Ajustes({ sede }: { sede: string }) {
     if (!f.domicilio && !f.recoger) return aviso.error(new Error('Deja domicilio o recoger.'));
     try {
       await guardar(sb.from('tienda_ajustes').upsert({ sede_id: sede, abierta: f.abierta, pedido_minimo: Number(f.pedido_minimo || 0), medios: f.medios,
-        nequi_numero: f.nequi_numero || null, cuenta_texto: f.cuenta_texto || null, horario_texto: f.horario_texto || null, recoger: f.recoger, domicilio: f.domicilio }));
+        nequi_numero: f.nequi_numero || null, cuenta_texto: f.cuenta_texto || null, horario_texto: f.horario_texto || null, recoger: f.recoger, domicilio: f.domicilio,
+        whatsapp: f.whatsapp || null, instagram: f.instagram || null, facebook: f.facebook || null, tiktok: f.tiktok || null,
+        banner_activo: !!f.banner_activo, banner_etiqueta: f.banner_etiqueta || null, banner_titulo: f.banner_titulo || null, banner_texto: f.banner_texto || null }));
       aviso.ok('✓ Guardado');
     } catch (e) { aviso.error(e); }
   }
@@ -87,6 +90,25 @@ function Ajustes({ sede }: { sede: string }) {
         {f.medios.includes('transferencia') && <div className="campo"><label>Datos para transferencia</label>
           <input value={f.cuenta_texto ?? ''} placeholder="Bancolombia ahorros 000-000000-00 · Max Pizza" onChange={(e) => c({ cuenta_texto: e.target.value })} /></div>}
       </div>
+      <h3 style={{ marginTop: 6 }}>Contacto y redes (salen en la tienda)</h3>
+      <div className="dos-columnas">
+        <div className="campo"><label>WhatsApp para pedidos</label>
+          <input inputMode="tel" placeholder="3001234567" value={f.whatsapp ?? ''} onChange={(e) => c({ whatsapp: num(e.target.value).slice(0, 10) })} /></div>
+        <div className="campo"><label>Instagram (usuario)</label>
+          <input placeholder="maxpizza" value={f.instagram ?? ''} onChange={(e) => c({ instagram: e.target.value.replace(/[@\s]/g, '') })} /></div>
+        <div className="campo"><label>Facebook (usuario o página)</label>
+          <input placeholder="maxpizza" value={f.facebook ?? ''} onChange={(e) => c({ facebook: e.target.value.replace(/[@\s]/g, '') })} /></div>
+        <div className="campo"><label>TikTok (usuario)</label>
+          <input placeholder="maxpizza" value={f.tiktok ?? ''} onChange={(e) => c({ tiktok: e.target.value.replace(/[@\s]/g, '') })} /></div>
+      </div>
+      <h3 style={{ marginTop: 6 }}>Banner de temporada</h3>
+      <label className="fila texto-sec" style={{ gap: 6 }}><input type="checkbox" checked={!!f.banner_activo} onChange={(e) => c({ banner_activo: e.target.checked })} />
+        Mostrar el banner en la portada (ej. Navidad, Amor y Amistad, partido de la Selección)</label>
+      {f.banner_activo && <div className="dos-columnas">
+        <div className="campo"><label>Etiqueta</label><input placeholder="SOLO HOY" value={f.banner_etiqueta ?? ''} onChange={(e) => c({ banner_etiqueta: e.target.value.toUpperCase().slice(0, 24) })} /></div>
+        <div className="campo"><label>Título</label><input placeholder="¡Noche de partido!" value={f.banner_titulo ?? ''} onChange={(e) => c({ banner_titulo: e.target.value.slice(0, 40) })} /></div>
+        <div className="campo" style={{ gridColumn: '1 / -1' }}><label>Texto</label><input placeholder="Pide tu combo y no te pierdas ningún gol" value={f.banner_texto ?? ''} onChange={(e) => c({ banner_texto: e.target.value.slice(0, 90) })} /></div>
+      </div>}
       {aviso.vista}
       <button className="btn btn-principal" onClick={salvar}>Guardar ajustes</button>
     </div>
@@ -114,6 +136,9 @@ function Zonas({ sede }: { sede: string }) {
           <input className="entrada" style={{ flex: 2 }} defaultValue={z.nombre} onBlur={(e) => e.target.value.trim() !== z.nombre && cambiar(z.id, { nombre: e.target.value.trim() })} />
           <input className="entrada" style={{ flex: 1 }} inputMode="numeric" defaultValue={plata(z.tarifa)}
             onBlur={(e) => { const v = Number(num(e.target.value)); e.target.value = plata(v); if (v !== Number(z.tarifa)) cambiar(z.id, { tarifa: v }); }} />
+          <input className="entrada" style={{ width: 92 }} title="Tiempo de entrega (minutos)" placeholder="30-45 min"
+            defaultValue={z.minutos_min ? `${z.minutos_min}-${z.minutos_max ?? z.minutos_min}` : ''}
+            onBlur={(e) => { const [a, b] = e.target.value.split(/[^\d]+/).filter(Boolean).map(Number); if (a) cambiar(z.id, { minutos_min: a, minutos_max: b ?? a }); }} />
           <button className="btn btn-suave" onClick={() => cambiar(z.id, { activa: !z.activa })}>{z.activa ? 'Quitar' : 'Activar'}</button>
         </div>
       ))}
@@ -238,6 +263,95 @@ function Adicionales({ sede }: { sede: string }) {
               {Object.entries(UBICACIONES).map(([k, v]) => <option key={k} value={k}>Sale de: {v}</option>)}</select>
           </>}
           <button className="btn btn-principal" onClick={agregar}>Agregar adicional</button>
+        </div>
+      </div>
+      {aviso.vista}
+    </div>
+  );
+}
+
+// ───────── Combos: varios productos a un precio especial ─────────
+function Combos({ sede, sedes }: { sede: string; sedes: Sede[] }) {
+  const aviso = useAviso();
+  const { datos } = useConsulta('tienda-combos', async () => {
+    const [combos, prods] = await Promise.all([
+      q<any[]>(sb.from('combos').select('*, combo_items(id, cantidad, producto_id, productos(nombre))').or(`sede_id.is.null,sede_id.eq.${sede}`).order('orden').order('nombre')),
+      q<any[]>(sb.from('productos_sede').select('producto_id, precio, online, productos(nombre, activo)').eq('sede_id', sede)),
+    ]);
+    const lista = prods.filter((p) => p.productos?.activo).map((p) => ({ id: p.producto_id, nombre: p.productos.nombre, precio: Number(p.precio), online: p.online }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return { combos, prods: lista };
+  }, [sede], ['combos', 'combo_items']);
+  const vacio = { nombre: '', descripcion: '', precio: '', todas: false, items: [] as { producto_id: string; cantidad: number }[], elegir: '' };
+  const [n, setN] = useState(vacio);
+  const prods = datos?.prods ?? [];
+  const precio = (id: string) => prods.find((p) => p.id === id)?.precio ?? 0;
+  const normal = n.items.reduce((t, i) => t + precio(i.producto_id) * i.cantidad, 0);
+  const sedeNombre = (id: string | null) => (id ? sedes.find((x) => x.id === id)?.nombre : 'Todas las sedes');
+
+  function sumar(id: string) {
+    if (!id) return;
+    const ya = n.items.find((i) => i.producto_id === id);
+    setN({ ...n, elegir: '', items: ya ? n.items.map((i) => (i.producto_id === id ? { ...i, cantidad: i.cantidad + 1 } : i)) : [...n.items, { producto_id: id, cantidad: 1 }] });
+  }
+  async function crear() {
+    if (!n.nombre.trim() || n.items.length < 2 || !Number(n.precio)) return aviso.error(new Error('Ponle nombre, al menos 2 productos y el precio del combo.'));
+    if (Number(n.precio) >= normal) return aviso.error(new Error(`El combo debe costar menos que por separado (${plata(normal)}).`));
+    try {
+      const { data, error } = await sb.from('combos').insert({ sede_id: n.todas ? null : sede, nombre: n.nombre.trim(), descripcion: n.descripcion.trim() || null,
+        precio: Number(n.precio), orden: (datos?.combos.length ?? 0) + 1 }).select('id').single();
+      if (error) throw new Error(error.message);
+      await guardar(sb.from('combo_items').insert(n.items.map((i) => ({ combo_id: data.id, producto_id: i.producto_id, cantidad: i.cantidad }))));
+      setN(vacio); aviso.ok('✓ Combo creado');
+    } catch (e) { aviso.error(e); }
+  }
+  const cambiar = async (id: string, x: any) => { try { await guardar(sb.from('combos').update(x).eq('id', id)); aviso.ok('✓ Guardado'); } catch (e) { aviso.error(e); } };
+
+  return (
+    <div className="tarjeta pila">
+      <h2>Combos</h2>
+      <div className="texto-sec" style={{ fontSize: 13 }}>Varios productos a un precio especial. En la tienda sale "Ahorras $X". Cada producto llega a su cocina y descuenta su inventario normal.
+        Si un producto del combo no se vende en línea en esta sede, el combo no aparece.</div>
+      {(datos?.combos ?? []).length === 0 && <div className="texto-sec">Aún no hay combos.</div>}
+      {(datos?.combos ?? []).map((cb) => {
+        const norm = (cb.combo_items ?? []).reduce((t: number, i: any) => t + precio(i.producto_id) * i.cantidad, 0);
+        const fuera = (cb.combo_items ?? []).some((i: any) => !prods.find((p) => p.id === i.producto_id)?.online);
+        return (
+          <div key={cb.id} className="fila entre linea" style={{ opacity: cb.activo ? 1 : .5, gap: 8 }}>
+            <span><b>{cb.nombre}</b> · {plata(cb.precio)} {norm > cb.precio && <span className="estado estado-baja">Ahorra {plata(norm - cb.precio)}</span>}
+              <div className="texto-sec" style={{ fontSize: 13 }}>{(cb.combo_items ?? []).map((i: any) => `${i.cantidad} × ${i.productos?.nombre}`).join(' + ')} · {sedeNombre(cb.sede_id)}</div>
+              {fuera && <div className="txt-rojo" style={{ fontSize: 13 }}>No sale en la tienda: un producto no se vende en línea en esta sede.</div>}</span>
+            <span className="fila" style={{ gap: 6 }}>
+              <input className="entrada" style={{ width: 110 }} inputMode="numeric" defaultValue={plata(cb.precio)}
+                onBlur={(e) => { const v = Number(num(e.target.value)); e.target.value = plata(v); if (v && v !== Number(cb.precio)) cambiar(cb.id, { precio: v }); }} />
+              <button className="btn btn-suave" onClick={() => cambiar(cb.id, { activo: !cb.activo })}>{cb.activo ? 'Pausar' : 'Activar'}</button>
+            </span>
+          </div>
+        );
+      })}
+      <div className="pila" style={{ gap: 8, borderTop: '1px solid var(--borde)', paddingTop: 10 }}>
+        <div className="fila envolver" style={{ gap: 8 }}>
+          <input className="entrada" placeholder="Nombre (ej. Combo pareja)" value={n.nombre} onChange={(e) => setN({ ...n, nombre: e.target.value })} />
+          <input className="entrada" placeholder="Descripción corta (opcional)" value={n.descripcion} onChange={(e) => setN({ ...n, descripcion: e.target.value })} />
+        </div>
+        <div className="fila envolver" style={{ gap: 8 }}>
+          <select className="entrada" value={n.elegir} onChange={(e) => sumar(e.target.value)}>
+            <option value="">＋ Agregar producto al combo…</option>
+            {prods.map((p) => <option key={p.id} value={p.id}>{p.nombre} · {plata(p.precio)}</option>)}
+          </select>
+          {n.items.map((i) => (
+            <span key={i.producto_id} className="estado estado-proceso">
+              {i.cantidad} × {prods.find((p) => p.id === i.producto_id)?.nombre}
+              <button className="enlace" onClick={() => setN({ ...n, items: n.items.filter((x) => x.producto_id !== i.producto_id) })}>✕</button>
+            </span>
+          ))}
+        </div>
+        <div className="fila envolver" style={{ gap: 8, alignItems: 'center' }}>
+          {n.items.length > 0 && <span className="texto-sec">Por separado: <b>{plata(normal)}</b></span>}
+          <input className="entrada" style={{ width: 140 }} inputMode="numeric" placeholder="Precio del combo" value={n.precio ? plata(Number(n.precio)) : ''} onChange={(e) => setN({ ...n, precio: num(e.target.value) })} />
+          {Number(n.precio) > 0 && Number(n.precio) < normal && <span className="estado estado-baja">Ahorran {plata(normal - Number(n.precio))}</span>}
+          <label className="fila texto-sec" style={{ gap: 4, fontSize: 13 }}><input type="checkbox" checked={n.todas} onChange={(e) => setN({ ...n, todas: e.target.checked })} /> Para todas las sedes</label>
+          <button className="btn btn-principal" onClick={crear}>Crear combo</button>
         </div>
       </div>
       {aviso.vista}

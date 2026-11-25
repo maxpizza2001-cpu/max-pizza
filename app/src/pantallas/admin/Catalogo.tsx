@@ -134,7 +134,7 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
             <select value={f.estacion} onChange={(e) => setF({ ...f, estacion: e.target.value })}>{Object.entries(ESTACIONES).map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
         </div>
         <div className="campo"><label>Descripción (la ve el cliente en la tienda)</label>
-          <textarea rows={2} placeholder="Ej. Jamón, piña y mucho queso" value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} /></div>
+          <textarea rows={2} placeholder="Ingredientes, ej. queso mozarella, piña y jamón (sale en la tienda)" value={f.descripcion} onChange={(e) => setF({ ...f, descripcion: e.target.value })} /></div>
         <div className="fila envolver" style={{ gap: 12, alignItems: 'end' }}>
           {f.foto_url && <img src={f.foto_url} alt="" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', background: '#000' }} />}
           <div className="campo" style={{ flex: 1, minWidth: 200 }}><label>Foto (sube una o pega un enlace)</label>

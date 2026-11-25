@@ -9,7 +9,7 @@ import { Rueda } from './Rueda';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
 import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
-import { agruparPlatos, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
+import { agruparPlatos, minutos, precioLinea, type Combo, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
 import './tienda.css';
 
 type SedeT = { id: string; nombre: string };
@@ -24,6 +24,7 @@ export function Tienda() {
   const [error, setError] = useState('');
   const [cat, setCat] = useState('Todo');
   const [busca, setBusca] = useState('');
+  const [buscando, setBuscando] = useState(false);
   const [cambiarSede, setCambiarSede] = useState(false);
   const [armando, setArmando] = useState<{ plato: Plato; linea?: LineaCarrito } | null>(null);
   const [verPedido, setVerPedido] = useState(false);
@@ -56,7 +57,8 @@ export function Tienda() {
       setError('');
       setMenu((m.data as ProductoTienda[]).map((p) => ({ ...p, precio: Number(p.precio) })));
       const inf = i.data as InfoTienda;
-      setInfo({ ajustes: inf.ajustes, zonas: (inf.zonas ?? []).map((z) => ({ ...z, tarifa: Number(z.tarifa) })), opciones: inf.opciones ?? [], promos: inf.promos ?? [], hay_codigos: !!inf.hay_codigos });
+      setInfo({ ajustes: inf.ajustes, zonas: (inf.zonas ?? []).map((z) => ({ ...z, tarifa: Number(z.tarifa) })), opciones: inf.opciones ?? [], promos: inf.promos ?? [], hay_codigos: !!inf.hay_codigos,
+        combos: (inf.combos ?? []).map((c) => ({ ...c, precio: Number(c.precio), normal: Number(c.normal) })) });
     });
   }, [sede]);
 
@@ -65,9 +67,11 @@ export function Tienda() {
   useEffect(() => {
     if (!menu) return;
     const precio = new Map(menu.map((p) => [p.id, p.precio]));
-    const ajustado = carrito.filter((l) => precio.has(l.producto_id)).map((l) => ({ ...l, precio_base: precio.get(l.producto_id)! }));
+    const combos = new Map((info.combos ?? []).map((c) => [c.id, c.precio]));
+    const ajustado = carrito.filter((l) => (l.combo_id ? combos.has(l.combo_id) : precio.has(l.producto_id)))
+      .map((l) => ({ ...l, precio_base: l.combo_id ? combos.get(l.combo_id)! : precio.get(l.producto_id)! }));
     if (JSON.stringify(ajustado) !== JSON.stringify(carrito)) setCarrito(ajustado);
-  }, [menu]);
+  }, [menu, info.combos]);
 
   const portada = useMemo(() => {
     const d = platos.filter((p) => p.destacado);
@@ -89,6 +93,14 @@ export function Tienda() {
   }, []);
   useEffect(() => { document.querySelector('.t-chips .on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }, [cat]);
 
+  function agregarCombo(c: Combo) {
+    const ya = carrito.find((l) => l.combo_id === c.id);
+    setCarrito(ya ? carrito.map((l) => (l === ya ? { ...l, cantidad: Math.min(50, l.cantidad + 1) } : l))
+      : [...carrito, { clave: crypto.randomUUID(), plato_id: 'combo:' + c.id, producto_id: '', combo_id: c.id, nombre: c.nombre, tamano: null,
+        precio_base: c.precio, opciones: [], nota: '', cantidad: 1, detalle: c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ') }]);
+    setAviso(`✓ ${c.nombre} agregado`); setTimeout(() => setAviso(''), 2200);
+  }
+
   function listo(l: LineaCarrito) {
     const existe = carrito.some((x) => x.clave === l.clave);
     setCarrito(existe ? carrito.map((x) => (x.clave === l.clave ? l : x)) : [...carrito, l]);
@@ -101,6 +113,14 @@ export function Tienda() {
 
   const aj = info.ajustes;
   const tarifaMin = info.zonas.length ? Math.min(...info.zonas.map((z) => z.tarifa)) : null;
+  const tiempo = minutos(info.zonas);
+  const combos = info.combos ?? [];
+  const whatsapp = aj?.whatsapp ? `https://wa.me/57${aj.whatsapp}?text=${encodeURIComponent(`Hola Max Pizza ${sedeNombre}, quiero hacer un pedido 🍕`)}` : null;
+  const sugerencias = [
+    ...(combos.length ? ['Combos'] : []),
+    ...portada.slice(0, 4).map((p) => p.nombre.replace(/^Pizza\s+/i, '')),
+    ...platos.filter((p) => p.categoria_tipo === 'rapida').slice(0, 2).map((p) => p.nombre),
+  ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 6);
   const q = busca.trim().toLowerCase();
   const visibles = q ? platos.filter((p) => (p.nombre + ' ' + (p.descripcion ?? '') + ' ' + p.categoria).toLowerCase().includes(q)) : platos;
   const cats = categorias.filter((c) => c !== 'Todo' && visibles.some((p) => p.categoria === c));
@@ -174,11 +194,19 @@ export function Tienda() {
           <div className="t-buscar-fila">
             <label className="t-buscar">
               <span aria-hidden>🔍</span>
-              <input placeholder="Busca tu pizza favorita…" value={busca} onChange={(e) => { setBusca(e.target.value); if (e.target.value) irA('Todo'); }} />
+              <input placeholder="Busca tu pizza favorita…" value={busca} onFocus={() => setBuscando(true)} onBlur={() => setTimeout(() => setBuscando(false), 200)}
+                onChange={(e) => { setBusca(e.target.value); if (e.target.value) irA('Todo'); }} />
               {busca && <button aria-label="Borrar búsqueda" onClick={() => setBusca('')}>✕</button>}
             </label>
             <span className={'t-estado-chip ' + (aj && !aj.abierta ? 'cerrada' : 'abierta')}>{aj && !aj.abierta ? 'Cerrado' : 'Abierto'}</span>
           </div>
+          {buscando && !busca && sugerencias.length > 0 && (
+            <div className="t-sugerencias">
+              <small>Lo más buscado</small>
+              {sugerencias.map((s) => <button key={s} onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { if (s === 'Combos') { setBuscando(false); document.getElementById('combos')?.scrollIntoView({ behavior: 'smooth' }); } else { setBusca(s); irA('Todo'); } }}>{s}</button>)}
+            </div>
+          )}
 
           {!q && (
             <section className="t-portada">
@@ -201,6 +229,15 @@ export function Tienda() {
           </nav>
 
           <main className="t-menu">
+            {!q && aj?.banner && (
+              <div className="t-temporada">
+                {aj.banner.etiqueta && <span className="t-etiqueta">{aj.banner.etiqueta}</span>}
+                <b>{aj.banner.titulo}</b>
+                {aj.banner.texto && <span>{aj.banner.texto}</span>}
+                <button className="t-btn" onClick={() => (combos.length ? document.getElementById('combos')?.scrollIntoView({ behavior: 'smooth' }) : irA(cats[0] ?? 'Todo'))}>Pedir ahora →</button>
+              </div>
+            )}
+
             {!q && portada.length > 0 && (
               <section>
                 <div className="t-titulo-fila"><h2 className="t-titulo-cat">Los más pedidos</h2>
@@ -223,6 +260,35 @@ export function Tienda() {
               </div>
             )}
 
+            {!q && combos.length > 0 && (
+              <section id="combos">
+                <h2 className="t-titulo-cat">🎉 Combos</h2>
+                <div className="t-combos">
+                  {combos.map((c) => {
+                    const n = enCarrito('combo:' + c.id);
+                    return (
+                      <article key={c.id} className="t-combo" onClick={() => agregarCombo(c)}>
+                        {c.normal > c.precio && <span className="t-sello">AHORRAS {plata(c.normal - c.precio)}</span>}
+                        <div className="t-combo-img">
+                          {c.foto_url ? <img className="t-foto" src={c.foto_url} alt={c.nombre} style={{ width: 120, height: 120 }} />
+                            : c.items.slice(0, 3).map((i) => { const p = platos.find((x) => x.variantes.some((v) => v.producto_id === i.producto_id) || x.id === i.producto_id);
+                              return <span key={i.producto_id}>{p ? <ImagenProducto p={p} tam={70} /> : '🍽️'}</span>; })}
+                        </div>
+                        <div className="t-combo-txt">
+                          <b>{c.nombre}</b>
+                          <span>{c.descripcion || c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ')}</span>
+                          <div className="t-card-pie">
+                            <span className="t-card-precio">{plata(c.precio)} {c.normal > c.precio && <s>{plata(c.normal)}</s>}</span>
+                            <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${c.nombre}`}>{n || '＋'}</button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {cats.map((c) => (
               <section key={c} id={'cat-' + c} data-cat={c}>
                 <h2 className="t-titulo-cat">{c}</h2>
@@ -235,7 +301,7 @@ export function Tienda() {
             {menu && !menu.length && <div className="t-centro">Esta sede aún no tiene productos en línea.</div>}
 
             <div className="t-confianza">
-              {(!aj || aj.domicilio) && <div><span>🛵</span><b>Domicilio</b><small>{tarifaMin != null ? `desde ${plata(tarifaMin)}` : 'a tu puerta'}</small></div>}
+              {(!aj || aj.domicilio) && <div><span>🛵</span><b>{tiempo ? `Llega en ${tiempo}` : 'Domicilio'}</b><small>{tarifaMin != null ? `Domicilio desde ${plata(tarifaMin)}` : 'a tu puerta'}</small></div>}
               <div><span>🔥</span><b>Recién hecha</b><small>Siempre fresca</small></div>
               <div><span>🎁</span><b>Promociones</b><small>{(info.promos ?? []).length ? 'Activas hoy' : 'Muy pronto'}</small></div>
               <div><span>🔒</span><b>Pago fácil</b><small>Efectivo o Nequi</small></div>
@@ -245,8 +311,21 @@ export function Tienda() {
           <footer className="t-pie">
             <div className="t-marca"><Logo alto={44} /></div>
             <span>Max Pizza · {sedeNombre}{aj?.horario_texto ? ` · ${aj.horario_texto}` : ''}</span>
+            <div className="t-pie-links">
+              {whatsapp && <a href={whatsapp} target="_blank" rel="noreferrer">💬 WhatsApp</a>}
+              {aj?.instagram && <a href={`https://instagram.com/${aj.instagram}`} target="_blank" rel="noreferrer">📸 Instagram</a>}
+              {aj?.facebook && <a href={`https://facebook.com/${aj.facebook}`} target="_blank" rel="noreferrer">👍 Facebook</a>}
+              {aj?.tiktok && <a href={`https://tiktok.com/@${aj.tiktok}`} target="_blank" rel="noreferrer">🎵 TikTok</a>}
+              <button className="t-enlace" onClick={() => setSeguir('buscar')}>📦 Seguir mi pedido</button>
+            </div>
             <a href="/">¿Trabajas en Max Pizza? Entrar</a>
           </footer>
+
+          {whatsapp && !verPedido && !armando && (
+            <a className="t-whatsapp" href={whatsapp} target="_blank" rel="noreferrer" aria-label="Pedir por WhatsApp">
+              <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path fill="#fff" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3Zm0 23.7c-2 0-3.9-.5-5.6-1.5l-.4-.2-3.9 1 1-3.8-.2-.4A10.7 10.7 0 1 1 16 26.7Zm5.9-8c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.8 8.8 0 0 1-4.4-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.6 3.6 0 0 0-1.1 2.7c0 1.6 1.2 3.1 1.3 3.3.2.2 2.3 3.5 5.5 4.9 2 .9 2.8.9 3.8.8.6-.1 1.9-.8 2.2-1.5.3-.7.3-1.4.2-1.5-.1-.2-.3-.3-.6-.4Z" /></svg>
+            </a>
+          )}
 
           {unidades > 0 && !verPedido && !armando && (
             <button className="t-barra-carrito" onClick={() => setVerPedido(true)}>

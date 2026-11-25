@@ -346,3 +346,38 @@
   .t-barra-carrito { bottom: 100px; }
 }
 @media (min-width: 1100px) { .t-cards { grid-template-columns: repeat(4, 1fr); } }
+
+/* ═════════ Ideas de otras pizzerías: sugerencias, temporada, combos, pie y WhatsApp ═════════ */
+.t-sugerencias { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 14px 0; }
+.t-sugerencias small { width: 100%; color: var(--gris); font-weight: 700; font-size: 11.5px; }
+.t-sugerencias button { border: 1px solid #EAE3D5; background: #fff; border-radius: 999px; padding: 6px 12px; font-weight: 600; font-size: 13px; cursor: pointer; }
+
+.t-temporada { display: grid; gap: 6px; justify-items: start; margin-top: 18px; border-radius: 22px; padding: 18px 20px; color: #fff;
+  background: linear-gradient(120deg, #141414 0%, #2b2006 100%); box-shadow: 0 10px 26px rgba(0,0,0,.18); position: relative; overflow: hidden; }
+.t-temporada::after { content: '🍕'; position: absolute; right: -10px; bottom: -18px; font-size: 96px; opacity: .25; transform: rotate(-15deg); }
+.t-temporada b { font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 24px; line-height: 1.05; color: var(--mostaza); }
+.t-temporada span:not(.t-etiqueta) { color: #d8d2c4; font-size: 13.5px; max-width: 80%; }
+.t-temporada .t-btn { margin-top: 4px; padding: 10px 18px; }
+
+.t-combos { display: grid; gap: 12px; }
+.t-combo { position: relative; display: flex; gap: 12px; align-items: center; background: #fff; border-radius: 20px; padding: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.07); cursor: pointer; border: 2px solid #FCE3A2; }
+.t-combo .t-sello { background: var(--mostaza); color: #141414; }
+.t-combo-img { flex: none; width: 120px; height: 104px; display: flex; align-items: center; justify-content: center; border-radius: 16px;
+  background: radial-gradient(circle at 50% 60%, #FFF6DF, #fff 75%); }
+.t-combo-img > span + span { margin-left: -26px; }
+.t-combo-txt { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.t-combo-txt b { font-family: 'Montserrat', sans-serif; font-size: 15px; }
+.t-combo-txt > span { font-size: 12.5px; color: var(--gris); }
+.t-combo-txt s { color: #a39d91; font-size: 12px; font-weight: 600; margin-left: 4px; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+.t-pie-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; }
+.t-pie-links a, .t-pie-links .t-enlace { font-weight: 700; color: #141414; text-decoration: none; font-size: 14px; }
+
+.t-whatsapp { position: fixed; right: 16px; bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 29; width: 56px; height: 56px; border-radius: 50%;
+  background: #25D366; display: grid; place-items: center; box-shadow: 0 8px 20px rgba(37,211,102,.45); }
+@media (min-width: 760px) {
+  .t-combos { grid-template-columns: repeat(2, 1fr); }
+  .t-sugerencias { max-width: 1072px; margin: 0 auto; }
+  .t-whatsapp { bottom: 110px; }
+}

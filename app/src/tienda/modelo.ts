@@ -12,17 +12,27 @@ export type Plato = {
   destacado: boolean; categoria: string; categoria_tipo: string; variantes: Variante[];
 };
 export type Opcion = { id: string; producto_id: string; nombre: string; precio_extra: number };
-export type Zona = { id: string; nombre: string; tarifa: number };
+export type Zona = { id: string; nombre: string; tarifa: number; minutos_min?: number | null; minutos_max?: number | null };
 export type Ajustes = {
   abierta: boolean; pedido_minimo: number; medios: string[]; nequi_numero: string | null; cuenta_texto: string | null;
   horario_texto: string | null; recoger: boolean; domicilio: boolean;
+  whatsapp?: string | null; instagram?: string | null; facebook?: string | null; tiktok?: string | null;
+  banner?: { etiqueta: string | null; titulo: string; texto: string | null } | null;
 };
 export type Promo = { nombre: string; tipo: 'porcentaje' | 'valor'; valor: number; minimo: number };
-export type InfoTienda = { ajustes: Ajustes | null; zonas: Zona[]; opciones: Opcion[]; promos?: Promo[]; hay_codigos?: boolean };
+export type Combo = { id: string; nombre: string; descripcion: string | null; foto_url: string | null; precio: number; normal: number;
+  items: { producto_id: string; nombre: string; cantidad: number }[] };
+export type InfoTienda = { ajustes: Ajustes | null; zonas: Zona[]; opciones: Opcion[]; promos?: Promo[]; hay_codigos?: boolean; combos?: Combo[] };
+/** "30–45 min" de una zona (o el rango de todas) */
+export const minutos = (zs: Zona[]) => {
+  const a = zs.map((z) => z.minutos_min).filter((x): x is number => !!x), b = zs.map((z) => z.minutos_max ?? z.minutos_min).filter((x): x is number => !!x);
+  return a.length ? `${Math.min(...a)}–${Math.max(...b)} min` : null;
+};
 
 export type LineaCarrito = {
   clave: string; plato_id: string; producto_id: string; nombre: string; tamano: string | null;
   precio_base: number; opciones: { id: string; nombre: string; precio: number }[]; nota: string; cantidad: number;
+  combo_id?: string; detalle?: string;   // combos: se mandan como combo_id y el servidor los abre en sus productos
 };
 export const precioLinea = (l: LineaCarrito) => l.precio_base + l.opciones.reduce((s, o) => s + o.precio, 0);
 
