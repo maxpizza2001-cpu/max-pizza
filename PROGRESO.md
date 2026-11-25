@@ -242,3 +242,15 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Va debajo de la portada (tocarla abre el pedido) y en pequeño dentro del carrito. Respeta "reducir movimiento".
 - Probado en 375 px: 0 → Antojado → Hambre seria → Rey → Fiesta Max, sin desbordes.
 - Ideas pendientes: premio real por nivel (domicilio gratis / gaseosa de regalo, calculado en el servidor) y música opcional.
+
+## Max Pizza Experience 2.0 · Etapa 1 (tarjetas premium y velocidad) — ✅ (25 nov 2026)
+- Auditoría entregada antes de programar: 0/16 productos con foto o descripción en ambas sedes, 5 pizzas agotadas en
+  Sede Principal, sin portada/combos/promos/WhatsApp configurados; la tienda bajaba toda la app del equipo (≈495 KB).
+- `main.tsx` carga por separado la tienda (/pedir) y la app del equipo: el cliente baja ≈296 KB (≈40 % menos).
+  `App.tsx` ahora es solo la app interna.
+- `tienda/Tarjeta.tsx` (memo): foto protagonista en fondo negro con línea dorada, etiquetas SOLO reales
+  (★ Favorita de la casa = marcada en portada · ¡Quedan N! = inventario ≤ 3 · También en combo · Agotado),
+  tamaños y "con adicionales", botón "＋ Agregar", número de unidades en el pedido; se abre con Enter/espacio.
+- Catálogo: las fotos se achican antes de subir (máx. 900 px, WebP, caché 1 año). Imágenes con lazy + decoding async.
+- Corregido: las tarjetas se re-creaban en cada render (componente definido dentro de otro).
+- Probado: 375 px (2 columnas, 168×290) y 1280 px (4 columnas), teclado, agregar al carrito, app del equipo abre. 28/28.

@@ -84,9 +84,12 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
   async function subirFoto(archivo: File) {
     setSubiendo(true);
     try {
-      const ext = (archivo.name.split('.').pop() || 'jpg').toLowerCase();
+      // La foto se achica antes de subirla (máx. 900 px, WebP): carga rápido en el celular del cliente
+      const liviana = await achicarFoto(archivo).catch(() => null);
+      const subir = liviana ?? archivo;
+      const ext = liviana ? 'webp' : (archivo.name.split('.').pop() || 'jpg').toLowerCase();
       const ruta = `${crypto.randomUUID()}.${ext}`;
-      const { error } = await sb.storage.from('productos').upload(ruta, archivo, { contentType: archivo.type, upsert: false });
+      const { error } = await sb.storage.from('productos').upload(ruta, subir, { contentType: liviana ? 'image/webp' : archivo.type, upsert: false, cacheControl: '31536000' });
       if (error) throw new Error('No se pudo subir la foto: ' + error.message);
       setF((x) => ({ ...x, foto_url: sb.storage.from('productos').getPublicUrl(ruta).data.publicUrl }));
     } catch (e) { aviso.error(e); } finally { setSubiendo(false); }
@@ -194,3 +197,15 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
   );
 }
 
+
+/** Reduce la foto a máx. 900 px por lado y la guarda en WebP (una foto de celular pasa de ~4 MB a ~100 KB). */
+async function achicarFoto(archivo: File, lado = 900, calidad = 0.82): Promise<Blob> {
+  const img = await createImageBitmap(archivo);
+  const k = Math.min(1, lado / Math.max(img.width, img.height));
+  const lienzo = document.createElement('canvas');
+  lienzo.width = Math.round(img.width * k); lienzo.height = Math.round(img.height * k);
+  lienzo.getContext('2d')!.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+  const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, 'image/webp', calidad));
+  if (!blob || blob.size >= archivo.size) throw new Error('sin ganancia');
+  return blob;
+}

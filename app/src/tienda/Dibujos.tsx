@@ -71,7 +71,7 @@ export function iconoDe(nombre: string, tipo: string) {
 
 /** Imagen redonda del producto: foto si hay; si no, pizza dibujada o ícono en plato. */
 export function ImagenProducto({ p, tam }: { p: { nombre: string; foto_url: string | null; categoria_tipo: string }; tam: number }) {
-  if (p.foto_url) return <img className="t-foto" src={p.foto_url} alt={p.nombre} style={{ width: tam, height: tam }} loading="lazy" />;
+  if (p.foto_url) return <img className="t-foto" src={p.foto_url} alt={p.nombre} width={tam} height={tam} style={{ width: tam, height: tam }} loading="lazy" decoding="async" />;
   if (p.categoria_tipo === 'pizza') return <PizzaDibujo nombre={p.nombre} style={{ width: tam, height: tam, display: 'block' }} />;
   return <div className="t-plato" style={{ width: tam, height: tam, fontSize: tam * 0.45 }}>{iconoDe(p.nombre, p.categoria_tipo)}</div>;
 }

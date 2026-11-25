@@ -456,3 +456,31 @@
 .caja-zona.compacta .caja-pizza.n1 { max-width: 104px; }
 @media (prefers-reduced-motion: reduce) { .caja-pizza, .caja-extra, .caja-corona, .caja-zona.fiesta .caja, .caja-confeti i { animation: none !important; } }
 @media (min-width: 760px) { .caja-zona:not(.compacta) { max-width: 1072px; margin-left: auto; margin-right: auto; } }
+
+/* ═════════ Etapa 1 · Tarjetas premium (foto protagonista, etiquetas reales) ═════════ */
+.t-card-premium { padding: 0; gap: 0; overflow: hidden; border-radius: 22px; border: 1px solid #F1EBDF; outline: none; }
+.t-card-premium:focus-visible { box-shadow: 0 0 0 3px var(--mostaza); }
+.t-card-foto { position: relative; height: 150px; display: grid; place-items: center; overflow: hidden;
+  background: radial-gradient(circle at 50% 70%, #3a2a07 0%, #141414 62%, #0b0b0b 100%); }
+.t-card-foto::after { content: ''; position: absolute; inset: auto 0 0 0; height: 3px; background: linear-gradient(90deg, transparent, #E3A21A, #F6D58A, #E3A21A, transparent); }
+.t-card-foto svg, .t-card-foto .t-plato { width: 128px !important; height: 128px !important; transition: transform .5s cubic-bezier(.2,.9,.3,1); filter: drop-shadow(0 10px 14px rgba(0,0,0,.45)); }
+.t-card-foto .t-plato { font-size: 56px !important; background: radial-gradient(circle, #2b2b2b 55%, #1d1d1d 56%, #262626 100%) !important; }
+.t-card-foto.con-foto .t-foto { width: 100% !important; height: 100% !important; border-radius: 0; object-fit: cover; }
+.t-card-premium:hover .t-card-foto svg, .t-card-premium:hover .t-card-foto .t-foto { transform: scale(1.06) rotate(-4deg); }
+.t-etiquetas { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; flex-wrap: wrap; gap: 4px; z-index: 1; }
+.t-etq { font-size: 10px; font-weight: 800; letter-spacing: .02em; border-radius: 7px; padding: 3px 7px; line-height: 1.2; }
+.t-etq.oro { background: linear-gradient(135deg, #F6D58A, #E3A21A); color: #141414; }
+.t-etq.roja { background: var(--rojo); color: #fff; }
+.t-etq.clara { background: rgba(255,255,255,.92); color: #141414; }
+.t-etq.gris { background: #6B665D; color: #fff; }
+.t-en-pedido { position: absolute; right: 8px; bottom: 10px; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 99px; background: var(--mostaza);
+  color: #141414; font-weight: 900; display: grid; place-items: center; font-family: 'Montserrat', sans-serif; box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.t-card-cuerpo { display: grid; gap: 4px; padding: 10px 12px 12px; }
+.t-card-detalle { font-size: 11px; color: #8a857b; font-weight: 600; }
+.t-card-agregar { background: #141414; color: var(--mostaza); border-radius: 999px; padding: 7px 11px; font-weight: 800; font-size: 12.5px; white-space: nowrap;
+  transition: background .2s, color .2s; }
+.t-card-premium:hover .t-card-agregar { background: var(--mostaza); color: #141414; }
+.t-cards-deslizar .t-card-premium { width: 176px; }
+.t-agotado .t-card-foto { filter: grayscale(1); opacity: .55; }
+@media (prefers-reduced-motion: reduce) { .t-card-foto svg, .t-card-foto .t-foto { transition: none; } }
+@media (min-width: 760px) { .t-card-foto { height: 180px; } .t-card-foto svg { width: 150px !important; height: 150px !important; } .t-cards-deslizar .t-card-premium { width: 210px; } }

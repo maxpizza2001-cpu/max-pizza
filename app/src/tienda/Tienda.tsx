@@ -1,12 +1,13 @@
 // Tienda online pública (/pedir): sede, portada giratoria, menú, armar producto, carrito y datos del pedido.
 // Lee el MISMO catálogo de Administración por funciones públicas (tienda_sedes / tienda_catalogo / tienda_info).
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { configurado, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { Logo } from '../componentes/Logo';
 import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
+import { Tarjeta as TarjetaPremium } from './Tarjeta';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
 import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
@@ -41,7 +42,7 @@ export function Tienda() {
   useEffect(() => { document.title = 'Max Pizza · Pide en línea'; }, []);
 
   useEffect(() => {
-    if (!configurado) return;
+  if (!configurado) return;
     sb.rpc('tienda_sedes').then(({ data, error }) => {
       if (error) return setError('No pudimos cargar el menú. Revisa tu internet.');
       setSedes(data as SedeT[]);
@@ -116,6 +117,7 @@ export function Tienda() {
   }
 
   const sedeNombre = sedes?.find((s) => s.id === sede)?.nombre ?? '';
+  const abrir = useCallback((p: Plato) => setArmando({ plato: p }), []);
   if (!configurado) return <div className="t-pagina t-centro">La tienda aún no está conectada.</div>;
 
   const aj = info.ajustes;
@@ -145,23 +147,13 @@ export function Tienda() {
     return <span style={{ fontSize: 30 }}>{p?.categoria_tipo === 'bebida' ? '🥤' : p ? '🍔' : '🍽️'}</span>;
   };
 
-  const Tarjeta = ({ p, sello }: { p: Plato; sello?: string }) => {
-    const n = enCarrito(p.id);
-    const fuera = platoAgotado(p);
-    return (
-      <article className={'t-card' + (fuera ? ' t-agotado' : '')} onClick={() => !fuera && setArmando({ plato: p })} aria-disabled={fuera}>
-        {fuera ? <span className="t-sello t-sello-agotado">AGOTADO</span> : sello && <span className="t-sello">{sello}</span>}
-        <div className="t-card-img"><ImagenProducto p={p} tam={132} /></div>
-        <b className="t-card-nombre">{p.nombre}</b>
-        <span className="t-card-desc">{p.descripcion || (p.variantes.length > 1 ? p.variantes.map((v) => v.etiqueta).join(' · ') : p.categoria)}</span>
-        <div className="t-card-pie">
-          <span className="t-card-precio">{p.variantes.length > 1 && <small>Desde </small>}{plata(p.precio)}</span>
-          {fuera ? <span className="t-card-agotado">Vuelve pronto</span>
-            : <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${p.nombre}`}>{n || '＋'}</button>}
-        </div>
-      </article>
-    );
-  };
+  // Datos reales para las etiquetas de las tarjetas
+  const enAlgunCombo = new Set(combos.flatMap((c) => c.items.map((i) => i.producto_id)));
+  const conAdic = new Set(info.opciones.map((o) => o.producto_id));
+  const tarjeta = (p: Plato, sello?: string) => (
+    <TarjetaPremium key={p.id} p={p} sello={sello} enPedido={enCarrito(p.id)} onAbrir={abrir}
+      enCombo={p.variantes.some((v) => enAlgunCombo.has(v.producto_id))} conAdicionales={p.variantes.some((v) => conAdic.has(v.producto_id))} />
+  );
 
   return (
     <div className="t-pagina t-con-nav">
@@ -254,7 +246,7 @@ export function Tienda() {
                 <div className="t-titulo-fila"><h2 className="t-titulo-cat">Los más pedidos</h2>
                   <button className="t-ver-todo" onClick={() => irA(cats[0] ?? 'Todo')}>Ver todo →</button></div>
                 <div className="t-cards t-cards-deslizar">
-                  {portada.slice(0, 6).map((p, i) => <Tarjeta key={p.id} p={p} sello={i === 0 ? '★ FAVORITA' : p.destacado ? 'RECOMENDADA' : undefined} />)}
+                  {portada.slice(0, 6).map((p, i) => tarjeta(p, p.destacado ? '★ Favorita de la casa' : undefined))}
                 </div>
               </section>
             )}
@@ -306,7 +298,7 @@ export function Tienda() {
               <section key={c} id={'cat-' + c} data-cat={c}>
                 <h2 className="t-titulo-cat">{c}</h2>
                 <div className="t-cards">
-                  {visibles.filter((p) => p.categoria === c).map((p) => <Tarjeta key={p.id} p={p} />)}
+                  {visibles.filter((p) => p.categoria === c).map((p) => tarjeta(p))}
                 </div>
               </section>
             ))}

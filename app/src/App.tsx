@@ -13,20 +13,14 @@ import { Rapidas } from './pantallas/Rapidas';
 import { Armado } from './pantallas/Armado';
 import { Insumos, Tortas } from './pantallas/Produccion';
 import { Admin } from './pantallas/admin/Admin';
-import { Tienda } from './tienda/Tienda';
 
 type Acceso = { sede_id: string; rol: string; sedes: { nombre: string } | null };
 type Area = { sede: string; sedeNombre: string; rol: string };
 
 const CLAVE_AREA = 'maxpizza.area';
 
-/** /pedir = tienda pública para clientes (sin cuenta). Todo lo demás = app interna del equipo. */
-export default function App() {
-  if (window.location.pathname.replace(/\/+$/, '') === '/pedir') return <Tienda />;
-  return <AppInterna />;
-}
-
-function AppInterna() {
+/** App interna del equipo (todo lo que no es /pedir). La tienda de clientes se carga aparte en main.tsx. */
+export default function AppInterna() {
   const [sesion, setSesion] = useState<Session | null>(null);
   const [listo, setListo] = useState(!configurado);
 
