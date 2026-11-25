@@ -536,3 +536,19 @@
   .max-svg *, .max-burbuja { animation: none !important; }
 }
 @media (min-width: 760px) { .max-zona { left: 20px; bottom: 120px; } .max-burbuja { max-width: 260px; } }
+
+/* ═════════ Etapa 3 · Carrito gamificado ═════════ */
+.t-vuelo { position: fixed; z-index: 60; pointer-events: none; border-radius: 50%; display: grid; place-items: center; font-size: 40px;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.35)); will-change: transform; }
+.t-vuelo > * { width: 100% !important; height: 100% !important; border-radius: 50%; object-fit: cover; }
+.t-confeti-capa { position: fixed; inset: 0; z-index: 61; pointer-events: none; overflow: hidden; }
+.t-confeti-capa i { position: absolute; top: -16px; width: 9px; height: 14px; border-radius: 2px; animation: t-caer linear forwards; }
+@keyframes t-caer { to { transform: translate(var(--x), 105vh) rotate(var(--giro)); } }
+.t-linea { transition: transform .28s ease, opacity .28s ease, max-height .28s ease; max-height: 260px; }
+.t-linea.saliendo { transform: translateX(-60px); opacity: 0; max-height: 0; overflow: hidden; padding-top: 0; padding-bottom: 0; }
+.t-combo-armado { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: center; margin: 4px 0 8px; padding: 12px 14px;
+  border-radius: 18px; background: linear-gradient(120deg, #FFF3D1, #FCE3A2); border: 1.5px solid var(--mostaza); animation: t-subir .4s ease; }
+.t-combo-armado-icono { font-size: 30px; grid-row: span 2; }
+.t-combo-armado div { display: grid; gap: 2px; font-size: 13px; }
+.t-combo-armado div b:first-child { font-family: 'Montserrat', sans-serif; font-size: 14.5px; }
+.t-combo-armado .t-btn { grid-column: 2; justify-self: start; padding: 9px 16px; }

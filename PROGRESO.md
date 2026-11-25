@@ -266,3 +266,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   Al confirmar, MAX grande celebrando en la pantalla de "¡Recibimos tu pedido!".
 - Rive no se usó: requiere diseñar el personaje en su editor; la lógica de estados queda lista para cambiar el dibujo.
 - Accesible: botón con nombre, burbuja aria-live, sin animación con "reducir movimiento". 28/28.
+
+## Max Pizza Experience 2.0 · Etapa 3 (carrito gamificado) — ✅ (25 nov 2026)
+- `app/src/tienda/efectos.ts`: el producto VUELA desde su foto (clon de la imagen) en arco hasta el botón 🍕 Pedir
+  (o la bolsa); al llegar, el botón y el contador saltan. Confeti en pantalla completa para combos y pedido confirmado.
+  Todo con pointer-events: none y apagado con "reducir movimiento".
+- Carrito: al quitar, la línea se desliza y desvanece; al cambiar cantidad, el número salta.
+- "¡Armaste el combo X!": si los productos sueltos (sin adicionales ni notas) completan un combo real más barato,
+  aparece la tarjeta con el ahorro real y "Cambiar al combo" (cambia las líneas por el combo + confeti).
+- MAX sigue reaccionando (etapa 2). Probado en 375 px: vuelo 350→728 px y se limpia, quitar animado, combo armado
+  (1 porción no, 2 sí, con nota no) con datos de prueba en el navegador. 28/28.

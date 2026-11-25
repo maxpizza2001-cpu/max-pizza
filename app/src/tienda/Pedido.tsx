@@ -4,7 +4,8 @@ import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { Caja } from './Caja';
 import { MaxDibujo } from './Max';
-import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato } from './modelo';
+import { confeti, pop } from './efectos';
+import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type Combo } from './modelo';
 
 export type DatosCliente = {
   nombre: string; celular: string; entrega: 'domicilio' | 'recoger'; direccion: string; barrio: string; zona_id: string;
@@ -15,11 +16,21 @@ const DATOS_VACIOS: DatosCliente = { nombre: '', celular: '', entrega: 'domicili
 
 export type Enviado = { codigo: string; numero: number; total: number; celular: string; nombre: string; entrega: string };
 
-export function Pedido({ lineas, platos, info, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
-  lineas: LineaCarrito[]; platos: Plato[]; info: InfoTienda; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
+export function Pedido({ lineas, platos, info, onCambiarCombo, sede, sedeNombre, onCantidad, onEditar, onQuitar, onCerrar, onEnviado, onSeguir }: {
+  lineas: LineaCarrito[]; platos: Plato[]; info: InfoTienda; onCambiarCombo: (c: Combo) => void; sede: string; sedeNombre: string; onEnviado: (e: Enviado) => void; onSeguir: (e: Enviado) => void;
   onCantidad: (clave: string, cantidad: number) => void; onEditar: (l: LineaCarrito) => void; onQuitar: (clave: string) => void; onCerrar: () => void;
 }) {
   const [paso, setPaso] = useState<'carrito' | 'datos' | 'listo'>('carrito');
+  // Quitar con efecto: la línea se desliza y se desvanece antes de salir del carrito
+  const [saliendo, setSaliendo] = useState<string | null>(null);
+  const quitar = (clave: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return onQuitar(clave);
+    setSaliendo(clave); setTimeout(() => { onQuitar(clave); setSaliendo(null); }, 280);
+  };
+  // ¿Los productos sueltos del carrito ya forman un combo real más barato? (solo líneas sin adicionales ni notas)
+  const comboArmado = (info.combos ?? []).filter((c) => c.normal > c.precio).find((c) => c.items.every((it) =>
+    lineas.filter((l) => !l.combo_id && l.producto_id === it.producto_id && !l.opciones.length && !l.nota)
+      .reduce((t, l) => t + l.cantidad, 0) >= it.cantidad)) ?? null;
   const [d, setD] = useGuardadoLocal<DatosCliente>('maxpizza.tienda.cliente', DATOS_VACIOS);
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [errores, setErrores] = useState<string[]>([]);
@@ -84,7 +95,7 @@ export function Pedido({ lineas, platos, info, sede, sedeNombre, onCantidad, onE
       const r = data as { codigo: string; numero: number; total: number };
       const e: Enviado = { codigo: r.codigo, numero: r.numero, total: Number(r.total), celular: d.celular.replace(/D/g, ''), nombre: d.nombre.trim(), entrega };
       op.current = nuevaOperacion();
-      setHecho(e); setPaso('listo'); onEnviado(e);
+      setHecho(e); setPaso('listo'); onEnviado(e); confeti(60);
     } catch (x) {
       setErrores([(x as Error).message || 'No pudimos enviar el pedido.']);
     } finally { setEnviando(false); }
@@ -105,21 +116,31 @@ export function Pedido({ lineas, platos, info, sede, sedeNombre, onCantidad, onE
             <h2>Tu pedido <span className="t-gris">· {sedeNombre}</span></h2>
             {lineas.length > 0 && <Caja lineas={lineas} platos={platos} compacta />}
             {!lineas.length && <div className="t-vacio">🍕<br />Tu carrito está vacío.<br />Agrega algo rico del menú.</div>}
+            {comboArmado && (
+              <div className="t-combo-armado">
+                <span className="t-combo-armado-icono" aria-hidden>🎉</span>
+                <div>
+                  <b>¡Armaste el combo {comboArmado.nombre}!</b>
+                  <span>Cámbialo y pagas {plata(comboArmado.precio)} en vez de {plata(comboArmado.normal)}: <b>ahorras {plata(comboArmado.normal - comboArmado.precio)}</b></span>
+                </div>
+                <button className="t-btn" onClick={() => onCambiarCombo(comboArmado)}>Cambiar al combo</button>
+              </div>
+            )}
             {lineas.map((l) => (
-              <div key={l.clave} className="t-linea">
+              <div key={l.clave} className={'t-linea' + (saliendo === l.clave ? ' saliendo' : '')}>
                 <div className="t-linea-txt">
                   <b>{l.nombre}{l.tamano ? ` · ${l.tamano}` : ''}</b>
                   {l.opciones.map((o) => <span key={o.id} className="t-gris">+ {o.nombre}</span>)}
                   {l.nota && <span className="t-nota">“{l.nota}”</span>}
                   {l.detalle && <span className="t-gris">{l.detalle}</span>}
-                  <span className="t-acciones">{!l.combo_id && <button onClick={() => onEditar(l)}>Modificar</button>}<button onClick={() => onQuitar(l.clave)}>Quitar</button></span>
+                  <span className="t-acciones">{!l.combo_id && <button onClick={() => onEditar(l)}>Modificar</button>}<button onClick={() => quitar(l.clave)}>Quitar</button></span>
                 </div>
                 <div className="t-linea-der">
                   <b>{plata(precioLinea(l) * l.cantidad)}</b>
                   <div className="t-cantidad t-cantidad-chica">
-                    <button onClick={() => l.cantidad > 1 ? onCantidad(l.clave, l.cantidad - 1) : onQuitar(l.clave)} aria-label="Menos">−</button>
+                    <button onClick={(e) => { if (l.cantidad > 1) { onCantidad(l.clave, l.cantidad - 1); pop(e.currentTarget.nextElementSibling); } else quitar(l.clave); }} aria-label="Menos">−</button>
                     <b>{l.cantidad}</b>
-                    <button onClick={() => onCantidad(l.clave, Math.min(50, l.cantidad + 1))} aria-label="Más">＋</button>
+                    <button onClick={(e) => { onCantidad(l.clave, Math.min(50, l.cantidad + 1)); pop(e.currentTarget.previousElementSibling); }} aria-label="Más">＋</button>
                   </div>
                 </div>
               </div>

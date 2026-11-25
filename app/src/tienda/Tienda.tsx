@@ -8,6 +8,7 @@ import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
 import { Max } from './Max';
+import { confeti, recordarOrigen, volarAlCarrito } from './efectos';
 import { Tarjeta as TarjetaPremium } from './Tarjeta';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
@@ -105,6 +106,27 @@ export function Tienda() {
       : [...carrito, { clave: crypto.randomUUID(), plato_id: 'combo:' + c.id, producto_id: '', combo_id: c.id, nombre: c.nombre, tamano: null,
         precio_base: c.precio, opciones: [], nota: '', cantidad: 1, detalle: c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ') }]);
     setAviso(fraseAgregado('combo ' + c.nombre, subtotal + c.precio)); setTimeout(() => setAviso(''), 3200);
+    volarAlCarrito(); setTimeout(() => confeti(), 600);
+  }
+
+  /** El cliente armó un combo con productos sueltos: se cambian por el combo (con su precio real, que es menor) */
+  function cambiarACombo(c: Combo) {
+    let lineas = carrito.map((l) => ({ ...l }));
+    for (const it of c.items) {
+      let falta = it.cantidad;
+      for (const l of lineas) {
+        if (falta <= 0) break;
+        if (l.combo_id || l.producto_id !== it.producto_id || l.opciones.length || l.nota) continue;
+        const usa = Math.min(falta, l.cantidad); l.cantidad -= usa; falta -= usa;
+      }
+      if (falta > 0) return;   // ya no alcanza (cambió el carrito)
+    }
+    lineas = lineas.filter((l) => l.cantidad > 0);
+    const ya = lineas.find((l) => l.combo_id === c.id);
+    setCarrito(ya ? lineas.map((l) => (l === ya ? { ...l, cantidad: l.cantidad + 1 } : l))
+      : [...lineas, { clave: crypto.randomUUID(), plato_id: 'combo:' + c.id, producto_id: '', combo_id: c.id, nombre: c.nombre, tamano: null,
+        precio_base: c.precio, opciones: [], nota: '', cantidad: 1, detalle: c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ') }]);
+    confeti(); setAviso(`🎉 ¡Combo ${c.nombre} completo! Ahorraste ${plata(c.normal - c.precio)}`); setTimeout(() => setAviso(''), 3500);
   }
 
   function listo(l: LineaCarrito) {
@@ -114,6 +136,7 @@ export function Tienda() {
     if (!existe) {
       const nuevo = subtotal + precioLinea(l) * l.cantidad;
       setAviso(fraseAgregado(l.nombre, nuevo)); setTimeout(() => setAviso(''), 3200);
+      requestAnimationFrame(() => volarAlCarrito());
     }
   }
 
@@ -157,7 +180,7 @@ export function Tienda() {
   );
 
   return (
-    <div className="t-pagina t-con-nav">
+    <div className="t-pagina t-con-nav" onPointerDownCapture={(e) => recordarOrigen(e.nativeEvent)}>
       <header className="t-barra">
         <button className="t-icono-redondo" aria-label="Cambiar de sede" onClick={() => setCambiarSede(true)}>📍</button>
         <div className="t-saludo">
@@ -353,7 +376,7 @@ export function Tienda() {
 
       {armando && <Elegir plato={armando.plato} linea={armando.linea} opciones={info.opciones} onListo={listo} onCerrar={() => setArmando(null)} />}
       {verPedido && !armando && (
-        <Pedido lineas={carrito} platos={platos} info={info} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
+        <Pedido lineas={carrito} platos={platos} info={info} onCambiarCombo={cambiarACombo} sede={sede!} sedeNombre={sedeNombre} onCerrar={() => setVerPedido(false)}
           onSeguir={(e) => { setVerPedido(false); setSeguir({ codigo: e.codigo, celular: e.celular }); }}
           onEnviado={(e) => { setCarrito([]); localStorage.setItem(CLAVE_ULTIMO, JSON.stringify({ ...e, sede, en: Date.now() })); }}
           onCantidad={(k, n) => setCarrito(carrito.map((l) => (l.clave === k ? { ...l, cantidad: n } : l)))}
