@@ -484,3 +484,55 @@
 .t-agotado .t-card-foto { filter: grayscale(1); opacity: .55; }
 @media (prefers-reduced-motion: reduce) { .t-card-foto svg, .t-card-foto .t-foto { transition: none; } }
 @media (min-width: 760px) { .t-card-foto { height: 180px; } .t-card-foto svg { width: 150px !important; height: 150px !important; } .t-cards-deslizar .t-card-premium { width: 210px; } }
+
+/* ═════════ Etapa 2 · MAX, el pizzero ═════════ */
+.max-zona { position: fixed; left: 8px; bottom: calc(150px + env(safe-area-inset-bottom)); z-index: 28; display: flex; align-items: flex-end; gap: 4px;
+  pointer-events: none; }
+.max-zona > * { pointer-events: auto; }
+.max-boton { order: 0; background: none; border: 0; padding: 0; cursor: pointer; filter: drop-shadow(0 8px 12px rgba(0,0,0,.22)); line-height: 0; }
+.max-boton:focus-visible { outline: 3px solid var(--mostaza); border-radius: 16px; }
+.max-plegar { position: absolute; left: 2px; top: -6px; width: 20px; height: 20px; border-radius: 50%; border: 0; background: #fff; color: #6B665D;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2); font-weight: 900; font-size: 13px; line-height: 1; cursor: pointer; }
+.max-burbuja { order: 1; position: relative; max-width: 220px; margin-bottom: 44px; background: #141414; color: #fff; border-radius: 16px 16px 16px 4px;
+  padding: 10px 26px 10px 12px; font-size: 13px; font-weight: 600; line-height: 1.35; box-shadow: 0 8px 22px rgba(0,0,0,.25);
+  border-left: 3px solid var(--mostaza); animation: max-burbuja .35s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes max-burbuja { from { opacity: 0; transform: translateY(8px) scale(.9); } }
+.max-cerrar { position: absolute; top: 4px; right: 6px; background: none; border: 0; color: #9a958b; font-size: 11px; cursor: pointer; }
+.max-zona.plegado .max-boton { opacity: .9; }
+
+/* Partes animadas del dibujo (transform-box para girar desde su propio punto) */
+.max-svg g { transform-box: fill-box; }
+.max-cuerpo { transform-origin: 50% 100%; animation: max-respira 3.2s ease-in-out infinite; }
+@keyframes max-respira { 50% { transform: translateY(-2px) scaleY(1.01); } }
+.max-ojos { transform-origin: center; animation: max-parpadeo 4.2s infinite; }
+@keyframes max-parpadeo { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+.max-brazo { transform-origin: 0% 100%; }
+.b-saluda { animation: max-saluda 1.2s ease-in-out infinite; }
+@keyframes max-saluda { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-16deg); } 75% { transform: rotate(10deg); } }
+.b-pulgar { animation: max-pulgar 1.6s ease-in-out infinite; }
+@keyframes max-pulgar { 50% { transform: translateY(-4px) rotate(-6deg); } }
+.b-pala { animation: max-pala 2.4s ease-in-out infinite; }
+@keyframes max-pala { 50% { transform: rotate(-8deg); } }
+.b-arriba, .b-arriba2 { animation: max-arriba .5s ease-in-out infinite alternate; }
+.b-arriba2 { transform-origin: 100% 100%; }
+@keyframes max-arriba { to { transform: translateY(-4px) rotate(-8deg); } }
+.est-fiesta .max-cuerpo { animation: max-baile .6s ease-in-out infinite alternate; }
+@keyframes max-baile { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(5deg) translateY(-4px); } }
+.est-tres .max-cabeza { transform-origin: 50% 100%; animation: max-cabeceo 1.8s ease-in-out infinite; }
+@keyframes max-cabeceo { 50% { transform: rotate(4deg); } }
+.reac-feliz .max-cuerpo { animation: max-salto .6s cubic-bezier(.3, 1.6, .5, 1) !important; }
+@keyframes max-salto { 40% { transform: translateY(-14px) scale(1.06); } }
+.reac-triste .max-cabeza { transform-origin: 50% 100%; animation: max-triste .8s ease !important; }
+@keyframes max-triste { 40% { transform: rotate(-10deg) translateY(2px); } }
+.est-confirmado .max-cuerpo { animation: max-salto 1s cubic-bezier(.3, 1.6, .5, 1) infinite; }
+.max-vapor { animation: max-vapor 1.6s ease-in-out infinite; }
+@keyframes max-vapor { 50% { transform: translateY(-3px); opacity: .5; } }
+.max-fiesta { animation: max-arriba .7s ease-in-out infinite alternate; }
+
+/* MAX grande al confirmar el pedido */
+.max-final { display: grid; justify-items: center; margin: -6px auto 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .max-svg *, .max-burbuja { animation: none !important; }
+}
+@media (min-width: 760px) { .max-zona { left: 20px; bottom: 120px; } .max-burbuja { max-width: 260px; } }

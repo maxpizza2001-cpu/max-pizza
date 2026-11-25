@@ -254,3 +254,15 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Catálogo: las fotos se achican antes de subir (máx. 900 px, WebP, caché 1 año). Imágenes con lazy + decoding async.
 - Corregido: las tarjetas se re-creaban en cada render (componente definido dentro de otro).
 - Probado: 375 px (2 columnas, 168×290) y 1280 px (4 columnas), teclado, agregar al carrito, app del equipo abre. 28/28.
+
+## Max Pizza Experience 2.0 · Etapa 2 (MAX, el pizzero) — ✅ (25 nov 2026)
+- `app/src/tienda/Max.tsx`: personaje original dibujado en código (SVG + CSS), sin imágenes: uniforme negro con botones y
+  pañoleta dorada, gorro de chef con banda "MAX PIZZA", bigote. Parpadea y respira solo.
+- Estados conectados al carrito real (`estadoMax`): bienvenida (1.ª vez de la visita) · vacío · 1 producto (pulgar arriba) ·
+  2 (pala con pizza) · 3–4 (pala + cabeceo) · 5 o más (gafas de sol, baila, brazos arriba) · confirmado (ojos felices,
+  caja humeante, salta). Al agregar salta; al quitar pone cara triste. Mensaje en burbuja que se esconde a los 5 s.
+- Flotante abajo a la izquierda, sobre la barra del carrito; NO tapa botones (verificado con elementFromPoint);
+  se esconde con "–" o doble toque, y se oculta mientras el cliente arma un producto o ve su pedido.
+  Al confirmar, MAX grande celebrando en la pantalla de "¡Recibimos tu pedido!".
+- Rive no se usó: requiere diseñar el personaje en su editor; la lógica de estados queda lista para cambiar el dibujo.
+- Accesible: botón con nombre, burbuja aria-live, sin animación con "reducir movimiento". 28/28.

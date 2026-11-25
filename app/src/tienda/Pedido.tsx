@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { Caja } from './Caja';
+import { MaxDibujo } from './Max';
 import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato } from './modelo';
 
 export type DatosCliente = {
@@ -176,7 +177,7 @@ export function Pedido({ lineas, platos, info, sede, sedeNombre, onCantidad, onE
           </>}
 
           {paso === 'listo' && hecho && <div className="t-listo">
-            <div className="t-listo-icono">🎉</div>
+            <div className="max-final"><MaxDibujo estado="confirmado" tam={120} /></div>
             <h2>¡Recibimos tu pedido, {hecho.nombre.split(' ')[0]}!</h2>
             <div className="t-codigo">{hecho.codigo}</div>
             <p>Pedido #{hecho.numero} · Total <b>{plata(hecho.total)}</b><br />

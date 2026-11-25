@@ -7,6 +7,7 @@ import { Logo } from '../componentes/Logo';
 import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
+import { Max } from './Max';
 import { Tarjeta as TarjetaPremium } from './Tarjeta';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
@@ -337,6 +338,8 @@ export function Tienda() {
               <span className="t-burbuja">{unidades}</span><b>Ver mi pedido</b><span>{plata(subtotal)}</span>
             </button>
           )}
+
+          <Max unidades={unidades} oculto={!!armando || verPedido || !!seguir} />
 
           <nav className="t-nav-abajo">
             <button className="on" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span>🏠</span>Inicio</button>
