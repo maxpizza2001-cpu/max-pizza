@@ -210,3 +210,16 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   franja de confianza (domicilio desde, recién hecha, promociones, pago fácil); barra de abajo Inicio · Menú · 🍕 Pedir
   (muestra el total) · Promos · Mi pedido.
 - Probado en 375 px y 1280 px: sin desbordes; Pedir lleva al menú, agregar suma en la bolsa y en el botón, Pedir abre el carrito.
+
+## Tienda: ideas de otras pizzerías (Jeno's, Papa John's, Domino's) — ✅ (25 nov 2026)
+- Migración **017** (aplicada): `combos` + `combo_items` (precio especial; el servidor abre el combo en sus productos y pone
+  el descuento en el más caro, cada uno va a su cocina e inventario; si un producto no se vende en línea el combo se esconde),
+  `zonas_domicilio.minutos_min/max`, `tienda_ajustes` con WhatsApp, Instagram, Facebook, TikTok y banner de temporada;
+  `tienda_info` devuelve todo eso.
+- Tienda: sección 🎉 Combos ("AHORRAS $X", precio normal tachado), banner de temporada, "Llega en 30–45 min",
+  búsquedas sugeridas al tocar el buscador, pie con redes y seguir pedido, botón flotante de WhatsApp.
+- Administración → 🌐 Tienda online: combos (armar, ver ahorro, pausar, cambiar precio), tiempo por zona, redes y banner.
+- Catálogo: la descripción sugiere escribir los ingredientes.
+- Probado: `npm test` 27/27 (incluye combos) y en la base real con transacción deshecha (combo $10.000 vs $11.000).
+- Hallazgo: la tienda muestra productos aunque no haya stock (ej. Personales Hawaiana = 0) y el error sale recién al
+  confirmar ("No alcanza"). Pendiente: marcar "Agotado" en la tienda.
