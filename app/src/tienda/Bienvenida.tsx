@@ -1,5 +1,5 @@
 // Pantalla de bienvenida: el toque en "Entrar" es el que deja sonar la música (los navegadores no dejan sonar sin un toque).
-// Sale una vez por visita, solo si la música está prendida y todavía no pudo sonar sola.
+// Sale una vez por visita si la música no pudo sonar sola.
 import { useEffect, useState } from 'react';
 import { Logo } from '../componentes/Logo';
 import { MaxDibujo } from './Max';
@@ -12,7 +12,8 @@ export function Bienvenida() {
   const [ver, setVer] = useState(false);
   useEffect(() => {
     if (new URLSearchParams(location.search).has('bienvenida')) { setVer(true); return; }   // para revisarla a propósito
-    if (sessionStorage.getItem(CLAVE) || !sonido.prefs().musica) return;
+    // Sale en cada visita (aunque antes hayan apagado la música): un toque y entran con música o sin ella
+    if (sessionStorage.getItem(CLAVE)) return;
     // Damos un momento por si el navegador sí deja sonar solo (algunos computadores)
     const t = setTimeout(() => { if (!sonido.prefs().sonando) setVer(true); }, 900);
     return () => clearTimeout(t);
