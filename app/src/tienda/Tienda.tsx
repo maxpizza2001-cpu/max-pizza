@@ -9,6 +9,7 @@ import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
 import { Max } from './Max';
 import { ControlSonido } from './ControlSonido';
+import { Bienvenida } from './Bienvenida';
 import { sonido } from './sonido';
 import { SugerenciaFlotante, agregaDirecto, sugerencias as recomendar, type Sugerencia } from './Recomendaciones';
 import { confeti, recordarOrigen, volarAlCarrito } from './efectos';
@@ -390,6 +391,7 @@ export function Tienda() {
             </button>
           )}
 
+          <Bienvenida />
           <Max unidades={unidades} oculto={!!armando || verPedido || !!seguir || !!sugFlot} />
           {sugFlot && !armando && !verPedido && (
             <SugerenciaFlotante titulo={sugFlot.titulo} items={sugFlot.items} onCerrar={() => setSugFlot(null)}

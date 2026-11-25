@@ -313,3 +313,12 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   permiten); si el navegador lo bloquea (celulares, Safari), arranca sola en el PRIMER toque en cualquier parte
   (pointerup/touchend/click/keydown). Quien no la quiera la apaga con la pizza con audífonos y queda guardado.
 - Probado: en el navegador de pruebas sonó al cargar; quitar → se apaga y se guarda `musica:false`. 28/28.
+
+## Música que suena al entrar: pantalla de bienvenida — ✅ (25 nov 2026)
+- El dueño reportó que al entrar no sonaba: los navegadores (sobre todo celulares) bloquean el sonido hasta un toque.
+- `tienda/Bienvenida.tsx`: pantalla negra con luces doradas, logo, MAX saludando y "¡Bienvenido a Max Pizza!" con
+  **Entrar con música** (ese toque deja sonar la música) o "Entrar sin música". Sale una vez por visita, solo si la música
+  está prendida y no pudo sonar sola; `/pedir?bienvenida` la muestra siempre para revisarla.
+- iPhone: `navigator.audioSession.type = 'playback'` para que suene aunque el celular esté en silencio (Safari 16.4+).
+- El primer toque dentro de la bienvenida no arranca la música (decide el botón). Probado: con música → suena y se
+  guarda; sin música → silencio y se guarda. 28/28.

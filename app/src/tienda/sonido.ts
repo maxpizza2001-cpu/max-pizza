@@ -21,6 +21,8 @@ function iniciar() {
   if (ctx) return ctx;
   const AC = window.AudioContext || (window as any).webkitAudioContext;
   if (!AC) return null;
+  // iPhone: que suene aunque el celular esté en modo silencio (como un video o una canción)
+  try { const as = (navigator as any).audioSession; if (as) as.type = 'playback'; } catch { /* navegador sin soporte */ }
   ctx = new AC();
   maestro = ctx.createGain(); maestro.gain.value = prefs.volumen; maestro.connect(ctx.destination);
   busMusica = ctx.createGain(); busMusica.gain.value = 0.22;
@@ -120,7 +122,9 @@ if (typeof window !== 'undefined') {
   //  2) si no, arranca sola en el PRIMER toque en cualquier parte de la página.
   // Quien no la quiera la apaga con la pizza con audífonos y queda guardado.
   const eventos = ['pointerup', 'touchend', 'click', 'keydown'] as const;
-  const primerToque = () => { interactuo = true; if (prefs.musica) sonarMusica(true); eventos.forEach((ev) => window.removeEventListener(ev, primerToque, true)); };
+  const primerToque = (e: Event) => {
+    if ((e.target as Element | null)?.closest?.('.t-bienvenida')) return;   // ahí decide el botón (con o sin música)
+    interactuo = true; if (prefs.musica) sonarMusica(true); eventos.forEach((ev) => window.removeEventListener(ev, primerToque, true)); };
   eventos.forEach((ev) => window.addEventListener(ev, primerToque, true));
   if (prefs.musica && location.pathname.replace(/\/+$/, '') === '/pedir') {
     setTimeout(() => {

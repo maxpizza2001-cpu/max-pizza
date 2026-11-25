@@ -611,3 +611,20 @@
 @keyframes t-notas { 50% { transform: translateY(-2px); opacity: .6; } }
 .t-sonando .t-ondas { display: none; }
 @media (prefers-reduced-motion: reduce) { .t-pizza-audio, .t-pizza-audio .t-audifono, .t-notas { animation: none !important; } }
+
+/* Bienvenida: el toque en "Entrar" deja sonar la música */
+.t-bienvenida { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; align-content: center; gap: 10px; padding: 24px;
+  text-align: center; color: #fff; background: radial-gradient(circle at 50% 35%, #3a2a07 0%, #0b0b0b 55%, #000 100%); animation: t-aparecer .35s ease; overflow: hidden; }
+.t-bienv-luces { position: absolute; inset: -20%; background: conic-gradient(from 0deg, transparent, rgba(227,162,26,.12), transparent 30%, rgba(227,162,26,.08), transparent 60%);
+  animation: t-girar 18s linear infinite; pointer-events: none; }
+.t-bienv-logo, .t-bienv-max, .t-bienvenida h1, .t-bienvenida p, .t-bienvenida button { position: relative; }
+.t-bienv-max { margin-top: -6px; }
+.t-bienvenida h1 { font-size: 28px; color: #fff; margin: 4px 0 0; line-height: 1.1; }
+.t-bienvenida h1 em { font-style: normal; color: var(--mostaza); }
+.t-bienvenida p { color: #cfc8b8; margin: 0 0 10px; }
+.t-bienv-entrar { display: inline-flex; align-items: center; gap: 10px; border: 0; border-radius: 999px; padding: 14px 26px 14px 16px; cursor: pointer;
+  background: linear-gradient(135deg, #F6D58A, #E3A21A); color: #141414; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 18px;
+  box-shadow: 0 10px 30px rgba(227,162,26,.45); animation: t-latido 2s ease-in-out infinite; }
+.t-bienv-entrar svg { background: #141414; border-radius: 50%; padding: 2px; }
+.t-bienv-sin { background: none; border: 0; color: #bdb7aa; text-decoration: underline; cursor: pointer; font-size: 14px; padding: 8px; }
+@media (prefers-reduced-motion: reduce) { .t-bienv-luces, .t-bienv-entrar { animation: none; } }
