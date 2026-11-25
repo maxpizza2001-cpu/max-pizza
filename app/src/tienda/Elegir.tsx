@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import { plata } from '../lib/formato';
 import { ImagenProducto } from './Dibujos';
-import { precioLinea, type LineaCarrito, type Opcion, type Plato } from './modelo';
+import { precioLinea, type LineaCarrito, type Opcion, type Plato, agotada } from './modelo';
 
 export function Elegir({ plato, opciones, linea, onListo, onCerrar }: {
   plato: Plato; opciones: Opcion[]; linea?: LineaCarrito; onListo: (l: LineaCarrito) => void; onCerrar: () => void;
 }) {
-  const [varId, setVarId] = useState(linea?.producto_id ?? plato.variantes[plato.variantes.length > 1 ? 1 : 0].producto_id);
+  const libres = plato.variantes.filter((v) => !agotada(v));
+  const [varId, setVarId] = useState(linea?.producto_id ?? (libres[libres.length > 1 ? 1 : 0] ?? plato.variantes[0]).producto_id);
   const variante = plato.variantes.find((v) => v.producto_id === varId) ?? plato.variantes[0];
   const disponibles = opciones.filter((o) => o.producto_id === variante.producto_id);
   const [marcadas, setMarcadas] = useState<string[]>(linea?.opciones.map((o) => o.nombre) ?? []);
@@ -35,9 +36,9 @@ export function Elegir({ plato, opciones, linea, onListo, onCerrar }: {
             <h3 className="t-sub">Tamaño</h3>
             <div className="t-opciones">
               {plato.variantes.map((v) => (
-                <label key={v.producto_id} className={'t-opcion' + (v.producto_id === varId ? ' on' : '')}>
-                  <input type="radio" name="tam" checked={v.producto_id === varId} onChange={() => { setVarId(v.producto_id); setMarcadas([]); }} />
-                  <span>{v.etiqueta}</span><b>{plata(v.precio)}</b>
+                <label key={v.producto_id} className={'t-opcion' + (v.producto_id === varId ? ' on' : '') + (agotada(v) ? ' t-opcion-agotada' : '')}>
+                  <input type="radio" name="tam" disabled={agotada(v)} checked={v.producto_id === varId} onChange={() => { setVarId(v.producto_id); setMarcadas([]); }} />
+                  <span>{v.etiqueta}{agotada(v) && <small> · Agotado</small>}</span><b>{plata(v.precio)}</b>
                 </label>
               ))}
             </div>
@@ -63,10 +64,10 @@ export function Elegir({ plato, opciones, linea, onListo, onCerrar }: {
           <div className="t-cantidad">
             <button onClick={() => setCantidad(Math.max(1, cantidad - 1))} aria-label="Menos">−</button>
             <b>{cantidad}</b>
-            <button onClick={() => setCantidad(Math.min(50, cantidad + 1))} aria-label="Más">＋</button>
+            <button onClick={() => setCantidad(Math.min(50, variante.disponibles ?? 50, cantidad + 1))} aria-label="Más">＋</button>
           </div>
-          <button className="t-btn t-btn-ancho" onClick={() => onListo(nueva)}>
-            {linea ? 'Guardar cambios' : 'Agregar al carrito'} · {plata(total)}
+          <button className="t-btn t-btn-ancho" disabled={agotada(variante)} onClick={() => onListo(nueva)}>
+            {agotada(variante) ? 'Agotado por hoy' : `${linea ? 'Guardar cambios' : 'Agregar al carrito'} · ${plata(total)}`}
           </button>
         </div>
       </div>

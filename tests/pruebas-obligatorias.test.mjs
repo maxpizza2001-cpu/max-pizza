@@ -675,3 +675,18 @@ test('Combos: el combo se abre en sus productos, cada uno va a su cocina, y el t
   await assert.rejects(b.rpc('tienda_crear_pedido', { p_op: op(), p_sede: S, p_lineas: JSON.stringify([{ combo_id: c.id, cantidad: 1 }]),
     p_datos: JSON.stringify({ nombre: 'Ana Pérez', celular: '3001234567', entrega: 'recoger', medio: 'efectivo' }) }), /del combo/);
 });
+
+test('Agotados: la tienda dice cuántas pizzas quedan; sin porciones sale en 0 y las comidas rápidas no tienen límite', async () => {
+  const { b, S, u } = await preparar();
+  await b.como(null);
+  const ver = async (n) => (await b.uno(`select disponibles from tienda_catalogo($1) where nombre = $2`, [S, n])).disponibles;
+  const antes = await ver('Personal Hawaiana');
+  assert.ok(antes > 0);
+  assert.equal(await ver('Hamburguesa'), null, 'comidas rápidas sin límite');
+  // Se piden todas las que quedan → queda en 0 (reservadas)
+  const pers = await b.producto('Personal Hawaiana');
+  await b.como(u.mesero);
+  await b.rpc('enviar_pedido_mesa', { p_op: op(), p_sede: S, p_mesa: 1, p_lineas: JSON.stringify([{ producto_id: pers, cantidad: antes }]) });
+  await b.como(null);
+  assert.equal(await ver('Personal Hawaiana'), 0);
+});

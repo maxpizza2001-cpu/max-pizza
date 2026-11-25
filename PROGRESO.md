@@ -223,3 +223,12 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Probado: `npm test` 27/27 (incluye combos) y en la base real con transacción deshecha (combo $10.000 vs $11.000).
 - Hallazgo: la tienda muestra productos aunque no haya stock (ej. Personales Hawaiana = 0) y el error sale recién al
   confirmar ("No alcanza"). Pendiente: marcar "Agotado" en la tienda.
+
+## Tienda: "Agotado" según el inventario — ✅ (25 nov 2026)
+- Migración **018** (aplicada): `tienda_catalogo` devuelve `disponibles` (cuántas se pueden pedir según porciones libres
+  de la receta; solo pizzas del horno, que son las que reservan al pedir; null = sin límite).
+- Tienda: sello gris AGOTADO y "Vuelve pronto", no se puede abrir ni agregar; en la pizza, el tamaño agotado sale
+  deshabilitado y se escoge solo el que hay; la cantidad no pasa de lo disponible; la portada solo muestra lo que hay;
+  combos con un producto agotado salen agotados; si algo del carrito se agota, se quita con aviso.
+- Real hoy (Sede Principal): Hawaiana y Mexicana agotadas (porción y personal), Pepperoni personal agotada.
+  Era la causa de "la tienda no toma pedidos". `npm test` → 28/28.

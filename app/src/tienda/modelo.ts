@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react';
 export type ProductoTienda = {
   id: string; nombre: string; descripcion: string | null; foto_url: string | null; precio: number;
   destacado: boolean; formato: string; categoria: string; categoria_tipo: string; categoria_orden: number;
+  disponibles: number | null;   // null = sin límite · 0 = agotado
 };
-export type Variante = { producto_id: string; etiqueta: string; precio: number };
+export type Variante = { producto_id: string; etiqueta: string; precio: number; disponibles: number | null };
+export const agotada = (v: Variante) => v.disponibles === 0;
+/** Un plato está agotado cuando no queda ningún tamaño */
+export const platoAgotado = (p: Plato) => p.variantes.every(agotada);
 /** Lo que el cliente ve como un plato: un sabor de pizza con sus tamaños, o un producto suelto. */
 export type Plato = {
   id: string; nombre: string; descripcion: string | null; foto_url: string | null; precio: number;
@@ -44,7 +48,7 @@ export function agruparPlatos(menu: ProductoTienda[]): Plato[] {
     const m = p.categoria_tipo === 'pizza' ? p.nombre.match(/^(Porción|Personal)\s+(.+)$/i) : null;
     const clave = m ? `pizza:${m[2].toLowerCase()}` : p.id;
     const nombre = m ? `Pizza ${m[2]}` : p.nombre;
-    const v: Variante = { producto_id: p.id, etiqueta: m ? (TAMANOS[p.formato] ?? m[1]) : '', precio: p.precio };
+    const v: Variante = { producto_id: p.id, etiqueta: m ? (TAMANOS[p.formato] ?? m[1]) : '', precio: p.precio, disponibles: p.disponibles ?? null };
     const ya = platos.get(clave);
     if (!ya) {
       platos.set(clave, { id: clave, nombre, descripcion: p.descripcion, foto_url: p.foto_url, precio: p.precio, destacado: p.destacado,

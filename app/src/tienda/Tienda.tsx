@@ -9,7 +9,7 @@ import { Rueda } from './Rueda';
 import { Elegir } from './Elegir';
 import { Pedido } from './Pedido';
 import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
-import { agruparPlatos, minutos, precioLinea, type Combo, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
+import { agruparPlatos, minutos, platoAgotado, precioLinea, type Combo, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
 import './tienda.css';
 
 type SedeT = { id: string; nombre: string };
@@ -55,7 +55,7 @@ export function Tienda() {
     Promise.all([sb.rpc('tienda_catalogo', { p_sede: sede }), sb.rpc('tienda_info', { p_sede: sede })]).then(([m, i]) => {
       if (m.error || i.error) return setError('No pudimos cargar el menú. Revisa tu internet.');
       setError('');
-      setMenu((m.data as ProductoTienda[]).map((p) => ({ ...p, precio: Number(p.precio) })));
+      setMenu((m.data as ProductoTienda[]).map((p) => ({ ...p, precio: Number(p.precio), disponibles: p.disponibles == null ? null : Number(p.disponibles) })));
       const inf = i.data as InfoTienda;
       setInfo({ ajustes: inf.ajustes, zonas: (inf.zonas ?? []).map((z) => ({ ...z, tarifa: Number(z.tarifa) })), opciones: inf.opciones ?? [], promos: inf.promos ?? [], hay_codigos: !!inf.hay_codigos,
         combos: (inf.combos ?? []).map((c) => ({ ...c, precio: Number(c.precio), normal: Number(c.normal) })) });
@@ -66,7 +66,9 @@ export function Tienda() {
   // Si un producto del carrito ya no se vende o cambió de precio, el carrito se ajusta al menú actual
   useEffect(() => {
     if (!menu) return;
-    const precio = new Map(menu.map((p) => [p.id, p.precio]));
+    const precio = new Map(menu.filter((p) => p.disponibles !== 0).map((p) => [p.id, p.precio]));
+    const agotados = carrito.filter((l) => !l.combo_id && menu.some((p) => p.id === l.producto_id && p.disponibles === 0));
+    if (agotados.length) { setAviso(`Se agotó: ${agotados.map((l) => l.nombre).join(', ')}. Lo quitamos de tu pedido.`); setTimeout(() => setAviso(''), 4000); }
     const combos = new Map((info.combos ?? []).map((c) => [c.id, c.precio]));
     const ajustado = carrito.filter((l) => (l.combo_id ? combos.has(l.combo_id) : precio.has(l.producto_id)))
       .map((l) => ({ ...l, precio_base: l.combo_id ? combos.get(l.combo_id)! : precio.get(l.producto_id)! }));
@@ -74,8 +76,9 @@ export function Tienda() {
   }, [menu, info.combos]);
 
   const portada = useMemo(() => {
-    const d = platos.filter((p) => p.destacado);
-    return d.length ? d : platos.filter((p) => p.categoria_tipo === 'pizza');
+    const libres = platos.filter((p) => !platoAgotado(p));
+    const d = libres.filter((p) => p.destacado);
+    return d.length ? d : libres.filter((p) => p.categoria_tipo === 'pizza');
   }, [platos]);
   const categorias = useMemo(() => ['Todo', ...new Set(platos.map((p) => p.categoria))], [platos]);
   const unidades = carrito.reduce((s, l) => s + l.cantidad, 0);
@@ -140,15 +143,17 @@ export function Tienda() {
 
   const Tarjeta = ({ p, sello }: { p: Plato; sello?: string }) => {
     const n = enCarrito(p.id);
+    const fuera = platoAgotado(p);
     return (
-      <article className="t-card" onClick={() => setArmando({ plato: p })}>
-        {sello && <span className="t-sello">{sello}</span>}
+      <article className={'t-card' + (fuera ? ' t-agotado' : '')} onClick={() => !fuera && setArmando({ plato: p })} aria-disabled={fuera}>
+        {fuera ? <span className="t-sello t-sello-agotado">AGOTADO</span> : sello && <span className="t-sello">{sello}</span>}
         <div className="t-card-img"><ImagenProducto p={p} tam={132} /></div>
         <b className="t-card-nombre">{p.nombre}</b>
         <span className="t-card-desc">{p.descripcion || (p.variantes.length > 1 ? p.variantes.map((v) => v.etiqueta).join(' · ') : p.categoria)}</span>
         <div className="t-card-pie">
           <span className="t-card-precio">{p.variantes.length > 1 && <small>Desde </small>}{plata(p.precio)}</span>
-          <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${p.nombre}`}>{n || '＋'}</button>
+          {fuera ? <span className="t-card-agotado">Vuelve pronto</span>
+            : <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${p.nombre}`}>{n || '＋'}</button>}
         </div>
       </article>
     );
@@ -266,9 +271,10 @@ export function Tienda() {
                 <div className="t-combos">
                   {combos.map((c) => {
                     const n = enCarrito('combo:' + c.id);
+                    const fuera = c.items.some((i) => menu?.some((p) => p.id === i.producto_id && p.disponibles === 0));
                     return (
-                      <article key={c.id} className="t-combo" onClick={() => agregarCombo(c)}>
-                        {c.normal > c.precio && <span className="t-sello">AHORRAS {plata(c.normal - c.precio)}</span>}
+                      <article key={c.id} className={'t-combo' + (fuera ? ' t-agotado' : '')} onClick={() => !fuera && agregarCombo(c)} aria-disabled={fuera}>
+                        {fuera ? <span className="t-sello t-sello-agotado">AGOTADO</span> : c.normal > c.precio && <span className="t-sello">AHORRAS {plata(c.normal - c.precio)}</span>}
                         <div className="t-combo-img">
                           {c.foto_url ? <img className="t-foto" src={c.foto_url} alt={c.nombre} style={{ width: 120, height: 120 }} />
                             : c.items.slice(0, 3).map((i) => { const p = platos.find((x) => x.variantes.some((v) => v.producto_id === i.producto_id) || x.id === i.producto_id);
@@ -279,7 +285,8 @@ export function Tienda() {
                           <span>{c.descripcion || c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ')}</span>
                           <div className="t-card-pie">
                             <span className="t-card-precio">{plata(c.precio)} {c.normal > c.precio && <s>{plata(c.normal)}</s>}</span>
-                            <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${c.nombre}`}>{n || '＋'}</button>
+                            {fuera ? <span className="t-card-agotado">Vuelve pronto</span>
+                              : <button className={'t-card-mas' + (n ? ' con' : '')} aria-label={`Agregar ${c.nombre}`}>{n || '＋'}</button>}
                           </div>
                         </div>
                       </article>
