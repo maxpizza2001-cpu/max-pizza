@@ -322,3 +322,5 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - iPhone: `navigator.audioSession.type = 'playback'` para que suene aunque el celular esté en silencio (Safari 16.4+).
 - El primer toque dentro de la bienvenida no arranca la música (decide el botón). Probado: con música → suena y se
   guarda; sin música → silencio y se guarda. 28/28.
+- (25 nov 2026) Bienvenida sin pregunta, por pedido del dueño: un solo botón "¡Entrar!" y tocar en cualquier parte también
+  entra; siempre prende la música. Quien no la quiera la apaga con la pizza con audífonos.

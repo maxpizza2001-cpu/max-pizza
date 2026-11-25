@@ -626,5 +626,6 @@
   background: linear-gradient(135deg, #F6D58A, #E3A21A); color: #141414; font-family: 'Montserrat', sans-serif; font-weight: 900; font-size: 18px;
   box-shadow: 0 10px 30px rgba(227,162,26,.45); animation: t-latido 2s ease-in-out infinite; }
 .t-bienv-entrar svg { background: #141414; border-radius: 50%; padding: 2px; }
-.t-bienv-sin { background: none; border: 0; color: #bdb7aa; text-decoration: underline; cursor: pointer; font-size: 14px; padding: 8px; }
+.t-bienv-sin { position: relative; color: #9a958b; font-size: 13px; padding: 8px; }
+.t-bienvenida { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .t-bienv-luces, .t-bienv-entrar { animation: none; } }

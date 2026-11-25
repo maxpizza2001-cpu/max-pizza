@@ -20,23 +20,24 @@ export function Bienvenida() {
   }, []);
   if (!ver) return null;
 
-  const entrar = (musica: boolean) => {
+  // Un solo toque (en el botón o en cualquier parte) entra y prende la música: sin preguntas
+  const entrar = () => {
     sessionStorage.setItem(CLAVE, '1');
-    sonido.cambiar({ musica });   // este toque es el permiso para sonar
+    sonido.cambiar({ musica: true });   // este toque es el permiso para sonar
     setVer(false);
   };
 
   return (
-    <div className="t-bienvenida" role="dialog" aria-label="Bienvenido a Max Pizza">
+    <div className="t-bienvenida" role="dialog" aria-label="Bienvenido a Max Pizza" onClick={entrar}>
       <div className="t-bienv-luces" aria-hidden />
       <div className="t-bienv-logo"><Logo alto={84} /></div>
       <div className="t-bienv-max"><MaxDibujo estado="bienvenida" tam={120} /></div>
       <h1>¡Bienvenido a <em>Max Pizza</em>!</h1>
       <p>Recién salidas del horno, directo a tu puerta 🔥</p>
-      <button className="t-bienv-entrar" onClick={() => entrar(true)} autoFocus>
-        <PizzaAudifonos sonando tam={34} /> Entrar con música
+      <button className="t-bienv-entrar" onClick={(e) => { e.stopPropagation(); entrar(); }} autoFocus>
+        <PizzaAudifonos sonando tam={34} /> ¡Entrar!
       </button>
-      <button className="t-bienv-sin" onClick={() => entrar(false)}>Entrar sin música</button>
+      <span className="t-bienv-sin">Toca en cualquier parte para entrar</span>
     </div>
   );
 }
