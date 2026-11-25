@@ -5,6 +5,7 @@ import { hora, plata } from '../lib/formato';
 import { pitar } from '../lib/datos';
 import { ESTADOS, usePedidosOnline, type PedidoOnline } from '../componentes/PedidosOnline';
 import { MiTurno } from '../componentes/MiTurno';
+import { ActivarAvisos } from '../componentes/Avisos';
 
 const MEDIO: Record<string, string> = { efectivo: '💵 Efectivo', nequi: '📱 Nequi', transferencia: '🏦 Transferencia' };
 
@@ -29,6 +30,7 @@ export function Domiciliario({ sede, perfil }: { sede: string; perfil: string })
   return (
     <main className="contenido pila" style={{ maxWidth: 640 }}>
       <h1>Domicilios</h1>
+      <ActivarAvisos sede={sede} rol="domiciliario" />
       <MiTurno sede={sede} rol="domiciliario" perfil={perfil} />
       {error && <div className="error">{error}</div>}
 

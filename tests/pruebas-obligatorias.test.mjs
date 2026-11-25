@@ -618,3 +618,16 @@ test('Domiciliarios: el primero que toca "Yo lo llevo" se lo queda; sale con el 
   const fin = await b.uno(`select estado, domiciliario from pedidos_online where id = $1`, [po.id]);
   assert.deepEqual(fin, { estado: 'entregado', domiciliario: 'Carlos Ruiz' });
 });
+
+test('Avisos push: cada quien guarda su celular solo para un rol que tiene', async () => {
+  const { b, S, u } = await preparar();
+  const d1 = await b.usuario('Carlos Ruiz', [[S, 'domiciliario']]);
+  await b.como(d1);
+  await b.rpc('push_guardar', { p_sede: S, p_rol: 'domiciliario', p_endpoint: 'https://push.ejemplo/abc', p_p256dh: 'k', p_auth: 'a' });
+  await b.rpc('push_guardar', { p_sede: S, p_rol: 'domiciliario', p_endpoint: 'https://push.ejemplo/abc', p_p256dh: 'k2', p_auth: 'a' });
+  assert.equal((await b.uno(`select count(*)::int n from push_suscripciones`)).n, 1, 'el mismo celular no se repite');
+  await assert.rejects(b.rpc('push_guardar', { p_sede: S, p_rol: 'caja', p_endpoint: 'https://push.ejemplo/x', p_p256dh: 'k', p_auth: 'a' }), /No tienes ese rol/);
+  // Sin la dirección de la función configurada, las notificaciones siguen funcionando igual
+  await b.como(u.admin);
+  await b.q(`select notificar($1, 'domiciliario', null, 'prueba', 'Hola', null, null)`, [S]);
+});
