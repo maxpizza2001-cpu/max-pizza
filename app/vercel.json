@@ -36,7 +36,7 @@
       ]
     },
     {
-      "source": "/(logo.webp|favicon.png|icono-192.png|icono-512.png|icono-tienda-192.png|icono-tienda-512.png|icono-tienda-maskable-512.png|apple-touch-icon-tienda.png)",
+      "source": "/(logo.webp|favicon.png|icono-192.png|icono-512.png|icono-tienda-192.png|icono-tienda-512.png|icono-tienda-maskable-512.png|apple-touch-icon-tienda.png|apple-touch-icon.png|apple-touch-icon-precomposed.png|apple-touch-icon-moto.png)",
       "headers": [
         {
           "key": "Cache-Control",
