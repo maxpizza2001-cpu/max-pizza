@@ -1,17 +1,19 @@
 // El chef de Max Pizza (estilo "Giancarlo"): se viste según CUÁNTOS productos lleva el cliente.
-//   0–1 Antojado (traje amarillo) · 2–3 Chef de gala (negro) · 4–5 Rey de la pizza (negro + corona) · 6+ Fiesta Max (+ baile y llamas)
+//   0–1 Antojado (traje amarillo) · 2–3 Chef de gala (negro) · 4–5 Rey de la pizza (negro, brillo dorado) · 6+ Fiesta Max (+ baile y llamas)
+// El chef se llama DON IVÁN.
 // En la mano lleva una pala de pizza con el ÚLTIMO producto agregado y el total de unidades.
 // Todo es decoración: no recibe toques (pointer-events: none), salvo nada. Respeta "reducir movimiento".
 import { useEffect, useRef, useState } from 'react';
 import { ImagenProducto } from './Dibujos';
 import type { Plato } from './modelo';
 
-export type Nivel = { i: number; nombre: string; traje: 'amarillo' | 'negro'; corona: boolean; fiesta: boolean; color: string; desde: number };
+export const NOMBRE_CHEF = 'Don Iván';
+export type Nivel = { i: number; nombre: string; traje: 'amarillo' | 'negro'; fiesta: boolean; color: string; desde: number };
 export const NIVELES_CHEF: Nivel[] = [
-  { i: 1, nombre: 'Antojado', traje: 'amarillo', corona: false, fiesta: false, color: '#E3A21A', desde: 0 },
-  { i: 2, nombre: 'Chef de gala', traje: 'negro', corona: false, fiesta: false, color: '#F3F0E8', desde: 2 },
-  { i: 3, nombre: 'Rey de la pizza', traje: 'negro', corona: true, fiesta: false, color: '#F6C64A', desde: 4 },
-  { i: 4, nombre: 'Fiesta Max', traje: 'negro', corona: true, fiesta: true, color: '#FF7A1A', desde: 6 },
+  { i: 1, nombre: 'Antojado', traje: 'amarillo', fiesta: false, color: '#E3A21A', desde: 0 },
+  { i: 2, nombre: 'Chef de gala', traje: 'negro', fiesta: false, color: '#F3F0E8', desde: 2 },
+  { i: 3, nombre: 'Rey de la pizza', traje: 'negro', fiesta: false, color: '#F6C64A', desde: 4 },
+  { i: 4, nombre: 'Fiesta Max', traje: 'negro', fiesta: true, color: '#FF7A1A', desde: 6 },
 ];
 export function nivelChef(unidades: number) {
   const actual = [...NIVELES_CHEF].reverse().find((n) => unidades >= n.desde)!;
@@ -73,7 +75,7 @@ export function Chef({ unidades, ultimo, platos }: {
 
   return (
     <div className={`chef-escena nivel-${actual.i}${actual.fiesta ? ' fiesta' : ''}`} style={{ ['--nivel' as string]: actual.color }} aria-hidden="true">
-      <div className="chef-etiqueta">Nivel {actual.i} · <b>{actual.nombre}</b></div>
+      <div className="chef-etiqueta"><span className="chef-nombre">{NOMBRE_CHEF}</span><span>Nivel {actual.i} · <b>{actual.nombre}</b></span></div>
       <div className="chef-resplandor" />
       <div className="chef-piso" />
       {actual.fiesta && <><span className="chef-llama izq">🔥</span><span className="chef-llama der">🔥</span></>}
@@ -81,7 +83,6 @@ export function Chef({ unidades, ultimo, platos }: {
         <img className={'chef-img' + (actual.traje === 'amarillo' ? ' on' : '')} src={IMAGENES_CHEF[0]} alt="" width={550} height={1134} decoding="async" fetchPriority="high" />
         <img className={'chef-img' + (actual.traje === 'negro' ? ' on' : '')} src={IMAGENES_CHEF[1]} alt="" width={550} height={1134} decoding="async" />
         {destello > 0 && <span key={destello} className="chef-destello" />}
-        {actual.corona && <Corona />}
         <div className={'chef-pala' + (anim === 'brinca' ? ' sacude' : '')} style={{ left: `${MANO.x}%`, top: `${MANO.y}%` }}>
           <Pala />
           <div className="chef-pala-producto">
@@ -108,20 +109,6 @@ function Pala() {
       <ellipse cx="50" cy="48" rx="48" ry="46" fill="url(#pala-cabeza)" stroke="#7a4a1c" strokeWidth="2" />
       <path d="M14 30 Q50 6 86 30" stroke="#f1c98f" strokeWidth="2" fill="none" opacity=".6" />
       <path d="M10 60 Q20 70 30 64 M68 78 Q78 72 88 60" stroke="#9b6326" strokeWidth="1.4" fill="none" opacity=".5" />
-    </svg>
-  );
-}
-
-/** Corona dorada (SVG propio) que se posa sobre el gorro desde "Rey de la pizza" */
-function Corona() {
-  return (
-    <svg className="chef-corona" viewBox="0 0 120 80" aria-hidden="true">
-      <defs><linearGradient id="corona-oro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFE38A" /><stop offset=".55" stopColor="#F2B81F" /><stop offset="1" stopColor="#B9800E" /></linearGradient></defs>
-      <path d="M8 72 L4 20 L32 44 L60 6 L88 44 L116 20 L112 72 Z" fill="url(#corona-oro)" stroke="#8a5d08" strokeWidth="3" strokeLinejoin="round" />
-      <rect x="8" y="62" width="104" height="12" rx="4" fill="#E3A21A" stroke="#8a5d08" strokeWidth="2.5" />
-      <circle cx="60" cy="40" r="7" fill="#D9463B" stroke="#7a1a12" strokeWidth="2" />
-      <circle cx="30" cy="54" r="5" fill="#2E8B57" /><circle cx="90" cy="54" r="5" fill="#2E8B57" />
-      <circle cx="4" cy="20" r="5" fill="#FFE38A" /><circle cx="60" cy="6" r="6" fill="#FFE38A" /><circle cx="116" cy="20" r="5" fill="#FFE38A" />
     </svg>
   );
 }

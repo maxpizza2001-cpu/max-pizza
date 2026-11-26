@@ -370,3 +370,6 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Probado: 375 px y 1280 px sin desbordes; agregar 1→7 (amarillo → negro → corona → fiesta) y quitar 7→0 de vuelta a
   Antojado; vuelo a la pala; pala dentro del escenario y lejos de la cara; panel de combos con datos de prueba. 28/28.
 - No probado: la pantalla "¡Llegó tu plato!" con un pedido real (crearía un pedido de verdad).
+- (26 nov 2026) Por pedido del dueño: se QUITÓ la corona (el nivel Rey de la pizza se distingue por el brillo dorado) y el
+  chef se llama **Don Iván** (`NOMBRE_CHEF` en Chef.tsx): sale en el letrero del escenario (arriba a la izquierda, sin
+  chocar con la pala en 375 y 1280 px) y en la bienvenida ("Don Iván ya prendió el horno 🔥").
