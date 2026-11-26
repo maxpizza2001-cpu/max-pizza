@@ -7,7 +7,7 @@ export function Encabezado({ sede, unidades, hayPedido, onSede, onSeguir, onCarr
 }) {
   return (
     <header className="t-barra enc">
-      <a className="enc-marca" href="/pedir" aria-label="Max Pizza, inicio"><GorroChef />Max <em>Pizza</em></a>
+      <a className="enc-marca" href="/pedir" aria-label="Max Pizza, inicio">Max <em>Pizza</em></a>
       <nav className="enc-items">
         <button className="enc-item" onClick={onSede} aria-label={`Sede: ${sede || 'escoger'}. Toca para cambiar`}>
           <IconoCasa /><span>{sede || 'Escoger sede'}</span>
@@ -90,13 +90,3 @@ function IconoCarrito() {
   );
 }
 
-/** Gorro de chef pequeño al lado de la marca */
-function GorroChef() {
-  return (
-    <svg className="enc-gorro" viewBox="0 0 40 40" aria-hidden="true">
-      <path d="M9 24 C3 22 3 12 10 11 C11 4 20 2 23 8 C27 3 37 7 33 15 C38 17 36 25 31 24 Z" fill="#fff" stroke="#d9d2c2" strokeWidth="1" />
-      <rect x="10" y="23" width="21" height="9" rx="2" fill="#141414" stroke="#E3A21A" strokeWidth="1.6" />
-      <path d="M15 23 V32 M20.5 23 V32 M26 23 V32" stroke="#E3A21A" strokeWidth="1" opacity=".6" />
-    </svg>
-  );
-}
