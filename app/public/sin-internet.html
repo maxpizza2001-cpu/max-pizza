@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Max Pizza · Sin internet</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    main { min-height: 100%; display: grid; place-items: center; align-content: center; gap: 14px; padding: 28px; text-align: center; box-sizing: border-box;
+      background: radial-gradient(circle at 50% 35%, #3a2a07 0%, #0b0b0b 55%, #000 100%); }
+    img { height: 84px; }
+    h1 { margin: 6px 0 0; font-size: 24px; color: #E3A21A; }
+    p { margin: 0; color: #cfc8b8; max-width: 320px; line-height: 1.45; }
+    button { margin-top: 10px; border: 0; border-radius: 999px; padding: 14px 28px; font-size: 17px; font-weight: 800; cursor: pointer;
+      background: linear-gradient(135deg, #F6D58A, #E3A21A); color: #141414; }
+    small { color: #8a857b; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="logo.png" alt="Max Pizza" />
+    <h1>Sin conexión a internet</h1>
+    <p>La app de Max Pizza necesita internet para ver pedidos, cobrar y sincronizar el inventario.<br />Revisa el Wi-Fi o los datos.</p>
+    <button onclick="location.href='https://max-pizza-roan.vercel.app/'">Intentar de nuevo</button>
+    <small id="estado">Se reintenta sola cuando vuelva la conexión.</small>
+  </main>
+  <script>
+    // Apenas vuelva el internet, abre la app sola
+    window.addEventListener('online', function () { location.href = 'https://max-pizza-roan.vercel.app/'; });
+  </script>
+</body>
+</html>

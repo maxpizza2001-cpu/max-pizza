@@ -324,3 +324,12 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   guarda; sin música → silencio y se guarda. 28/28.
 - (25 nov 2026) Bienvenida sin pregunta, por pedido del dueño: un solo botón "¡Entrar!" y tocar en cualquier parte también
   entra; siempre prende la música. Quien no la quiera la apaga con la pizza con audífonos.
+
+## APK que se actualiza sola — ✅ (26 nov 2026)
+- `app/capacitor.config.json`: `server.url = https://max-pizza-roan.vercel.app` → la APK abre la versión publicada;
+  cada `git push` llega a todos los celulares sin reinstalar. `errorPath: sin-internet.html` (pantalla negra con logo,
+  "Intentar de nuevo" y reintento automático al volver la conexión).
+- `android/app/build.gradle`: versionCode = número de armado de GitHub (la nueva APK se instala como actualización).
+- Hay que instalar esta APK UNA última vez; desde ahí no más reinstalaciones (salvo cambios nativos: permisos, ícono,
+  plugins). Si algún día cambia la dirección de Vercel, hay que cambiarla aquí y sacar otra APK.
+- Verificado: `npx cap sync android` genera la configuración con la URL y copia sin-internet.html. El armado real lo hace GitHub.

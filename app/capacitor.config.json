@@ -3,5 +3,10 @@
   "appName": "Max Pizza",
   "webDir": "dist",
   "backgroundColor": "#000000",
+  "server": {
+    "url": "https://max-pizza-roan.vercel.app",
+    "errorPath": "sin-internet.html",
+    "cleartext": false
+  },
   "android": { "allowMixedContent": false }
 }
