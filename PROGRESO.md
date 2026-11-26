@@ -427,3 +427,8 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   salvavidas en `src/main.tsx`: si se abre la app instalada en "/" sin sesión de trabajador y ya se usó la tienda → va a
   /pedir (los trabajadores entran con su sesión o con "/?equipo=1", que es el enlace del pie de la tienda); detección de
   iPhone también por `navigator.platform`. Hay que BORRAR el ícono viejo del iPhone y volver a agregarlo desde /pedir.
+- (26 nov 2026) Ícono de la app de la tienda: logo de Max Pizza (fundido con el fondo) + moto de domicilio amarilla con
+  domiciliario, caja "MAX" y líneas de velocidad, sobre negro con brillo dorado. Archivos `public/icono-tienda-192.png`,
+  `icono-tienda-512.png`, `icono-tienda-maskable-512.png` (con margen para Android) y `apple-touch-icon-tienda.png`
+  (180, iPhone); usados en `tienda.webmanifest`, `pedir.html` y la ventana "APP". El ícono de la app del equipo no cambia.
+  En el iPhone hay que borrar y volver a agregar el ícono para ver el nuevo.

@@ -53,7 +53,7 @@ function VentanaApp({ onCerrar }: { onCerrar: () => void }) {
     <div className="app-fondo" onClick={onCerrar}>
       <div className="app-ventana" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="La app de Max Pizza">
         <div className="app-cabeza">
-          <img src="/icono-192.png" alt="" width={56} height={56} />
+          <img src="/icono-tienda-192.png" alt="" width={56} height={56} />
           <b>LA APP DE <em>MAX PIZZA</em></b>
           <button className="app-x" onClick={onCerrar} aria-label="Cerrar">✕</button>
         </div>

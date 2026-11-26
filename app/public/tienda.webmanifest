@@ -16,19 +16,19 @@
   ],
   "icons": [
     {
-      "src": "/icono-192.png",
+      "src": "/icono-tienda-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icono-512.png",
+      "src": "/icono-tienda-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icono-512.png",
+      "src": "/icono-tienda-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

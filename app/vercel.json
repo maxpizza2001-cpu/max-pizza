@@ -36,7 +36,7 @@
       ]
     },
     {
-      "source": "/(logo.webp|favicon.png|icono-192.png|icono-512.png)",
+      "source": "/(logo.webp|favicon.png|icono-192.png|icono-512.png|icono-tienda-192.png|icono-tienda-512.png|icono-tienda-maskable-512.png|apple-touch-icon-tienda.png)",
       "headers": [
         {
           "key": "Cache-Control",
