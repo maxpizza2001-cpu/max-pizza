@@ -395,3 +395,17 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   con la rayita de "agarre" y un botón **‹ Atrás** en píldora (versión oscura sobre la foto del producto). Reemplaza la ✕.
   En el pedido, Atrás desde "Tus datos" vuelve al carrito; desde el carrito cierra.
 - Probado en 390×660 (iPhone con barra de Safari): todas las ventanas caben de 12 a 660 px y el Atrás queda visible. 28/28.
+
+## Rapidez de la tienda — ✅ (26 nov 2026)
+- Medido antes en la tienda publicada: todo iba en fila (HTML → archivo principal 145 KB → recién ahí el código de la
+  tienda → recién ahí el menú y la foto del chef): el menú se pedía a los ~8,5 s en esa conexión.
+- `app/pedir.html` + `src/pedir.tsx`: la tienda tiene su propia página de entrada (Vite con dos entradas en
+  `vite.config.ts`; Vercel reescribe /pedir → /pedir.html). El HTML trae `modulepreload` de todo su código y CSS,
+  `preconnect` a Supabase y a Google Fonts, `preload` de chef-amarillo.webp y una pantalla negra "Calentando el horno…"
+  mientras carga (sin parpadeo blanco). El traje negro se pide aparte (prefetch).
+- Letras: el `@import` de Google Fonts salió del CSS (iba en cadena) y pasó a `<link>` en el `<head>` de las dos páginas.
+- Logo: `public/logo.png` 564 KB → `public/logo.webp` 9 KB (277×240) en `Logo.tsx` y en `sin-internet.html` (también
+  acelera la app del equipo).
+- `vercel.json`: caché de 1 año (immutable) para /assets/* y de 30 días para /max/*, logo e íconos.
+- Probado con la versión armada (`vite preview`, nuevo "max-pizza-armada" en .claude/launch.json): todos los recursos
+  arrancan a la vez (~13 ms) y la app del equipo abre normal. Falta medir en la página publicada después del push. 28/28.

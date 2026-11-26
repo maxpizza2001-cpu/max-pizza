@@ -196,7 +196,8 @@ export function Tienda() {
     nivelAntes.current = n.i;
   }, [unidadesTotales]);
   useEffect(() => {
-    const links = IMAGENES_CHEF.map((href) => { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = href; document.head.appendChild(l); return l; });
+    // El traje amarillo ya viene adelantado desde pedir.html; el negro se pide aparte (se usa desde el nivel 2)
+    const links = [IMAGENES_CHEF[1]].map((href) => { const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'image'; l.href = href; document.head.appendChild(l); return l; });
     return () => links.forEach((l) => l.remove());
   }, []);
   if (!configurado) return <div className="t-pagina t-centro">La tienda aún no está conectada.</div>;

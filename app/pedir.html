@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es-CO">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Pide tu pizza Max Pizza a domicilio o para recoger. ¡Más sabor!" />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icono-192.png" />
+    <title>Max Pizza · Pide en línea</title>
+    <!-- Todo lo que la tienda necesita se pide DESDE EL INICIO y en paralelo (antes iba en fila) -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="image" href="/max/chef-amarillo.webp" fetchpriority="high" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;0,900;1,900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+    <style>
+      /* Pantalla mientras carga (antes de que llegue el código): negra, sin parpadeo blanco */
+      html, body { margin: 0; background: #000; }
+      #root:empty { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; }
+      #root:empty::after { content: '🍕 Calentando el horno…'; color: #E3A21A; font: 800 16px system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/pedir.tsx"></script>
+  </body>
+</html>
