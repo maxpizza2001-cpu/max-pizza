@@ -409,3 +409,6 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - `vercel.json`: caché de 1 año (immutable) para /assets/* y de 30 días para /max/*, logo e íconos.
 - Probado con la versión armada (`vite preview`, nuevo "max-pizza-armada" en .claude/launch.json): todos los recursos
   arrancan a la vez (~13 ms) y la app del equipo abre normal. Falta medir en la página publicada después del push. 28/28.
+- Medido en la página publicada (26 nov 2026): el menú se pide a los 0,35 s (antes ~8,5 s) y la primera pintura sale a
+  los 0,2–0,3 s. Segunda visita: código y foto del chef salen de la caché del celular (0 KB) y el menú llega en 0,4 s.
+  La PRIMERA consulta tras un rato sin uso tardó ~7 s en responder Supabase (se "despierta"); las siguientes, 0,2 s.
