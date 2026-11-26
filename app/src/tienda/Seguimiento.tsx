@@ -1,4 +1,5 @@
 // El cliente sigue su pedido con el código y su celular. Se actualiza solo cada pocos segundos.
+import { BarraHoja } from './BarraHoja';
 import { useEffect, useState } from 'react';
 import { sb } from '../lib/supabase';
 import { hora, plata } from '../lib/formato';
@@ -63,7 +64,7 @@ export function Seguimiento({ inicial, onCerrar }: { inicial?: { codigo: string;
   return (
     <div className="t-fondo" onClick={onCerrar}>
       <div className="t-hoja t-hoja-alta" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Seguir mi pedido">
-        <button className="t-cerrar" onClick={onCerrar} aria-label="Cerrar">✕</button>
+        <BarraHoja onAtras={onCerrar} />
         <div className="t-hoja-cuerpo">
           {!datos && <>
             <h2>Sigue tu pedido</h2>

@@ -1,4 +1,5 @@
 // Ventana para armar un producto: tamaño, adicionales, observaciones y cantidad. El precio se actualiza solo.
+import { BarraHoja } from './BarraHoja';
 import { useState } from 'react';
 import { plata } from '../lib/formato';
 import { ImagenProducto } from './Dibujos';
@@ -26,7 +27,7 @@ export function Elegir({ plato, opciones, linea, onListo, onCerrar }: {
   return (
     <div className="t-fondo" onClick={onCerrar}>
       <div className="t-hoja" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={plato.nombre}>
-        <button className="t-cerrar" onClick={onCerrar} aria-label="Cerrar">✕</button>
+        <BarraHoja onAtras={onCerrar} oscura />
         <div className="t-hoja-img"><div className="rueda-gira"><ImagenProducto p={plato} tam={190} /></div></div>
         <div className="t-hoja-cuerpo">
           <h2>{plato.nombre}</h2>

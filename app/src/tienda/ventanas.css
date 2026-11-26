@@ -1,0 +1,33 @@
+/* ═════════ Ventanas de la tienda que caben en cualquier celular + barra "‹ Atrás" ═════════
+   En iPhone, "100vh" incluye la parte que tapa la barra de Safari: por eso se cortaba el título y la ✕.
+   "dvh" es el alto que de verdad se ve (con o sin la barra de Safari). */
+.t-pagina { min-height: 100vh; min-height: 100dvh; }
+.t-fondo { height: 100vh; height: 100dvh; padding-top: env(safe-area-inset-top); }
+.t-hoja { max-height: 92vh; max-height: calc(100dvh - env(safe-area-inset-top) - 12px); }
+.t-hoja-alta { height: 92vh; height: calc(100dvh - env(safe-area-inset-top) - 12px); }
+.t-hoja-cuerpo { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.t-elegir { min-height: calc(100vh - 66px); min-height: calc(100dvh - 66px); }
+
+/* Barra fija arriba de cada ventana: "‹ Atrás" siempre visible */
+.t-hoja-barra { position: relative; flex: none; display: flex; align-items: center; gap: 10px; padding: 16px 14px 10px; background: #fff;
+  border-bottom: 1px solid #F0EBE1; z-index: 3; }
+.t-hoja-agarre { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 42px; height: 4px; border-radius: 4px; background: #DDD6C8; }
+.t-atras-hoja { flex: none; display: inline-flex; align-items: center; gap: 2px; border: 0; border-radius: 999px; padding: 7px 14px 7px 8px; cursor: pointer;
+  background: #F5F2EC; color: #141414; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 14px; line-height: 1;
+  transition: background .15s, transform .15s; }
+.t-atras-hoja:hover { background: #EDE7DA; }
+.t-atras-hoja:active { transform: scale(.95); }
+.t-atras-hoja:focus-visible { outline: 3px solid var(--mostaza); outline-offset: 2px; }
+.t-hoja-titulo { min-width: 0; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Versión oscura (encima de la foto del producto) */
+.t-hoja-barra.oscura { background: #0b0b0b; border-bottom: 0; }
+.t-hoja-barra.oscura .t-hoja-agarre { background: #3a3a3a; }
+.t-hoja-barra.oscura .t-atras-hoja { background: rgba(255,255,255,.12); color: #fff; }
+.t-hoja-barra.oscura .t-atras-hoja:hover { background: rgba(255,255,255,.2); }
+/* La pestaña de pasos del pedido ya no necesita dejar espacio a la ✕ */
+.t-pasos { margin-right: 0; }
+
+@media (min-width: 760px) {
+  .t-hoja-agarre { display: none; }
+  .t-hoja-barra { padding-top: 12px; }
+}

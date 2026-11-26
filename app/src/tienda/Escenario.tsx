@@ -1,5 +1,6 @@
 // Distribución "estilo Giancarlo": chef fijo a la izquierda + categorías en tarjetas a la derecha,
 // barra de nivel abajo y pestaña lateral de "Combos y promos". Solo es la capa visual: usa el carrito y los precios reales.
+import { BarraHoja } from './BarraHoja';
 import { useState, type ReactNode } from 'react';
 import { plata } from '../lib/formato';
 import { useCapa } from '../lib/atras';
@@ -71,7 +72,7 @@ export function PestanaPromos({ combos, promos, platos, agotado, onAgregarCombo 
       {abierta && (
         <div className="t-fondo" onClick={() => setAbierta(false)}>
           <div className="t-hoja panel-promos" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Combos y promociones">
-            <button className="t-cerrar" onClick={() => setAbierta(false)} aria-label="Cerrar">✕</button>
+            <BarraHoja onAtras={() => setAbierta(false)} />
             <div className="t-hoja-cuerpo">
               <h2>🎁 Combos y promos</h2>
               <p className="t-gris">Precios reales de hoy. Entre más lleves, más ahorras.</p>
@@ -109,9 +110,8 @@ export function HojaCategoria({ nombre, children, onCerrar }: { nombre: string; 
   return (
     <div className="t-fondo" onClick={onCerrar}>
       <div className="t-hoja t-hoja-alta hoja-cat" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={nombre}>
-        <button className="t-cerrar" onClick={onCerrar} aria-label="Cerrar">✕</button>
+        <BarraHoja onAtras={onCerrar} titulo={nombre} />
         <div className="t-hoja-cuerpo">
-          <h2>{nombre}</h2>
           <div className="t-cards">{children}</div>
         </div>
       </div>

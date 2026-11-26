@@ -23,6 +23,7 @@ import { agruparPlatos, minutos, platoAgotado, precioLinea, type Combo, useGuard
 import './tienda.css';
 import './chef.css';
 import './encabezado.css';
+import './ventanas.css';
 
 type SedeT = { id: string; nombre: string };
 const CLAVE_SEDE = 'maxpizza.tienda.sede';

@@ -1,4 +1,5 @@
 // Carrito y checkout: revisar productos, datos del cliente, domicilio o recoger, y medio de pago.
+import { BarraHoja } from './BarraHoja';
 import { useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
@@ -110,7 +111,7 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
   return (
     <div className="t-fondo" onClick={onCerrar}>
       <div className="t-hoja t-hoja-alta" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Tu pedido">
-        <button className="t-cerrar" onClick={onCerrar} aria-label="Cerrar">✕</button>
+        <BarraHoja onAtras={() => (paso === 'datos' ? setPaso('carrito') : onCerrar())} />
         <div className="t-hoja-cuerpo">
           <div className="t-pasos">
             <span className={paso === 'carrito' ? 'on' : 'ok'}>1 · Carrito</span>

@@ -386,3 +386,12 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   DENTRO de la barra negra (oscuro, letras blancas, borde dorado al escribir) con el chip "● Abierto" verde al lado;
   en computador todo en una fila (gorro de chef + "Max **Pizza**" en amarillo · íconos · buscador · Abierto) y en celular el
   buscador va en un segundo renglón de la misma barra. Tarjetas de categorías con flechita amarilla ›. Probado 375/1280 px. 28/28.
+
+## Ventanas que no se cortan en iPhone + botón "‹ Atrás" — ✅ (26 nov 2026)
+- El dueño mostró en iPhone (Safari) la ventana "Sigue tu pedido" cortada arriba (título y ✕ tapados): las ventanas usaban
+  `100vh`/`92vh`, que en Safari incluye lo que tapa su barra. `tienda/ventanas.css` usa `dvh` (alto visible real) con
+  respaldo en `vh`, y respeta la zona segura de arriba.
+- `tienda/BarraHoja.tsx`: barra fija arriba de cada ventana (producto, categoría, combos y promos, pedido, seguimiento)
+  con la rayita de "agarre" y un botón **‹ Atrás** en píldora (versión oscura sobre la foto del producto). Reemplaza la ✕.
+  En el pedido, Atrás desde "Tus datos" vuelve al carrito; desde el carrito cierra.
+- Probado en 390×660 (iPhone con barra de Safari): todas las ventanas caben de 12 a 660 px y el Atrás queda visible. 28/28.
