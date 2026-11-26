@@ -15,7 +15,8 @@ if (typeof window !== 'undefined') {
 }
 
 const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-const esIphone = /iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+const esIphone = /iphone|ipad|ipod/i.test(ua) || /iP(hone|od|ad)/.test(typeof navigator !== 'undefined' ? navigator.platform : '')
+  || (/macintosh/i.test(ua) && typeof navigator !== 'undefined' && navigator.maxTouchPoints > 1);
 const esAndroid = /android/i.test(ua);
 const esApk = () => !!(window as any).Capacitor?.isNativePlatform?.();
 const yaEsApp = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true || esApk();

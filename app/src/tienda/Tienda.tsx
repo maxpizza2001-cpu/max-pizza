@@ -393,7 +393,7 @@ export function Tienda() {
               {aj?.tiktok && <a href={`https://tiktok.com/@${aj.tiktok}`} target="_blank" rel="noreferrer">🎵 TikTok</a>}
               <button className="t-enlace" onClick={() => setSeguir('buscar')}>📦 Seguir mi pedido</button>
             </div>
-            <a href="/">¿Trabajas en Max Pizza? Entrar</a>
+            <a href="/?equipo=1">¿Trabajas en Max Pizza? Entrar</a>
           </footer>
 
           {whatsapp && !verPedido && !armando && (

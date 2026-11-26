@@ -422,3 +422,8 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   `pedir.html` con las metas de iPhone (título "Max Pizza", barra negra). `src/pedir.tsx` registra `/sw.js` (Chrome lo
   pide para ofrecer "Instalar").
 - Probado: 375 px sin desbordes (buscador cede espacio), ventana Android e iPhone (simulado), cabe en pantalla. 28/28.
+- (26 nov 2026) El dueño instaló en iPhone y se abría la app del EQUIPO. Arreglos: `tienda.webmanifest` con `scope: /pedir`
+  (app separada de la del equipo; `manifest.webmanifest` del equipo con id "/" y nombre "Max Pizza · Equipo");
+  salvavidas en `src/main.tsx`: si se abre la app instalada en "/" sin sesión de trabajador y ya se usó la tienda → va a
+  /pedir (los trabajadores entran con su sesión o con "/?equipo=1", que es el enlace del pie de la tienda); detección de
+  iPhone también por `navigator.platform`. Hay que BORRAR el ícono viejo del iPhone y volver a agregarlo desde /pedir.
