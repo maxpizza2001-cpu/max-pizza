@@ -15,8 +15,12 @@ export function recordarOrigen(e: Event) {
 
 /** Destino visible del vuelo: el botón central "Pedir" o, si no está, la bolsa de arriba */
 function destino(): Element | null {
-  const cands = ['.t-nav-pedir span', '.t-barra [aria-label="Mi carrito"]'];
-  for (const c of cands) { const el = document.querySelector(c); if (el && el.getBoundingClientRect().width) return el; }
+  const cands = ['.chef-pala-producto', '.barra-nivel-pedir', '.t-barra [aria-label="Mi carrito"]'];
+  for (const c of cands) {
+    const el = document.querySelector(c); if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width && r.bottom > 60 && r.top < innerHeight - 40) return el;   // visible en pantalla
+  }
   return null;
 }
 
@@ -50,7 +54,7 @@ export function volarAlCarrito() {
     { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 90}px) scale(.8) rotate(180deg)`, opacity: 1, offset: 0.45 },
     { transform: `translate(${dx}px, ${dy}px) scale(.18) rotate(360deg)`, opacity: 0.6 },
   ], { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)' });
-  a.onfinish = () => { v.remove(); pop(meta); pop(document.querySelector('.t-barra .t-contador')); };
+  a.onfinish = () => { v.remove(); pop(meta); pop(document.querySelector('.barra-nivel-pedir')); pop(document.querySelector('.t-barra .t-contador')); };
 }
 
 /** Lluvia de confeti en toda la pantalla (combos, pedido confirmado) */

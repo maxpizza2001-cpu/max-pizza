@@ -1,13 +1,13 @@
 // Tienda online pública (/pedir): sede, portada giratoria, menú, armar producto, carrito y datos del pedido.
 // Lee el MISMO catálogo de Administración por funciones públicas (tienda_sedes / tienda_catalogo / tienda_info).
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { configurado, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
 import { Logo } from '../componentes/Logo';
 import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
-import { Caja, fraseAgregado } from './Caja';
-import { Max } from './Max';
+import { BarraNivel, Escenario, HojaCategoria, PestanaPromos } from './Escenario';
+import { IMAGENES_CHEF, fraseChef, nivelChef } from './Chef';
 import { useCapa } from '../lib/atras';
 import { ControlSonido } from './ControlSonido';
 import { Bienvenida } from './Bienvenida';
@@ -20,6 +20,7 @@ import { Pedido } from './Pedido';
 import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
 import { agruparPlatos, minutos, platoAgotado, precioLinea, type Combo, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
 import './tienda.css';
+import './chef.css';
 
 type SedeT = { id: string; nombre: string };
 const CLAVE_SEDE = 'maxpizza.tienda.sede';
@@ -33,6 +34,7 @@ export function Tienda() {
   const [error, setError] = useState('');
   const [cat, setCat] = useState('Todo');
   const [busca, setBusca] = useState('');
+  const [catAbierta, setCatAbierta] = useState<string | null>(null);
   const [sugFlot, setSugFlot] = useState<{ titulo: string; items: Sugerencia[] } | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [cambiarSede, setCambiarSede] = useState(false);
@@ -112,7 +114,7 @@ export function Tienda() {
     setCarrito(ya ? carrito.map((l) => (l === ya ? { ...l, cantidad: Math.min(50, l.cantidad + 1) } : l))
       : [...carrito, { clave: crypto.randomUUID(), plato_id: 'combo:' + c.id, producto_id: '', combo_id: c.id, nombre: c.nombre, tamano: null,
         precio_base: c.precio, opciones: [], nota: '', cantidad: 1, detalle: c.items.map((i) => `${i.cantidad} × ${i.nombre}`).join(' + ') }]);
-    setAviso(fraseAgregado('combo ' + c.nombre, subtotal + c.precio)); setTimeout(() => setAviso(''), 3200);
+    avisoAgregado('combo ' + c.nombre, unidades + 1);
     volarAlCarrito(); setTimeout(() => confeti(), 600);
     setSugFlot(null);
   }
@@ -156,6 +158,12 @@ export function Tienda() {
       precio_base: v.precio, opciones: [], nota: '', cantidad: 1 });
   }
 
+  function avisoAgregado(nombre: string, nuevas: number) {
+    const { siguiente, faltan } = nivelChef(nuevas);
+    setAviso(fraseChef(nombre) + (siguiente ? ` ${faltan === 1 ? 'Te falta 1 producto' : `Te faltan ${faltan} productos`} para ${siguiente.nombre}.` : ''));
+    setTimeout(() => setAviso(''), 3200);
+  }
+
   function listo(l: LineaCarrito) {
     const existe = carrito.some((x) => x.clave === l.clave);
     const nuevoCarrito = existe ? carrito.map((x) => (x.clave === l.clave ? l : x)) : [...carrito, l];
@@ -164,7 +172,7 @@ export function Tienda() {
     setArmando(null);
     if (!existe) {
       const nuevo = subtotal + precioLinea(l) * l.cantidad;
-      setAviso(fraseAgregado(l.nombre, nuevo)); setTimeout(() => setAviso(''), 3200);
+      void nuevo; avisoAgregado(l.nombre, unidades + l.cantidad);
       requestAnimationFrame(() => volarAlCarrito());
     }
   }
@@ -176,6 +184,18 @@ export function Tienda() {
   useCapa(verPedido, () => setVerPedido(false));
   useCapa(!!seguir, () => setSeguir(null));
   useCapa(cambiarSede && !!sede, () => setCambiarSede(false));
+  useCapa(!!catAbierta, () => setCatAbierta(null));
+  const unidadesTotales = carrito.reduce((s, l) => s + l.cantidad, 0);
+  const nivelAntes = useRef(nivelChef(unidadesTotales).actual.i);
+  useEffect(() => {
+    const n = nivelChef(unidadesTotales).actual;
+    if (n.i > nivelAntes.current) { setTimeout(() => { setAviso(`¡Subiste al nivel ${n.i}: ${n.nombre}!`); confeti(); setTimeout(() => setAviso(''), 3200); }, 700); }
+    nivelAntes.current = n.i;
+  }, [unidadesTotales]);
+  useEffect(() => {
+    const links = IMAGENES_CHEF.map((href) => { const l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = href; document.head.appendChild(l); return l; });
+    return () => links.forEach((l) => l.remove());
+  }, []);
   if (!configurado) return <div className="t-pagina t-centro">La tienda aún no está conectada.</div>;
 
   const aj = info.ajustes;
@@ -268,6 +288,11 @@ export function Tienda() {
             </div>
           )}
 
+          {!q && <Escenario unidades={unidades} platos={platos} onCategoria={setCatAbierta}
+            ultimo={carrito.length ? { nombre: carrito[carrito.length - 1].nombre, plato_id: carrito[carrito.length - 1].plato_id } : null}
+            categorias={cats.map((c) => { const ps = platos.filter((p) => p.categoria === c); return { nombre: c, icono: iconoCat(c), productos: ps.length,
+              desde: Math.min(...ps.map((p) => p.precio)), enPedido: carrito.filter((l) => ps.some((p) => p.id === l.plato_id)).reduce((t, l) => t + l.cantidad, 0) }; })} />}
+
           {!q && (
             <section className="t-portada">
               <div className="t-portada-txt">
@@ -278,17 +303,6 @@ export function Tienda() {
               {menu ? <Rueda items={portada} onElegir={(p) => setArmando({ plato: p })} /> : <div className="t-cargando">Calentando el horno…</div>}
             </section>
           )}
-
-          {!q && <Caja lineas={carrito} platos={platos} onVerPedido={unidades ? () => setVerPedido(true) : undefined} />}
-
-          <nav className="t-circulos" id="menu">
-            {['Todo', ...cats].map((c) => (
-              <button key={c} className={c === cat ? 'on' : ''} onClick={() => irA(c)}>
-                <span className="t-circulo">{c === 'Todo' ? <span style={{ fontSize: 28 }}>🍽️</span> : iconoCat(c)}</span>
-                {c}
-              </button>
-            ))}
-          </nav>
 
           <main className="t-menu">
             {!q && aj?.banner && (
@@ -391,26 +405,21 @@ export function Tienda() {
             </a>
           )}
 
-          {unidades > 0 && !verPedido && !armando && (
-            <button className="t-barra-carrito" onClick={() => setVerPedido(true)}>
-              <span className="t-burbuja">{unidades}</span><b>Ver mi pedido</b><span>{plata(subtotal)}</span>
-            </button>
-          )}
+          {!verPedido && !armando && <BarraNivel unidades={unidades} subtotal={subtotal} onPedir={abrirCarrito} />}
+          {!verPedido && !armando && !catAbierta && <PestanaPromos combos={combos} promos={info.promos ?? []} platos={platos} onAgregarCombo={agregarCombo}
+            agotado={(c) => c.items.some((i) => menu?.some((p) => p.id === i.producto_id && p.disponibles === 0))} />}
 
           <Bienvenida />
-          <Max unidades={unidades} oculto={!!armando || verPedido || !!seguir || !!sugFlot} />
           {sugFlot && !armando && !verPedido && (
             <SugerenciaFlotante titulo={sugFlot.titulo} items={sugFlot.items} onCerrar={() => setSugFlot(null)}
               onPlato={(p) => { setSugFlot(null); agregarRapido(p); }} onCombo={(c) => { setSugFlot(null); agregarCombo(c); }} />
           )}
 
-          <nav className="t-nav-abajo">
-            <button className="on" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><span>🏠</span>Inicio</button>
-            <button onClick={() => irA('Todo')}><span>📋</span>Menú</button>
-            <button className="t-nav-pedir" onClick={abrirCarrito}><span>🍕</span>{unidades ? plata(subtotal) : 'Pedir'}</button>
-            <button onClick={() => (mejorPromo ? document.querySelector('.t-banner-promo')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : irA('Todo'))}><span>🎁</span>Promos</button>
-            <button onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}><span>📦</span>Mi pedido</button>
-          </nav>
+          {catAbierta && !armando && (
+            <HojaCategoria nombre={catAbierta} onCerrar={() => setCatAbierta(null)}>
+              {platos.filter((p) => p.categoria === catAbierta).map((p) => tarjeta(p))}
+            </HojaCategoria>
+          )}
         </>
       )}
 

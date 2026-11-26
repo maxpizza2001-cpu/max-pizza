@@ -344,3 +344,29 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   botones), solo cuando hay a dónde volver. Sirve también en iPhone.
 - Probado en la tienda: atrás cierra el producto sin salir de /pedir, la X deja el historial limpio, el botón de pizza
   aparece con algo abierto, lo cierra y se esconde. La app del equipo no se probó con sesión (requiere cuenta). 28/28.
+
+## Tienda "estilo Giancarlo": el chef que se viste según lo que pides — ✅ (26 nov 2026)
+- No llegaron `docs/max-pizza-prototipo.html` ni las imágenes `app/public/max/*.webp`; por decisión del dueño se usó la foto
+  del chat: se recortaron los dos chefs, se quitó el fondo negro (relleno desde los bordes; umbral más bajo para el traje
+  negro) y la espátula. Resultado: `app/public/max/chef-amarillo.webp` y `chef-negro.webp`, 550×1134, ~75 KB, misma pose.
+  Mano levantada medida en x 85,9 %, y 32,5 % (no 88,9/29,8 como decía el pedido, porque las imágenes son otras).
+  Queda un trocito del mango de madera bajo el puño (parece el mango de la pala). El hueco entre brazo y cuerpo conserva
+  algo de sombra oscura (no se puede separar del fondo en el traje negro).
+- `tienda/Chef.tsx`: dos imágenes superpuestas con cruce de opacidad 0,45 s y destello al cambiar de traje; pala de madera
+  SVG anclada en la mano (rotada 14° para no tapar la cara, verificado), con el ÚLTIMO producto (foto o dibujo) y círculo
+  rojo con las unidades; corona SVG (left 21 %, top −7 %, 32 %); resplandor y piso del color del nivel; llamas y baile en
+  Fiesta; burbuja con frase por producto (3 s); brinca al agregar, se hunde y dice algo triste al quitar.
+- Niveles por CANTIDAD: 0–1 Antojado (amarillo) · 2–3 Chef de gala (negro) · 4–5 Rey de la pizza (+ corona) ·
+  6+ Fiesta Max (+ baile y llamas). Al subir: aviso "¡Subiste al nivel X: nombre!" + confeti.
+- `tienda/Escenario.tsx`: escenario negro arriba (chef fijo a la izquierda ≈47 %, categorías a la derecha con unidades en el
+  carrito; tocar una abre la hoja con sus productos), `BarraNivel` fija abajo ("Entre más pidas, mejor se viste · Te faltan
+  N productos…", progreso con 3 puntos, "Pedir · $total") que reemplaza la barra del carrito y la navegación de abajo,
+  `PestanaPromos` lateral con combos y promociones reales (solo aparece si hay alguno). En computador: chef ≤ 420 px y
+  categorías en 2–4 columnas. Estilos en `tienda/chef.css`.
+- `efectos.ts`: el producto vuela a la pala si se ve en pantalla (si no, al botón Pedir de la barra). `Pedido.tsx`: al
+  confirmar, "¡Llegó tu plato!" con plato humeante y los productos encima (se guardan antes de vaciar el carrito), confeti y
+  el código de seguimiento de siempre; se quitó la caja vieja (sus niveles eran por plata). `Bienvenida.tsx` usa el chef.
+- Sin cambios de carrito, precios, base de datos ni envío. `Max.tsx` y `Caja.tsx` quedaron sin uso (no entran al build).
+- Probado: 375 px y 1280 px sin desbordes; agregar 1→7 (amarillo → negro → corona → fiesta) y quitar 7→0 de vuelta a
+  Antojado; vuelo a la pala; pala dentro del escenario y lejos de la cara; panel de combos con datos de prueba. 28/28.
+- No probado: la pantalla "¡Llegó tu plato!" con un pedido real (crearía un pedido de verdad).

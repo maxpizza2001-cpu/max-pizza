@@ -2,7 +2,7 @@
 // Sale una vez por visita si la música no pudo sonar sola.
 import { useEffect, useState } from 'react';
 import { Logo } from '../componentes/Logo';
-import { MaxDibujo } from './Max';
+import { IMAGENES_CHEF } from './Chef';
 import { sonido } from './sonido';
 import { PizzaAudifonos } from './ControlSonido';
 
@@ -31,7 +31,7 @@ export function Bienvenida() {
     <div className="t-bienvenida" role="dialog" aria-label="Bienvenido a Max Pizza" onClick={entrar}>
       <div className="t-bienv-luces" aria-hidden />
       <div className="t-bienv-logo"><Logo alto={84} /></div>
-      <div className="t-bienv-max"><MaxDibujo estado="bienvenida" tam={120} /></div>
+      <div className="t-bienv-max"><img src={IMAGENES_CHEF[0]} alt="" width={550} height={1134} /></div>
       <h1>¡Bienvenido a <em>Max Pizza</em>!</h1>
       <p>Recién salidas del horno, directo a tu puerta 🔥</p>
       <button className="t-bienv-entrar" onClick={(e) => { e.stopPropagation(); entrar(); }} autoFocus>

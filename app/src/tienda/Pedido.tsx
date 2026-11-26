@@ -2,9 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, sb } from '../lib/supabase';
 import { plata } from '../lib/formato';
-import { Caja } from './Caja';
+import { ImagenProducto } from './Dibujos';
 import { FilaSugerencias, sugerencias } from './Recomendaciones';
-import { MaxDibujo } from './Max';
 import { confeti, pop } from './efectos';
 import { sonido } from './sonido';
 import { MEDIOS, precioLinea, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type Combo } from './modelo';
@@ -41,6 +40,8 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
   const [errores, setErrores] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [hecho, setHecho] = useState<Enviado | null>(null);
+  // Lo que se pidió, guardado antes de vaciar el carrito (para servirlo en el plato)
+  const [servidos, setServidos] = useState<LineaCarrito[]>([]);
   const op = useRef(nuevaOperacion());   // mismo id si el cliente reintenta: el pedido no se duplica
   const aj = info.ajustes;
   const medios = aj?.medios?.length ? aj.medios : ['efectivo'];
@@ -100,7 +101,7 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
       const r = data as { codigo: string; numero: number; total: number };
       const e: Enviado = { codigo: r.codigo, numero: r.numero, total: Number(r.total), celular: d.celular.replace(/D/g, ''), nombre: d.nombre.trim(), entrega };
       op.current = nuevaOperacion();
-      setHecho(e); setPaso('listo'); onEnviado(e); confeti(60); sonido.efecto('confirmar');
+      setServidos(lineas); setHecho(e); setPaso('listo'); onEnviado(e); confeti(60); sonido.efecto('confirmar');
     } catch (x) {
       setErrores([(x as Error).message || 'No pudimos enviar el pedido.']);
     } finally { setEnviando(false); }
@@ -119,7 +120,6 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
 
           {paso === 'carrito' && <>
             <h2>Tu pedido <span className="t-gris">· {sedeNombre}</span></h2>
-            {lineas.length > 0 && <Caja lineas={lineas} platos={platos} compacta />}
             {!lineas.length && <div className="t-vacio">🍕<br />Tu carrito está vacío.<br />Agrega algo rico del menú.</div>}
             {comboArmado && (
               <div className="t-combo-armado">
@@ -208,8 +208,19 @@ export function Pedido({ lineas, platos, info, onCambiarCombo, onAgregarPlato, o
           </>}
 
           {paso === 'listo' && hecho && <div className="t-listo">
-            <div className="max-final"><MaxDibujo estado="confirmado" tam={120} /></div>
-            <h2>¡Recibimos tu pedido, {hecho.nombre.split(' ')[0]}!</h2>
+            <div className="plato-escena" aria-hidden="true">
+              <div className="plato-vapor"><i /><i /><i /></div>
+              <div className="plato">
+                <div className="plato-comida">
+                  {servidos.slice(0, 5).map((l, k) => {
+                    const p = platos.find((x) => x.id === l.plato_id) ?? { nombre: l.nombre, foto_url: null, categoria_tipo: l.combo_id ? 'combo' : 'pizza' };
+                    return <span key={l.clave} className={'plato-item i' + k}><ImagenProducto p={p} tam={72} /></span>;
+                  })}
+                </div>
+              </div>
+            </div>
+            <h2 className="plato-titulo">¡Llegó tu plato, {hecho.nombre.split(' ')[0]}! 🍽️</h2>
+            <p className="t-gris" style={{ margin: 0 }}>{servidos.reduce((t, l) => t + l.cantidad, 0)} productos van para el horno</p>
             <div className="t-codigo">{hecho.codigo}</div>
             <p>Pedido #{hecho.numero} · Total <b>{plata(hecho.total)}</b><br />
               {hecho.entrega === 'domicilio' ? 'Ya entró a la cocina. Te avisamos cuando salga para tu casa.' : `Te avisamos cuando esté listo para recoger en ${sedeNombre}.`}</p>
