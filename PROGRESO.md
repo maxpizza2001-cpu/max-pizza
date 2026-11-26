@@ -382,3 +382,7 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - El botón de música (pizza con audífonos) pasó a la esquina superior derecha del escenario de Don Iván (el título le deja
   espacio). El chef fijo se ajustó a la nueva altura de la barra.
 - Probado: 375 px y 1280 px sin desbordes; Sede abre el cambio de sede y atrás lo cierra. 28/28.
+- (26 nov 2026) Barra de arriba según la segunda imagen del dueño, conservando los íconos amarillos: el buscador pasó
+  DENTRO de la barra negra (oscuro, letras blancas, borde dorado al escribir) con el chip "● Abierto" verde al lado;
+  en computador todo en una fila (gorro de chef + "Max **Pizza**" en amarillo · íconos · buscador · Abierto) y en celular el
+  buscador va en un segundo renglón de la misma barra. Tarjetas de categorías con flechita amarilla ›. Probado 375/1280 px. 28/28.

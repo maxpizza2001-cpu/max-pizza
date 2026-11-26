@@ -1,12 +1,13 @@
+import type { ReactNode } from 'react';
 // Barra de arriba de la tienda (según el diseño del dueño): "Max Pizza" + Sede · Seguir mi domicilio · Mi carrito,
 // con íconos amarillos propios (SVG) y rayitas doradas entre cada uno.
 
-export function Encabezado({ sede, unidades, hayPedido, onSede, onSeguir, onCarrito }: {
-  sede: string; unidades: number; hayPedido: boolean; onSede: () => void; onSeguir: () => void; onCarrito: () => void;
+export function Encabezado({ sede, unidades, hayPedido, onSede, onSeguir, onCarrito, buscador }: {
+  sede: string; unidades: number; hayPedido: boolean; onSede: () => void; onSeguir: () => void; onCarrito: () => void; buscador?: ReactNode;
 }) {
   return (
     <header className="t-barra enc">
-      <a className="enc-marca" href="/pedir" aria-label="Max Pizza, inicio">Max Pizza</a>
+      <a className="enc-marca" href="/pedir" aria-label="Max Pizza, inicio"><GorroChef />Max <em>Pizza</em></a>
       <nav className="enc-items">
         <button className="enc-item" onClick={onSede} aria-label={`Sede: ${sede || 'escoger'}. Toca para cambiar`}>
           <IconoCasa /><span>{sede || 'Escoger sede'}</span>
@@ -19,6 +20,7 @@ export function Encabezado({ sede, unidades, hayPedido, onSede, onSeguir, onCarr
           <span>Mi Carrito</span>
         </button>
       </nav>
+      {buscador}
     </header>
   );
 }
@@ -84,6 +86,17 @@ function IconoCarrito() {
       <path d="M26 14 L27 33 M36 14 V33 M46 14 L44 33 M17 23.5 H53.5" stroke="#5c3d05" strokeWidth="1.6" opacity=".55" />
       <circle cx="24" cy="46" r="5" fill="#2a2016" /><circle cx="24" cy="46" r="2" fill="#ECE8DF" />
       <circle cx="46" cy="46" r="5" fill="#2a2016" /><circle cx="46" cy="46" r="2" fill="#ECE8DF" />
+    </svg>
+  );
+}
+
+/** Gorro de chef pequeño al lado de la marca */
+function GorroChef() {
+  return (
+    <svg className="enc-gorro" viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M9 24 C3 22 3 12 10 11 C11 4 20 2 23 8 C27 3 37 7 33 15 C38 17 36 25 31 24 Z" fill="#fff" stroke="#d9d2c2" strokeWidth="1" />
+      <rect x="10" y="23" width="21" height="9" rx="2" fill="#141414" stroke="#E3A21A" strokeWidth="1.6" />
+      <path d="M15 23 V32 M20.5 23 V32 M26 23 V32" stroke="#E3A21A" strokeWidth="1" opacity=".6" />
     </svg>
   );
 }

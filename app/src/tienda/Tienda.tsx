@@ -239,7 +239,18 @@ export function Tienda() {
     <div className="t-pagina t-con-nav" onPointerDownCapture={(e) => recordarOrigen(e.nativeEvent)}>
       <Encabezado sede={sede ? sedeNombre : ''} unidades={unidades} hayPedido={!!ultimoVigente}
         onSede={() => setCambiarSede(true)} onCarrito={abrirCarrito}
-        onSeguir={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')} />
+        onSeguir={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}
+        buscador={sede && !cambiarSede ? (
+          <div className="t-buscar-fila enc-buscar">
+            <label className="t-buscar">
+              <span aria-hidden>🔍</span>
+              <input placeholder="Busca tu pizza favorita…" value={busca} onFocus={() => setBuscando(true)} onBlur={() => setTimeout(() => setBuscando(false), 200)}
+                onChange={(e) => { setBusca(e.target.value); if (e.target.value) irA('Todo'); }} />
+              {busca && <button aria-label="Borrar búsqueda" onClick={() => setBusca('')}>✕</button>}
+            </label>
+            <span className={'t-estado-chip ' + (aj && !aj.abierta ? 'cerrada' : 'abierta')}>{aj && !aj.abierta ? 'Cerrado' : 'Abierto'}</span>
+          </div>
+        ) : null} />
 
       {error && <div className="t-error">{error}</div>}
 
@@ -261,15 +272,6 @@ export function Tienda() {
 
       {sede && !cambiarSede && (
         <>
-          <div className="t-buscar-fila">
-            <label className="t-buscar">
-              <span aria-hidden>🔍</span>
-              <input placeholder="Busca tu pizza favorita…" value={busca} onFocus={() => setBuscando(true)} onBlur={() => setTimeout(() => setBuscando(false), 200)}
-                onChange={(e) => { setBusca(e.target.value); if (e.target.value) irA('Todo'); }} />
-              {busca && <button aria-label="Borrar búsqueda" onClick={() => setBusca('')}>✕</button>}
-            </label>
-            <span className={'t-estado-chip ' + (aj && !aj.abierta ? 'cerrada' : 'abierta')}>{aj && !aj.abierta ? 'Cerrado' : 'Abierto'}</span>
-          </div>
           {buscando && !busca && sugerencias.length > 0 && (
             <div className="t-sugerencias">
               <small>Lo más buscado</small>

@@ -24,6 +24,7 @@ export function Escenario({ unidades, ultimo, platos, categorias, onCategoria }:
               aria-label={`${c.nombre}, desde ${plata(c.desde)}${c.enPedido ? `, ${c.enPedido} en tu pedido` : ''}`}>
               <span className="esc-cat-img">{c.icono}</span>
               <span className="esc-cat-txt"><b>{c.nombre}</b><small>{c.productos} opciones · desde {plata(c.desde)}</small></span>
+              <span className="esc-cat-flecha" aria-hidden>›</span>
               {c.enPedido > 0 && <span className="esc-cat-n">{c.enPedido}</span>}
             </button>
           ))}
