@@ -373,3 +373,12 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - (26 nov 2026) Por pedido del dueño: se QUITÓ la corona (el nivel Rey de la pizza se distingue por el brillo dorado) y el
   chef se llama **Don Iván** (`NOMBRE_CHEF` en Chef.tsx): sale en el letrero del escenario (arriba a la izquierda, sin
   chocar con la pala en 375 y 1280 px) y en la bienvenida ("Don Iván ya prendió el horno 🔥").
+
+## Tienda: barra de arriba según el diseño del dueño — ✅ (26 nov 2026)
+- `tienda/Encabezado.tsx` + `encabezado.css`: fondo negro, "Max Pizza" en blanco (Montserrat 900 itálica), rayitas doradas
+  y tres botones con íconos amarillos propios en SVG: 🏠 casa → **[nombre de la sede]** (cambiar sede), 🛵 mapa con pin y
+  domiciliario en moto → **Seguir mi Domicilio** (punto rojo si hay un pedido reciente), 🛒 carrito → **Mi Carrito** con
+  el número de productos. En computador: marca 34 px e íconos 46 px.
+- El botón de música (pizza con audífonos) pasó a la esquina superior derecha del escenario de Don Iván (el título le deja
+  espacio). El chef fijo se ajustó a la nueva altura de la barra.
+- Probado: 375 px y 1280 px sin desbordes; Sede abre el cambio de sede y atrás lo cierra. 28/28.

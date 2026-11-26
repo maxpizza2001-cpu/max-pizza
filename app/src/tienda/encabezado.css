@@ -1,0 +1,42 @@
+/* ═════════ Barra de arriba (diseño del dueño): negro, "Max Pizza" blanco, íconos amarillos y rayitas doradas ═════════ */
+.t-barra.enc { background: #000; color: #fff; border-bottom: 2px solid #1d1d1d; gap: 6px; padding: 6px 8px; padding-top: calc(6px + env(safe-area-inset-top));
+  justify-content: space-between; backdrop-filter: none; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.enc-marca { flex: none; font-family: 'Montserrat', sans-serif; font-weight: 900; font-style: italic; font-size: 19px; letter-spacing: -.02em; color: #fff;
+  text-decoration: none; white-space: nowrap; line-height: 1; text-shadow: 0 2px 0 rgba(255,255,255,.08); }
+.enc-items { display: flex; align-items: stretch; min-width: 0; }
+.enc-item { position: relative; display: grid; justify-items: center; align-content: center; gap: 2px; min-width: 0; background: none; border: 0; color: #fff;
+  cursor: pointer; padding: 2px 8px; font: inherit; transition: transform .15s; }
+.enc-item::before { content: ''; position: absolute; left: 0; top: 12%; bottom: 12%; width: 2px; border-radius: 2px;
+  background: linear-gradient(#F6D58A, #E3A21A); box-shadow: 0 0 6px rgba(227,162,26,.6); }
+.enc-item:active { transform: scale(.94); }
+.enc-item:focus-visible { outline: 2px solid var(--mostaza); outline-offset: 2px; border-radius: 10px; }
+.enc-item > span:last-child { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800; font-size: 9.5px; line-height: 1.1; text-align: center;
+  max-width: 72px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.enc-ico { height: 32px; width: auto; display: block; filter: drop-shadow(0 3px 4px rgba(227,162,26,.35)); }
+.enc-carrito { position: relative; display: block; }
+.enc-n { position: absolute; top: -6px; right: -8px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 99px; display: grid; place-items: center;
+  background: radial-gradient(circle at 40% 35%, #FFE38A, #E3A21A); color: #141414; font-size: 11px; font-weight: 900; border: 1.5px solid #000;
+  animation: enc-n .4s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes enc-n { from { transform: scale(.3); } }
+.enc-punto { position: absolute; top: 2px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--rojo); border: 1.5px solid #000; }
+
+/* El botón de música vive ahora en la esquina del escenario de Don Iván */
+.esc-envoltura { position: relative; }
+.esc-sonido { position: absolute; top: 20px; right: 20px; z-index: 6; }
+.esc-sonido .t-icono-redondo { width: 40px; height: 40px; background: rgba(255,255,255,.1); box-shadow: none; border: 1px solid rgba(255,255,255,.18); }
+.esc-sonido .t-sonido-panel { right: 0; top: 48px; }
+.esc-chef { top: 78px; }
+.esc-envoltura .esc-titulo { padding-right: 50px; min-height: 40px; }
+
+@media (min-width: 760px) {
+  .t-barra.enc { padding: 8px max(16px, calc((100% - 1100px) / 2)); }
+  .enc-marca { font-size: 34px; }
+  .enc-item { padding: 2px 22px; gap: 4px; }
+  .enc-ico { height: 46px; }
+  .enc-item > span:last-child { font-size: 13px; max-width: 120px; }
+  .enc-n { min-width: 22px; height: 22px; font-size: 13px; }
+  .esc-sonido { top: 28px; right: max(28px, calc((100% - 1100px) / 2 + 20px)); }
+  .esc-chef { top: 96px; }
+  .esc-envoltura .esc-titulo { padding-right: 64px; }
+}
+@media (prefers-reduced-motion: reduce) { .enc-n { animation: none; } }

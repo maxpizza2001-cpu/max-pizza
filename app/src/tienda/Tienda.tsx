@@ -10,6 +10,7 @@ import { BarraNivel, Escenario, HojaCategoria, PestanaPromos } from './Escenario
 import { IMAGENES_CHEF, fraseChef, nivelChef } from './Chef';
 import { useCapa } from '../lib/atras';
 import { ControlSonido } from './ControlSonido';
+import { Encabezado } from './Encabezado';
 import { Bienvenida } from './Bienvenida';
 import { sonido } from './sonido';
 import { SugerenciaFlotante, agregaDirecto, sugerencias as recomendar, type Sugerencia } from './Recomendaciones';
@@ -21,6 +22,7 @@ import { CLAVE_ULTIMO, Seguimiento } from './Seguimiento';
 import { agruparPlatos, minutos, platoAgotado, precioLinea, type Combo, useGuardadoLocal, type InfoTienda, type LineaCarrito, type Plato, type ProductoTienda } from './modelo';
 import './tienda.css';
 import './chef.css';
+import './encabezado.css';
 
 type SedeT = { id: string; nombre: string };
 const CLAVE_SEDE = 'maxpizza.tienda.sede';
@@ -235,21 +237,9 @@ export function Tienda() {
 
   return (
     <div className="t-pagina t-con-nav" onPointerDownCapture={(e) => recordarOrigen(e.nativeEvent)}>
-      <header className="t-barra">
-        <button className="t-icono-redondo" aria-label="Cambiar de sede" onClick={() => setCambiarSede(true)}>📍</button>
-        <div className="t-saludo">
-          <span>¡Hola! Pides en <b>{sedeNombre || 'tu sede'}</b> 🍕</span>
-          <div className="t-marca"><Logo alto={30} /></div>
-        </div>
-        <ControlSonido />
-        <button className="t-icono-redondo" aria-label="Seguir mi pedido"
-          onClick={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')}>
-          📦{ultimoVigente && <i className="t-contador">1</i>}
-        </button>
-        <button className="t-icono-redondo" aria-label="Mi carrito" onClick={abrirCarrito}>
-          🛍️{unidades > 0 && <i className="t-contador">{unidades}</i>}
-        </button>
-      </header>
+      <Encabezado sede={sede ? sedeNombre : ''} unidades={unidades} hayPedido={!!ultimoVigente}
+        onSede={() => setCambiarSede(true)} onCarrito={abrirCarrito}
+        onSeguir={() => setSeguir(ultimoVigente ? { codigo: ultimoVigente.codigo, celular: ultimoVigente.celular } : 'buscar')} />
 
       {error && <div className="t-error">{error}</div>}
 
@@ -288,10 +278,11 @@ export function Tienda() {
             </div>
           )}
 
-          {!q && <Escenario unidades={unidades} platos={platos} onCategoria={setCatAbierta}
+          {!q && <div className="esc-envoltura"><div className="esc-sonido"><ControlSonido /></div>
+          <Escenario unidades={unidades} platos={platos} onCategoria={setCatAbierta}
             ultimo={carrito.length ? { nombre: carrito[carrito.length - 1].nombre, plato_id: carrito[carrito.length - 1].plato_id } : null}
             categorias={cats.map((c) => { const ps = platos.filter((p) => p.categoria === c); return { nombre: c, icono: iconoCat(c), productos: ps.length,
-              desde: Math.min(...ps.map((p) => p.precio)), enPedido: carrito.filter((l) => ps.some((p) => p.id === l.plato_id)).reduce((t, l) => t + l.cantidad, 0) }; })} />}
+              desde: Math.min(...ps.map((p) => p.precio)), enPedido: carrito.filter((l) => ps.some((p) => p.id === l.plato_id)).reduce((t, l) => t + l.cantidad, 0) }; })} /></div>}
 
           {!q && (
             <section className="t-portada">
