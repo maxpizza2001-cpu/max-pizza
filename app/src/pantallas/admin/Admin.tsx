@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCapa } from '../../lib/atras';
 import { rpc, sb } from '../../lib/supabase';
 import { cant, hora, mesa2, plata, ROLES } from '../../lib/formato';
 import { q, useConsulta, useSedes, type SedeSel } from './comun';
@@ -27,6 +28,7 @@ export function Admin({ perfil }: { perfil: string }) {
   const [sede, setSede] = useState<SedeSel>(() => localStorage.getItem('mp.admin.sede') ?? 'todas');
   const { sedes } = useSedes();
   const ir = (s: Seccion) => { setSeccion(s); sessionStorage.setItem('mp.admin.seccion', s); window.scrollTo(0, 0); };
+  useCapa(seccion !== 'inicio', () => ir('inicio'));   // atrás vuelve al inicio de Administración
   const cambiarSede = (s: string) => { setSede(s); localStorage.setItem('mp.admin.sede', s); };
   const props = { sede, sedes, perfil };
 

@@ -8,6 +8,7 @@ import { ImagenProducto } from './Dibujos';
 import { Rueda } from './Rueda';
 import { Caja, fraseAgregado } from './Caja';
 import { Max } from './Max';
+import { useCapa } from '../lib/atras';
 import { ControlSonido } from './ControlSonido';
 import { Bienvenida } from './Bienvenida';
 import { sonido } from './sonido';
@@ -170,6 +171,11 @@ export function Tienda() {
 
   const sedeNombre = sedes?.find((s) => s.id === sede)?.nombre ?? '';
   const abrir = useCallback((p: Plato) => setArmando({ plato: p }), []);
+  // Atrás (celular o navegador) cierra lo que esté abierto en vez de salir de la tienda
+  useCapa(!!armando, () => setArmando(null));
+  useCapa(verPedido, () => setVerPedido(false));
+  useCapa(!!seguir, () => setSeguir(null));
+  useCapa(cambiarSede && !!sede, () => setCambiarSede(false));
   if (!configurado) return <div className="t-pagina t-centro">La tienda aún no está conectada.</div>;
 
   const aj = info.ajustes;

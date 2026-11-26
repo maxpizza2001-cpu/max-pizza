@@ -333,3 +333,14 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Hay que instalar esta APK UNA última vez; desde ahí no más reinstalaciones (salvo cambios nativos: permisos, ícono,
   plugins). Si algún día cambia la dirección de Vercel, hay que cambiarla aquí y sacar otra APK.
 - Verificado: `npx cap sync android` genera la configuración con la URL y copia sin-internet.html. El armado real lo hace GitHub.
+
+## "Atrás" que no saca de la app + botón de atrás en forma de pizza — ✅ (26 nov 2026)
+- `app/src/lib/atras.ts`: cada cosa abierta deja una "capa" en el historial (`useCapa`). El botón atrás del celular /
+  navegador cierra la de arriba: ventanas (`Ventana`), secciones de Administración (vuelve a Inicio), área de trabajo
+  (vuelve a "¿Dónde trabajas hoy?" si la persona tiene varias) y en la tienda: producto, carrito, seguimiento, cambiar sede.
+  Cerrar con la X limpia su paso del historial (no deja atrás "sucios").
+- La APK (Capacitor) ya va hacia atrás en el historial de la página cuando hay a dónde, así que NO hay que reinstalarla.
+- `componentes/BotonAtras.tsx`: porción de pizza con flecha + "Atrás", en la barra de arriba al lado del logo (no tapa
+  botones), solo cuando hay a dónde volver. Sirve también en iPhone.
+- Probado en la tienda: atrás cierra el producto sin salir de /pedir, la X deja el historial limpio, el botón de pizza
+  aparece con algo abierto, lo cierra y se esconde. La app del equipo no se probó con sesión (requiere cuenta). 28/28.

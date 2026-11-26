@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from 'react';
+import { useCapa } from '../lib/atras';
 import { plata } from '../lib/formato';
 import { emojiProducto, minutosDesde, nombreDestino, useAhora, type Comanda, type LineaCarrito, type Producto } from '../lib/datos';
 
 // ───────── Ventana (hoja que sube en celular, centrada en computador) ─────────
 export function Ventana({ titulo, onCerrar, children, ancho = 560 }: { titulo: string; onCerrar: () => void; children: ReactNode; ancho?: number }) {
+  useCapa(true, onCerrar);   // atrás cierra la ventana
   return (
     <div className="velo" onClick={onCerrar}>
       <div className="ventana" style={{ maxWidth: ancho }} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={titulo}>

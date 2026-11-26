@@ -4,6 +4,8 @@ import type { Session } from '@supabase/supabase-js';
 import { configurado, sb } from './lib/supabase';
 import { ROLES } from './lib/formato';
 import { Logo } from './componentes/Logo';
+import { BotonAtras } from './componentes/BotonAtras';
+import { useCapa } from './lib/atras';
 import { MiTurno } from './componentes/MiTurno';
 import { MisTareas } from './componentes/MisTareas';
 import { Entrar } from './pantallas/Entrar';
@@ -66,6 +68,9 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
     if (a) localStorage.setItem(CLAVE_AREA, JSON.stringify(a)); else localStorage.removeItem(CLAVE_AREA);
   }
 
+  // Atrás desde un área de trabajo vuelve a "¿Dónde trabajas hoy?" (si la persona tiene varias)
+  useCapa(!!area && (accesos?.length ?? 0) > 1, () => elegir(null));
+
   async function salir() {
     localStorage.removeItem(CLAVE_AREA);
     await sb.auth.signOut();
@@ -76,7 +81,7 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
   return (
     <>
       <header className="barra">
-        <Logo alto={58} />
+        <div className="barra-izq"><BotonAtras /><Logo alto={58} /></div>
         <div className="barra-der">
           {area && accesos.length > 1 && (
             <button className="chip-sede" onClick={() => elegir(null)}>{area.sedeNombre} · {ROLES[area.rol]} ▾</button>
