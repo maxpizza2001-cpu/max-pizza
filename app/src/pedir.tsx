@@ -10,3 +10,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Tienda />
   </React.StrictMode>,
 );
+
+// Para que el celular ofrezca "Instalar" la tienda como app (y para los avisos)
+if ('serviceWorker' in navigator && !(window as any).Capacitor?.isNativePlatform?.()) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(() => {}); });
+}

@@ -11,6 +11,7 @@ import { IMAGENES_CHEF, fraseChef, nivelChef } from './Chef';
 import { useCapa } from '../lib/atras';
 import { ControlSonido } from './ControlSonido';
 import { Encabezado } from './Encabezado';
+import { BotonApp } from './InstalarApp';
 import { Bienvenida } from './Bienvenida';
 import { sonido } from './sonido';
 import { SugerenciaFlotante, agregaDirecto, sugerencias as recomendar, type Sugerencia } from './Recomendaciones';
@@ -251,6 +252,7 @@ export function Tienda() {
               {busca && <button aria-label="Borrar búsqueda" onClick={() => setBusca('')}>✕</button>}
             </label>
             <span className={'t-estado-chip ' + (aj && !aj.abierta ? 'cerrada' : 'abierta')}>{aj && !aj.abierta ? 'Cerrado' : 'Abierto'}</span>
+            <BotonApp />
           </div>
         ) : null} />
 

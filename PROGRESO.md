@@ -412,3 +412,13 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
 - Medido en la página publicada (26 nov 2026): el menú se pide a los 0,35 s (antes ~8,5 s) y la primera pintura sale a
   los 0,2–0,3 s. Segunda visita: código y foto del chef salen de la caché del celular (0 KB) y el menú llega en 0,4 s.
   La PRIMERA consulta tras un rato sin uso tardó ~7 s en responder Supabase (se "despierta"); las siguientes, 0,2 s.
+
+## Botón "APP" para instalar la tienda — ✅ (26 nov 2026, idea tomada de la tienda de Giancarlo)
+- `tienda/InstalarApp.tsx`: botón dorado brillante "📲 APP" al lado del buscador (no sale si ya está abierta como app o en
+  la APK) → ventana "LA APP DE MAX PIZZA" con el ícono: iPhone = 3 pasos (Compartir → Agregar a inicio → Agregar);
+  Android = botón "Instalar la app" directo si Chrome lo ofrece (`beforeinstallprompt`), si no los pasos del menú ⋮;
+  computador = ícono Instalar de Chrome/Edge. Atrás la cierra. Estilos al final de `encabezado.css`.
+- `public/tienda.webmanifest` (id /pedir, abre en /pedir?origen=app, fondo negro, íconos 192/512 + maskable) enlazado en
+  `pedir.html` con las metas de iPhone (título "Max Pizza", barra negra). `src/pedir.tsx` registra `/sw.js` (Chrome lo
+  pide para ofrecer "Instalar").
+- Probado: 375 px sin desbordes (buscador cede espacio), ventana Android e iPhone (simulado), cabe en pantalla. 28/28.
