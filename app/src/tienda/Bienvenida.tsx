@@ -1,7 +1,6 @@
 // Pantalla de bienvenida: el toque en "Entrar" es el que deja sonar la música (los navegadores no dejan sonar sin un toque).
 // Sale una vez por visita si la música no pudo sonar sola.
 import { useEffect, useState } from 'react';
-import { Logo } from '../componentes/Logo';
 import { IMAGENES_CHEF } from './Chef';
 import { sonido } from './sonido';
 import { PizzaAudifonos } from './ControlSonido';
@@ -30,7 +29,6 @@ export function Bienvenida() {
   return (
     <div className="t-bienvenida" role="dialog" aria-label="Bienvenido a Max Pizza" onClick={entrar}>
       <div className="t-bienv-luces" aria-hidden />
-      <div className="t-bienv-logo"><Logo alto={84} /></div>
       <div className="t-bienv-max"><img src={IMAGENES_CHEF[0]} alt="Don Iván, el chef de Max Pizza" width={550} height={1134} /></div>
       <h1>¡Bienvenido a <em>Max Pizza</em>!</h1>
       <p><b className="t-bienv-nombre">Don Iván</b> ya prendió el horno 🔥 Recién salidas, directo a tu puerta</p>

@@ -121,7 +121,7 @@
 .plato-titulo { font-size: 24px; }
 
 /* Bienvenida con el chef de verdad */
-.t-bienv-max img { height: 190px; width: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.5)); }
+.t-bienv-max img { height: 260px; width: auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.5)); }
 
 /* Computador: chef a la izquierda (máx. 420 px) y categorías en 2–4 columnas */
 @media (min-width: 760px) {
