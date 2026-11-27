@@ -13,16 +13,18 @@ self.addEventListener('push', (e) => {
     renotify: true,
     requireInteraction: true,                 // se queda en pantalla hasta que lo toquen
     vibrate: [400, 150, 400, 150, 400, 150, 800],
-    data: { url: '/' },
+    data: { url: d.url || '/' },
   }));
 });
 
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || '/';
   e.waitUntil((async () => {
+    // Abre directo lo que dice el aviso (el pedido, la tarea, el stock)
     const abiertas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const app = abiertas.find((c) => new URL(c.url).pathname !== '/pedir');
-    if (app) return app.focus();
-    return self.clients.openWindow('/');
+    if (app) { app.postMessage({ abrir: new URL(url, self.location.origin).searchParams.get('abrir') }); return app.focus(); }
+    return self.clients.openWindow(url);
   })());
 });

@@ -4,6 +4,7 @@ import { rpc, sb } from '../../lib/supabase';
 import { cant, hora, mesa2, plata, ROLES } from '../../lib/formato';
 import { q, useConsulta, usePermisos, useSedes, type SedeSel } from './comun';
 import { useEffect } from 'react';
+import { useAbrir } from '../../lib/abrir';
 import { Sedes } from './Sedes';
 import { Equipo } from './Equipo';
 import { Checklists } from './Checklists';
@@ -32,6 +33,10 @@ export function Admin({ perfil }: { perfil: string }) {
   useCapa(seccion !== 'inicio', () => ir('inicio'));   // atrás vuelve al inicio de Administración
   const cambiarSede = (s: string) => { setSede(s); localStorage.setItem('mp.admin.sede', s); };
   const permisos = usePermisos(perfil);
+  const [abrirStock, listoStock] = useAbrir('stock');   // aviso de stock bajo → Inventario
+  const [abrirDom, listoDom] = useAbrir('domicilios');
+  useEffect(() => { if (abrirStock) { ir('stock'); listoStock(); } }, [abrirStock]);
+  useEffect(() => { if (abrirDom) { ir('domicilios'); listoDom(); } }, [abrirDom]);
   // Si la sede guardada ya no es de esta persona, vuelve a "Todas mis sedes"
   useEffect(() => { if (sedes.length && sede !== 'todas' && !sedes.some((s) => s.id === sede)) cambiarSede('todas'); }, [sedes, sede]);
   const props = { sede, sedes, perfil };

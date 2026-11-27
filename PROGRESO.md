@@ -452,3 +452,14 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 - Efectivo esperado = base + cobros en efectivo − gastos en efectivo + entradas − salidas. Nequi nunca suma al efectivo.
 - Caja: "💵 Resumen y cierre" con tarjetas Efectivo / Nequi y otros / Totales, y cierre que muestra en vivo "✓ Cuadra / Faltan $X / Sobran $X".
 - Prueba nueva (30/30).
+
+## 2026-11-27 · V2 · Fase D · Notificaciones (aplicado en Supabase + función "avisar" publicada)
+- Migración `20261126000022_avisos_v2.sql` (ajusta solo pedacitos de funciones existentes con `pg_get_functiondef`):
+  - Pizzas personales → nueva estación **Armado**: el armador recibe "🍕 Pizza personal solicitada · Mesa 03 · 2 Personal Hawaiana · Solicitado por Mesero (nombre)", las toma, En preparación, Lista. Ya no salen en "Pizzas por hornear" de Caja.
+  - "Lista" avisa SOLO a quien pidió (el mesero que envió, o Caja si lo pidió Caja/online), nunca a quien la marcó.
+  - Al celular de Administración solo llega **stock bajo** (al CEO de todas las sedes). `push_destinos(id)` decide a quién, el texto ("MAX PIZZA · …", sede y hora) y qué abre (`/?abrir=comanda:…`, `tarea:…`, `stock`, `domicilios`).
+  - Un celular puede suscribirse a varias sedes/roles (admin de varias sedes).
+  - Tareas con hora: `tarea_horario` (hora, recordatorio 0/5/10/15/30 min antes u hora personalizada, repetir diaria/semanal). `enviar_recordatorios()` corre cada minuto con **pg_cron** (activo en Supabase, job `max-recordatorios`).
+  - Avisos con TTL 1 h (pedido listo) / 24 h (lo demás): si el celular está apagado, le llega al prenderlo.
+- App: "Activar avisos" aparece en todas las áreas hasta que se active; el aviso abre directo el pedido (Armado), la tarea (resaltada) o Inventario/Domicilios (Admin). Armado tiene pestaña "🍕 Pedidos". Administración → Tareas: fecha, hora, recordatorio y repetición.
+- Prueba nueva (31/31). Falta probar en celulares reales.

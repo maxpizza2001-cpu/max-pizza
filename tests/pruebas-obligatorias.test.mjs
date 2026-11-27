@@ -254,7 +254,7 @@ test('9 · Administración crea una tercera sede con mesas, estaciones, saldos y
       (select count(*)::int from reglas_stock where sede_id = $1) reglas,
       (select count(*)::int from productos_sede where sede_id = $1) productos`, [norte]);
   const p = await b.uno(`select count(*)::int reglas from reglas_stock where sede_id = $1`, [S]);
-  assert.deepEqual(n, { mesas: 8, estaciones: 2, ubicaciones: 6, reglas: p.reglas, productos: 16 });
+  assert.deepEqual(n, { mesas: 8, estaciones: 3, ubicaciones: 6, reglas: p.reglas, productos: 16 });
 
   // Se asigna un mesero; su Mesa 02 es distinta de la Mesa 02 de Principal
   const meseroNorte = await b.usuario('MeseroNorte', [[norte, 'mesero']]);
@@ -454,7 +454,7 @@ test('Tienda · Fase 3: el pedido online entra al mismo motor, precio del servid
   const com = await b.q(`select e.codigo est, lp.observacion obs, lp.precio_unit::float precio from comandas c join estaciones e on e.id = c.estacion_id
     join lineas_comanda lc on lc.comanda_id = c.id join lineas_pedido lp on lp.id = lc.linea_pedido_id where c.sede_id = $1 order by e.codigo`, [S]);
   assert.deepEqual(com, [
-    { est: 'horno', obs: 'ONLINE · + Extra queso · Sin piña', precio: 19000 },
+    { est: 'armado', obs: 'ONLINE · + Extra queso · Sin piña', precio: 19000 },
     { est: 'rapidas', obs: 'ONLINE', precio: 18000 },
   ]);
 
@@ -494,10 +494,12 @@ test('Tienda · Fase 4: Caja confirma, cobra y entrega; la cocina avanza el esta
   await b.rpc('online_comprobante', { p_id: po.id, p_ok: true });
   await b.rpc('online_estado', { p_id: po.id, p_estado: 'confirmado' });
   const com = await b.uno(`select id from comandas where pedido_id = (select pedido_id from pedidos_online where id = $1)`, [po.id]);
+  await b.como(u.armado);   // la pizza personal la prepara Armado
   await b.rpc('comanda_estado', { p_comanda: com.id, p_estado: 'en_preparacion' });
   assert.equal((await b.uno(`select estado from pedidos_online where id = $1`, [po.id])).estado, 'en_preparacion');
   await b.rpc('comanda_estado', { p_comanda: com.id, p_estado: 'lista' });
   assert.equal((await b.uno(`select estado from pedidos_online where id = $1`, [po.id])).estado, 'listo');
+  await b.como(u.caja);
   await b.rpc('online_estado', { p_id: po.id, p_estado: 'en_camino', p_domiciliario: 'Carlos' });
   await assert.rejects(b.rpc('online_estado', { p_id: po.id, p_estado: 'confirmado' }), /ya pasó/);
   await b.rpc('confirmar_cobro', { p_op: op(), p_cuenta: po.cuenta_id, p_monto: r.total, p_medio: 'nequi' });
@@ -666,7 +668,7 @@ test('Combos: el combo se abre en sus productos, cada uno va a su cocina, y el t
     { nombre: 'Personal Hawaiana', cant: 2, precio: 14000, obs: 'ONLINE · COMBO Personal + gaseosa · Bien fría' },
   ]);
   const est = await b.q(`select e.codigo from comandas c join estaciones e on e.id = c.estacion_id join pedidos_online o on o.pedido_id = c.pedido_id where o.codigo = $1 order by 1`, [r.codigo]);
-  assert.deepEqual(est.map((x) => x.codigo), ['horno', 'rapidas']);
+  assert.deepEqual(est.map((x) => x.codigo), ['armado', 'rapidas'], 'la personal va a Armado');
 
   // Si un producto del combo deja de venderse en línea, el combo desaparece y no se puede pedir
   await b.como(u.admin);
@@ -761,4 +763,61 @@ test('V2 · Caja: resumen del turno separa efectivo y Nequi, calcula el esperado
   assert.equal(+c.diferencia, -5000);
   const t = await b.uno(`select efectivo_contado::float c, diferencia::float d, observacion from turnos_caja where sede_id = $1`, [S]);
   assert.deepEqual(t, { c: 115000, d: -5000, observacion: 'Faltó un billete' });
+});
+
+test('V2 · Avisos: personal va al armador, "lista" avisa solo a quien pidió, admin solo stock bajo, recordatorios a su hora', async () => {
+  const { b, S, u } = await preparar();
+  const mesero2 = await b.usuario('Mesero2', [[S, 'mesero']]);
+  const pers = await b.producto('Personal Hawaiana');
+  const haw = await b.producto('Porción Hawaiana');
+  // Cada uno con su celular suscrito
+  for (const [quien, rol] of [[u.mesero, 'mesero'], [mesero2, 'mesero'], [u.armado, 'armado'], [u.admin, 'admin'], [u.caja, 'caja']]) {
+    await b.como(quien);
+    await b.rpc('push_guardar', { p_sede: S, p_rol: rol, p_endpoint: `https://push.test/${rol}-${quien}`, p_p256dh: 'k', p_auth: 'a' });
+  }
+  const destinos = async (titulo) => {
+    const n = await b.uno(`select id from notificaciones where titulo like $1 order by creada_en desc limit 1`, [titulo]);
+    assert.ok(n, 'existe la notificación ' + titulo);
+    return (await b.q(`select endpoint, titulo, cuerpo, url from push_destinos($1)`, [n.id]));
+  };
+
+  // Mesero pide 2 personales + 1 porción en la mesa 3
+  await b.como(u.mesero);
+  const e = await b.rpc('enviar_pedido_mesa', { p_op: op(), p_sede: S, p_mesa: 3, p_lineas: JSON.stringify([linea(pers, 2), linea(haw, 1)]) });
+  const com = await b.q(`select c.id, e.codigo from comandas c join estaciones e on e.id = c.estacion_id where c.pedido_id = $1 order by 2`, [e.pedido_id]);
+  assert.deepEqual(com.map((x) => x.codigo), ['armado', 'horno'], 'la personal va a Armado, la porción al horno');
+  const aArmado = await destinos('🍕 Pizza personal solicitada%');
+  assert.equal(aArmado.length, 1);
+  assert.match(aArmado[0].endpoint, /armado/);
+  assert.match(aArmado[0].cuerpo, /2 Personal Hawaiana[\s\S]*Solicitado por Mesero/);
+  assert.match(aArmado[0].titulo, /MAX PIZZA · .*Mesa 03/);
+
+  // Solo el armador mueve su comanda; al marcar lista avisa SOLO al mesero que la pidió
+  const cArm = com.find((x) => x.codigo === 'armado').id;
+  await b.como(u.caja);
+  await assert.rejects(b.rpc('comanda_estado', { p_comanda: cArm, p_estado: 'en_preparacion' }));
+  await b.como(u.armado);
+  await b.rpc('comanda_estado', { p_comanda: cArm, p_estado: 'en_preparacion' });
+  await b.rpc('comanda_estado', { p_comanda: cArm, p_estado: 'lista' });
+  const lista = await destinos('🍕 Pizza personal lista%');
+  assert.deepEqual(lista.map((x) => x.endpoint), [`https://push.test/mesero-${u.mesero}`], 'no le llega al otro mesero');
+  assert.equal(lista[0].url, '/?abrir=comanda:' + cArm);
+
+  // Administración: un reporte NO va al celular; el stock bajo SÍ
+  await b.como(null);
+  await b.q(`select notificar($1, 'admin', null, 'reporte', 'Reporte X', null, null)`, [S]);
+  assert.equal((await destinos('Reporte X')).length, 0);
+  await b.q(`select notificar($1, 'admin', null, 'stock_bajo', 'Stock bajo · Queso', 'Quedan 2', null)`, [S]);
+  assert.equal((await destinos('Stock bajo · Queso')).length, 1);
+
+  // Tarea con hora y recordatorio 10 min antes, que se repite cada día
+  await b.como(u.admin);
+  const t = await b.rpc('tarea_crear', { p_sede: S, p_rol: 'insumos', p_titulo: 'Preparar salsa de ajo', p_prioridad: 'alta', p_asignada: u.insumos, p_detalle: null, p_accion: null });
+  await b.rpc('tarea_horario', { p_tarea: t, p_hora: new Date(Date.now() + 5 * 60000).toISOString(), p_recordar_min: 10, p_recordar_en: null, p_repeticion: 'diaria' });
+  await b.como(null);
+  assert.equal(await b.uno(`select enviar_recordatorios() n`).then((r) => r.n), 1);
+  assert.equal(await b.uno(`select enviar_recordatorios() n`).then((r) => r.n), 0, 'no se repite el mismo recordatorio');
+  const rec = await b.uno(`select perfil_id, titulo from notificaciones where tipo = 'recordatorio'`);
+  assert.deepEqual(rec, { perfil_id: u.insumos, titulo: '⏰ Preparar salsa de ajo' });
+  assert.equal((await b.q(`select 1 from tareas where titulo = 'Preparar salsa de ajo'`)).length, 2, 'quedó la de mañana');
 });

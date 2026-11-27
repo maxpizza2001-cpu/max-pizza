@@ -4,7 +4,7 @@ import { sb } from './supabase';
 // ───────── Tipos ─────────
 export type Producto = {
   id: string; nombre: string; foto_url: string | null; formato: 'porcion' | 'personal' | 'unidad';
-  estacion: 'horno' | 'rapidas' | 'ninguna'; tipo: 'pizza' | 'rapida' | 'bebida'; precio: number;
+  estacion: 'horno' | 'rapidas' | 'armado' | 'ninguna'; tipo: 'pizza' | 'rapida' | 'bebida'; precio: number;
   disponible: number | null;   // null = no se controla por unidades listas (se prepara al momento)
 };
 
@@ -12,7 +12,7 @@ export type LineaCarrito = { producto_id: string; cantidad: number; observacion?
 
 export type Comanda = {
   id: string; estado: 'nueva' | 'en_preparacion' | 'lista' | 'entregada' | 'cancelada';
-  creada_en: string; empezada_en: string | null; lista_en: string | null; estacion: 'horno' | 'rapidas';
+  creada_en: string; empezada_en: string | null; lista_en: string | null; estacion: 'horno' | 'rapidas' | 'armado';
   numero: number; tipo: 'mesa' | 'mostrador' | 'llevar'; mesa: number | null; cuenta_id: string;
   lineas: { id: string; cantidad: number; observacion: string | null; producto: string; cancelada: boolean }[];
 };
@@ -92,7 +92,7 @@ export function aComanda(c: any): Comanda {
   };
 }
 
-export function useComandas(sede: string, opciones: { estacion?: 'horno' | 'rapidas'; estados: Comanda['estado'][] }) {
+export function useComandas(sede: string, opciones: { estacion?: 'horno' | 'rapidas' | 'armado'; estados: Comanda['estado'][] }) {
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const clave = JSON.stringify(opciones);
   const cargar = useCallback(async () => {

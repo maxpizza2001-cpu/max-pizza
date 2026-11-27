@@ -15,6 +15,7 @@ import { Rapidas } from './pantallas/Rapidas';
 import { Armado } from './pantallas/Armado';
 import { Insumos, Tortas } from './pantallas/Produccion';
 import { Admin } from './pantallas/admin/Admin';
+import { ActivarAvisos } from './componentes/Avisos';
 
 type Acceso = { sede_id: string; rol: string; sedes: { nombre: string } | null };
 type Area = { sede: string; sedeNombre: string; rol: string };
@@ -63,6 +64,7 @@ export default function AppInterna() {
 
 function AreaDeTrabajo({ perfil }: { perfil: string }) {
   const [accesos, setAccesos] = useState<Acceso[] | null>(null);
+  const [todosAccesos, setTodos] = useState<Acceso[]>([]);   // sin agrupar (para los avisos de admin en varias sedes)
   const [nombre, setNombre] = useState('');
   const [area, setArea] = useState<Area | null>(() => {
     try { return JSON.parse(localStorage.getItem(CLAVE_AREA) ?? 'null'); } catch { return null; }
@@ -75,6 +77,7 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
         sb.from('perfiles').select('nombre').eq('id', perfil).single(),
       ]);
       let lista = (a ?? []) as unknown as Acceso[];
+      setTodos(lista);
       // El CEO entra a Administración global: no se repite como "Administración" de cada sede
       if (lista.some((l) => l.rol === 'ceo')) lista = [lista.find((l) => l.rol === 'ceo')!, ...lista.filter((l) => !['ceo', 'admin'].includes(l.rol))];
       else { const adm = lista.find((l) => l.rol === 'admin'); if (adm) lista = [adm, ...lista.filter((l) => l.rol !== 'admin')]; }
@@ -135,6 +138,15 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
             <button className={area.sede === TODAS ? 'activa' : ''} onClick={() => elegir({ sede: TODAS, sedeNombre: 'Todas mis sedes', rol: area.rol })}>Todas mis sedes</button>
           )}
         </nav>
+      )}
+
+      {/* Avisos al celular: aparece solo si todavía no están activos en este celular */}
+      {area && area.sede !== TODAS && area.rol !== 'domiciliario' && (
+        <div className="contenido" style={{ paddingBottom: 0, maxWidth: 760 }}>
+          <ActivarAvisos silencioso destinos={esAdmin(area.rol)
+            ? todosAccesos.filter((a) => esAdmin(a.rol)).map((a) => ({ sede: a.sede_id, rol: a.rol }))
+            : [{ sede: area.sede, rol: area.rol }]} />
+        </div>
       )}
 
       {!area ? (

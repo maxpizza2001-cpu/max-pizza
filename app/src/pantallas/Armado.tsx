@@ -5,12 +5,28 @@ import { MisTareas, type Tarea } from '../componentes/MisTareas';
 import { MiTurno } from '../componentes/MiTurno';
 import { TarjetaSaldo, useSaldos } from '../componentes/Inventario';
 import { Traslado } from './Rapidas';
+import { pitar, useComandas } from '../lib/datos';
+import { TarjetaComanda } from '../componentes/Piezas';
+import { useAbrir } from '../lib/abrir';
 
-type Pestana = 'ruedas' | 'personales' | 'retirar' | 'tareas';
+type Pestana = 'pedidos' | 'ruedas' | 'personales' | 'retirar' | 'tareas';
 const sabor = (nombre: string) => nombre.replace(/^(Porciones|Personales) /, '');
 
 export function Armado({ sede, perfil }: { sede: string; perfil: string }) {
-  const [pestana, setPestana] = useState<Pestana>('ruedas');
+  // Pizzas personales que pidieron Caja o Mesero: el armador las toma y las marca listas
+  const { comandas: pedidos } = useComandas(sede, { estacion: 'armado', estados: ['nueva', 'en_preparacion'] });
+  const [pestana, setPestana] = useState<Pestana>(() => 'ruedas');
+  const [vistos, setVistos] = useState(0);
+  useEffect(() => { if (pedidos.length > vistos) { pitar(); setPestana('pedidos'); } setVistos(pedidos.length); }, [pedidos.length]);
+  const [abrirComanda, listo] = useAbrir('comanda');
+  const [abrirTarea] = useAbrir('tarea');
+  useEffect(() => { if (abrirComanda) { setPestana('pedidos'); listo(); } }, [abrirComanda]);
+  useEffect(() => { if (abrirTarea) setPestana('tareas'); }, [abrirTarea]);
+  const [errorPedido, setErrorPedido] = useState('');
+  async function cambiarPedido(id: string, estado: string) {
+    setErrorPedido('');
+    try { await rpc('comanda_estado', { p_comanda: id, p_estado: estado }); } catch (e) { setErrorPedido((e as Error).message); }
+  }
   const [inicial, setInicial] = useState<{ codigo?: string; tarea?: string }>({});
   const [retirar, setRetirar] = useState<null | { codigo?: string }>(null);
   const { saldos, de } = useSaldos(sede, ['armado', 'tortas']);
@@ -29,10 +45,19 @@ export function Armado({ sede, perfil }: { sede: string; perfil: string }) {
     <main className="contenido pila" style={{ maxWidth: 640 }}>
       <h1>Armado de ruedas</h1>
       <div className="fila envolver" style={{ gap: 6 }}>
-        {([['ruedas', 'Ruedas'], ['personales', 'Pizzas personales'], ['retirar', 'Retirar insumo'], ['tareas', 'Mis tareas']] as const).map(([k, t]) => (
+        {([['pedidos', `🍕 Pedidos${pedidos.length ? ' · ' + pedidos.length : ''}`], ['ruedas', 'Ruedas'], ['personales', 'Pizzas personales'], ['retirar', 'Retirar insumo'], ['tareas', 'Mis tareas']] as const).map(([k, t]) => (
           <button key={k} className={'pastilla' + (pestana === k ? ' activa' : '')} onClick={() => setPestana(k)}>{t}</button>
         ))}
       </div>
+
+      {pestana === 'pedidos' && <>
+        <h2>Pizzas personales pedidas</h2>
+        {errorPedido && <div className="error">{errorPedido}</div>}
+        {pedidos.length === 0 && <div className="texto-sec">No hay pizzas personales pendientes. 🎉</div>}
+        <div className="pila" style={{ gap: 10 }}>
+          {pedidos.map((c) => <TarjetaComanda key={c.id} c={c} onEstado={cambiarPedido} />)}
+        </div>
+      </>}
 
       {pestana === 'ruedas' && <>
         <RegistrarArmado key={inicial.codigo + (inicial.tarea ?? '')} sede={sede} tipo="rueda" sabores={porciones}

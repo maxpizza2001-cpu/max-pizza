@@ -151,7 +151,7 @@ export function TarjetaComanda({ c, grande = false, onEstado, botonesMesero = fa
         <div className="fila" style={{ gap: 8 }}>
           {c.estado === 'nueva' && <button className="btn btn-suave" style={{ flex: 1 }} onClick={() => onEstado(c.id, 'en_preparacion')}>Empezar</button>}
           {(c.estado === 'nueva' || c.estado === 'en_preparacion') &&
-            <button className="btn btn-principal" style={{ flex: 1 }} onClick={() => onEstado(c.id, 'lista')}>{c.estacion === 'horno' ? 'Lista' : 'Listo'}</button>}
+            <button className="btn btn-principal" style={{ flex: 1 }} onClick={() => onEstado(c.id, 'lista')}>{c.estacion !== 'rapidas' ? 'Lista' : 'Listo'}</button>}
         </div>
       )}
     </div>

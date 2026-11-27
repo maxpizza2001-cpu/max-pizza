@@ -18,21 +18,21 @@ Deno.serve(async (req) => {
     const { data: n } = await sb.from('notificaciones').select('*').eq('id', id).maybeSingle();
     if (!n || Date.now() - new Date(n.creada_en).getTime() > 5 * 60_000) return new Response('sin aviso', { status: 200 });
 
-    let q = sb.from('push_suscripciones').select('id, endpoint, p256dh, auth');
-    q = n.perfil_id ? q.eq('perfil_id', n.perfil_id) : q.eq('sede_id', n.sede_id).eq('rol', n.rol);
-    const { data: subs } = await q;
+    // A quién le llega y qué abre lo decide la base (push_destinos): quien pidió, el área, o el admin solo con stock bajo
+    const { data: subs, error } = await sb.rpc('push_destinos', { p_id: id });
+    if (error) return new Response(error.message, { status: 500 });
 
-    const aviso = JSON.stringify({ titulo: n.titulo, cuerpo: n.cuerpo ?? '', tipo: n.tipo, id: n.id });
     let enviados = 0;
-    await Promise.all((subs ?? []).map(async (s) => {
+    await Promise.all(((subs ?? []) as { endpoint: string; p256dh: string; auth: string; titulo: string; cuerpo: string; url: string }[]).map(async (s) => {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, aviso,
-          { TTL: 600, urgency: 'high' });
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          JSON.stringify({ titulo: s.titulo, cuerpo: s.cuerpo ?? '', tipo: n.tipo, id: n.id, url: s.url }),
+          { TTL: n.tipo === 'listo' ? 3600 : 86400, urgency: 'high' });   // celular apagado: le llega al prenderlo (hasta 1 h / 24 h)
         enviados++;
       } catch (e) {
         // El celular ya no existe o quitó el permiso: se borra
         const code = (e as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) await sb.from('push_suscripciones').delete().eq('id', s.id);
+        if (code === 404 || code === 410) await sb.from('push_suscripciones').delete().eq('endpoint', s.endpoint);
       }
     }));
     return new Response(JSON.stringify({ enviados }), { headers: { 'Content-Type': 'application/json' } });

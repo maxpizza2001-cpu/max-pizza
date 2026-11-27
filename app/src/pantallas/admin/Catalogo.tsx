@@ -5,7 +5,7 @@ import { Ventana } from '../../componentes/Piezas';
 import { guardar, q, Titulo, UBICACIONES, useAviso, useConsulta, type Sede, type SedeSel } from './comun';
 
 const FORMATOS: Record<string, string> = { porcion: 'Porción', personal: 'Personal', unidad: 'Unidad' };
-const ESTACIONES: Record<string, string> = { horno: 'Horno (cola de Caja)', rapidas: 'Comidas rápidas (tablet)', ninguna: 'Ninguna (sale directo)' };
+const ESTACIONES: Record<string, string> = { horno: 'Horno (cola de Caja)', rapidas: 'Comidas rápidas (tablet)', armado: 'Armado (pizzas personales)', ninguna: 'Ninguna (sale directo)' };
 
 export function Catalogo({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
   const [editar, setEditar] = useState<string | 'nuevo' | null>(null);
@@ -120,7 +120,7 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
     } catch (e) { aviso.error(e); }
   }
 
-  const ubicacionPorDefecto = f.estacion === 'horno' ? 'armado' : f.estacion === 'rapidas' ? 'nevera_rapidas' : 'bodega';
+  const ubicacionPorDefecto = f.estacion === 'horno' || f.estacion === 'armado' ? 'armado' : f.estacion === 'rapidas' ? 'nevera_rapidas' : 'bodega';
 
   return (
     <Ventana titulo={id ? `Editar · ${p.nombre}` : 'Nuevo producto'} onCerrar={onCerrar} ancho={720}>

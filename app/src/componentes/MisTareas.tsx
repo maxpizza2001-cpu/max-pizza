@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { rpc, sb } from '../lib/supabase';
 import { hora, PRIORIDAD } from '../lib/formato';
+import { useAbrir } from '../lib/abrir';
 import { Anillo, Barra } from './Anillo';
 
 export type Tarea = {
   id: string; titulo: string; detalle: string | null; prioridad: 'alta' | 'media' | 'baja';
   estado: 'pendiente' | 'en_proceso' | 'lista' | 'archivada'; origen: string; accion: string | null;
-  tomada_en: string | null; terminada_en: string | null;
+  tomada_en: string | null; terminada_en: string | null; hora_programada?: string | null;
 };
 
 /** "Quedan 7 porcion · mínimo 7" → "Quedan 7 porciones · mínimo 7"; 1500 ml → 1,5 L */
@@ -33,6 +34,12 @@ export function MisTareas({ sede, rol, perfil, compacto = false, onAccion }: {
 }) {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [error, setError] = useState('');
+  const [abrir, listoAbrir] = useAbrir('tarea');   // viene de un aviso del celular
+  useEffect(() => {
+    if (!abrir || !tareas.some((t) => t.id === abrir)) return;
+    document.getElementById('tarea-' + abrir)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const x = setTimeout(listoAbrir, 6000); return () => clearTimeout(x);
+  }, [abrir, tareas]);
 
   const cargar = useCallback(async () => {
     try {
@@ -54,22 +61,26 @@ export function MisTareas({ sede, rol, perfil, compacto = false, onAccion }: {
     try { await rpc(fn, { p_tarea: id }); await cargar(); } catch (e) { setError((e as Error).message); }
   }
 
-  const listas = tareas.filter((t) => t.estado === 'lista').length;
-  const ordenadas = [...tareas].sort((a, b) =>
-    ordenEstado[a.estado] - ordenEstado[b.estado] || ordenPrioridad[a.prioridad] - ordenPrioridad[b.prioridad]);
+  // Las programadas para otro día (ej. la repetición de mañana) no se muestran todavía
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  const visibles = tareas.filter((t) => !t.hora_programada || new Date(t.hora_programada).toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }) <= hoy);
+  const listas = visibles.filter((t) => t.estado === 'lista').length;
+  const ordenadas = [...visibles].sort((a, b) =>
+    ordenEstado[a.estado] - ordenEstado[b.estado] || (a.hora_programada ?? '9').localeCompare(b.hora_programada ?? '9') || ordenPrioridad[a.prioridad] - ordenPrioridad[b.prioridad]);
 
   return (
     <div className="pila">
       <div className="tarjeta">
-        {compacto ? <Barra listas={listas} total={tareas.length} /> : <Anillo listas={listas} total={tareas.length} />}
+        {compacto ? <Barra listas={listas} total={visibles.length} /> : <Anillo listas={listas} total={visibles.length} />}
       </div>
       {error && <div className="error">{error}</div>}
       <div className="tarjeta">
-        {tareas.length === 0 && <div className="texto-sec">Sin tareas asignadas</div>}
+        {visibles.length === 0 && <div className="texto-sec">Sin tareas asignadas</div>}
         {ordenadas.map((t) => (
-          <div key={t.id} className={'tarea' + (t.estado === 'lista' ? ' hecha' : '')}>
+          <div key={t.id} id={'tarea-' + t.id} className={'tarea' + (t.estado === 'lista' ? ' hecha' : '')}
+            style={abrir === t.id ? { outline: '3px solid #E3A21A', borderRadius: 12 } : undefined}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="tarea-titulo">{t.titulo}</div>
+              <div className="tarea-titulo">{t.hora_programada && <span className="txt-mostaza">⏰ {hora(t.hora_programada)} · </span>}{t.titulo}</div>
               <div className="texto-sec" style={{ fontSize: 13 }}>
                 {t.detalle ? bonito(t.detalle) : (t.origen === 'automatica' ? 'Automática' : '')}
                 {t.estado === 'en_proceso' && ` · Empezó ${hora(t.tomada_en)}`}

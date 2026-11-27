@@ -30,7 +30,7 @@ function TareasHoy({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
   const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? '';
   const inicioHoy = new Date(); inicioHoy.setHours(0, 0, 0, 0);
   const { datos: tareas } = useConsulta('adm-tareas', () => {
-    let x = sb.from('tareas').select(`id, sede_id, rol, titulo, detalle, prioridad, estado, origen, creada_en, tomada_en, terminada_en,
+    let x = sb.from('tareas').select(`id, sede_id, rol, titulo, detalle, prioridad, estado, origen, creada_en, tomada_en, terminada_en, hora_programada, recordatorio_en, recordatorio_enviado, repeticion,
       asignada:perfiles!tareas_asignada_a_fkey(nombre), tomada:perfiles!tareas_tomada_por_fkey(nombre), terminada:perfiles!tareas_terminada_por_fkey(nombre)`)
       .or(`estado.in.(pendiente,en_proceso),terminada_en.gte.${inicioHoy.toISOString()}`).order('creada_en');
     if (sede !== 'todas') x = x.eq('sede_id', sede);
@@ -77,6 +77,7 @@ function FilaTarea({ t }: { t: any }) {
         <div style={{ minWidth: 0 }}>
           <b>{t.titulo}</b> {t.origen === 'automatica' && <span className="texto-sec">· automática</span>}
           <div className="texto-sec" style={{ fontSize: 12.5 }}>
+            {t.hora_programada && `⏰ ${hora(t.hora_programada)}${t.recordatorio_en ? (t.recordatorio_enviado ? ' · recordatorio enviado' : ' · recordatorio ' + hora(t.recordatorio_en)) : ''}${t.repeticion ? ' · se repite ' + (t.repeticion === 'diaria' ? 'cada día' : 'cada semana') : ''} · `}
             {t.detalle && `${t.detalle} · `}Recibida {hora(t.creada_en)}{t.asignada ? ` · para ${t.asignada.nombre}` : ' · para el área'}
             {t.tomada && ` · empezó ${t.tomada.nombre} ${hora(t.tomada_en)}`}
             {t.terminada && ` · terminó ${t.terminada.nombre} ${hora(t.terminada_en)}`}
@@ -121,14 +122,23 @@ function EditarTarea({ t, onCerrar }: { t: any; onCerrar: () => void }) {
 }
 
 function NuevaTarea({ sede, sedes, onCerrar }: { sede: SedeSel; sedes: Sede[]; onCerrar: () => void }) {
-  const [f, setF] = useState({ sede: sede !== 'todas' ? sede : sedes[0]?.id ?? '', rol: 'mesero', titulo: '', prioridad: 'media', asignada: '', detalle: '' });
+  const [f, setF] = useState({ sede: sede !== 'todas' ? sede : sedes[0]?.id ?? '', rol: 'mesero', titulo: '', prioridad: 'media', asignada: '', detalle: '',
+    fecha: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' }), hora: '', recordar: '', recordarHora: '', repeticion: '' });
   const aviso = useAviso();
   const { datos: personas } = useConsulta('personas-' + f.sede + f.rol, () =>
     q<any[]>(sb.from('accesos_sede').select('perfil_id, perfiles(nombre)').eq('sede_id', f.sede).eq('rol', f.rol)), [f.sede, f.rol]);
   async function crear() {
     try {
-      await rpc('tarea_crear', { p_sede: f.sede, p_rol: f.rol, p_titulo: f.titulo, p_prioridad: f.prioridad,
+      const id = await rpc<string>('tarea_crear', { p_sede: f.sede, p_rol: f.rol, p_titulo: f.titulo, p_prioridad: f.prioridad,
         p_asignada: f.asignada || null, p_detalle: f.detalle || null });
+      if (f.hora) {
+        // Hora de Colombia (UTC−5, sin horario de verano)
+        const enCo = (fecha: string, h: string) => new Date(`${fecha}T${h}:00-05:00`).toISOString();
+        await rpc('tarea_horario', { p_tarea: id, p_hora: enCo(f.fecha, f.hora),
+          p_recordar_min: f.recordar === '' || f.recordar === 'otra' ? null : Number(f.recordar),
+          p_recordar_en: f.recordar === 'otra' && f.recordarHora ? enCo(f.fecha, f.recordarHora) : null,
+          p_repeticion: f.repeticion || null });
+      }
       onCerrar();
     } catch (e) { aviso.error(e); }
   }
@@ -152,7 +162,26 @@ function NuevaTarea({ sede, sedes, onCerrar }: { sede: SedeSel; sedes: Sede[]; o
             <select value={f.prioridad} onChange={(e) => setF({ ...f, prioridad: e.target.value })}>
               <option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option></select></div>
         </div>
-        <div className="campo"><label>Detalle (opcional)</label><input value={f.detalle} onChange={(e) => setF({ ...f, detalle: e.target.value })} /></div>
+        <div className="campo"><label>Descripción o instrucción (opcional)</label><input value={f.detalle} onChange={(e) => setF({ ...f, detalle: e.target.value })} /></div>
+        <div className="fila" style={{ gap: 10 }}>
+          <div className="campo" style={{ flex: 1 }}><label>Fecha</label><input type="date" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} /></div>
+          <div className="campo" style={{ flex: 1 }}><label>Hora (opcional)</label><input type="time" value={f.hora} onChange={(e) => setF({ ...f, hora: e.target.value })} /></div>
+        </div>
+        {f.hora && <div className="fila" style={{ gap: 10 }}>
+          <div className="campo" style={{ flex: 1 }}><label>Recordatorio al celular</label>
+            <select value={f.recordar} onChange={(e) => setF({ ...f, recordar: e.target.value })}>
+              <option value="">Sin recordatorio</option><option value="0">A la hora de la tarea</option>
+              <option value="5">5 minutos antes</option><option value="10">10 minutos antes</option>
+              <option value="15">15 minutos antes</option><option value="30">30 minutos antes</option>
+              <option value="otra">Otra hora…</option>
+            </select></div>
+          {f.recordar === 'otra' && <div className="campo" style={{ flex: 1 }}><label>Hora del recordatorio</label>
+            <input type="time" value={f.recordarHora} onChange={(e) => setF({ ...f, recordarHora: e.target.value })} /></div>}
+          <div className="campo" style={{ flex: 1 }}><label>Repetir</label>
+            <select value={f.repeticion} onChange={(e) => setF({ ...f, repeticion: e.target.value })}>
+              <option value="">No se repite</option><option value="diaria">Todos los días</option><option value="semanal">Cada semana</option>
+            </select></div>
+        </div>}
         {aviso.vista}
         <button className="btn btn-principal btn-ancho" disabled={!f.titulo.trim() || !f.sede} onClick={crear}>Enviar tarea</button>
       </div>
