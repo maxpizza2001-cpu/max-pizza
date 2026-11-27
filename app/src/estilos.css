@@ -297,3 +297,22 @@ details summary { list-style: none; }
 .tabla-simple th { text-align: left; color: var(--gris); font-size: 12.5px; font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--borde); white-space: nowrap; }
 .tabla-simple td { padding: 8px; border-bottom: 1px solid var(--borde); white-space: nowrap; }
 .tabla-simple tr:last-child td { border-bottom: 0; }
+
+/* Gráficas (Análisis) */
+.g-svg { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.g-leyenda { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--gris); font-weight: 600; }
+.g-leyenda i, .g-punto { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.g-detalle { background: #141414; color: #F7F3EA; border-radius: 10px; padding: 8px 12px; font-size: 13.5px; line-height: 1.5; }
+.g-barra, .g-grupo { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 4px 2px; cursor: pointer; text-align: left; font: inherit; color: inherit; border-radius: 8px; }
+.g-barra.activa, .g-grupo.activa { background: rgba(227, 162, 26, .12); }
+.g-barra-nombre { flex: 0 0 34%; font-size: 13.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-barra-pista { flex: 1; height: 14px; background: #F1ECE2; border-radius: 4px; overflow: hidden; display: block; }
+.g-barra-pista.fina { height: 8px; }
+.g-barra-relleno { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.g-barra-cifra { flex: 0 0 auto; min-width: 70px; text-align: right; font-size: 13px; font-weight: 700; }
+.g-dona { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.g-ley-fila { display: flex; align-items: center; gap: 8px; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; padding: 3px 6px; border-radius: 6px; font-size: 13.5px; }
+.g-ley-fila i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.g-ley-fila b { margin-left: auto; padding-left: 10px; }
+.g-ley-fila.activa { background: rgba(227, 162, 26, .12); }
+.cifras small { font-size: 12px; font-weight: 700; }

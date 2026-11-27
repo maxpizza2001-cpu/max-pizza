@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useEnVivo } from '../lib/datos';
 import { nuevaOperacion, rpc, sb } from '../lib/supabase';
 import { cant, hora } from '../lib/formato';
 import { Ventana } from '../componentes/Piezas';
@@ -18,6 +19,7 @@ export function Tortas({ sede, perfil }: { sede: string; perfil: string }) {
   return (
     <main className="contenido pila" style={{ maxWidth: 640 }}>
       <h1>Producción de tortas</h1>
+      <MiDia sede={sede} />
       <div className="rejilla-saldos tres">
         {monjes && <TarjetaSaldo s={{ ...monjes, insumo: 'Monjes' }} />}
         {grandes && <TarjetaSaldo s={{ ...grandes, insumo: 'Tortas grandes' }} />}
@@ -40,6 +42,39 @@ export function Tortas({ sede, perfil }: { sede: string; perfil: string }) {
         <MisTareas sede={sede} rol="tortas" perfil={perfil} onAccion={() => setPestana('registrar')} />
       </>}
     </main>
+  );
+}
+
+/** Lo que se hizo HOY en esta sede (sin historiales largos: eso lo ve Administración) */
+const MOTIVOS = ['Monjes recibidos', 'Monjes usados', 'Tortas grandes', 'Tortas pequeñas'];
+function MiDia({ sede }: { sede: string }) {
+  const [regs, setRegs] = useState<{ id: number; motivo: string; cantidad: number; creado_en: string; nombre: string }[]>([]);
+  const cargar = useCallback(async () => {
+    const hoy = new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10);
+    const { data } = await sb.from('movimientos_stock').select('id, motivo, cantidad, creado_en, perfiles(nombre)')
+      .eq('sede_id', sede).eq('ref_tipo', 'lote').in('motivo', MOTIVOS).gte('creado_en', hoy + 'T05:00:00Z').order('creado_en', { ascending: false });
+    setRegs((data ?? []).map((m: any) => ({ id: m.id, motivo: m.motivo, cantidad: Math.abs(Number(m.cantidad)), creado_en: m.creado_en, nombre: m.perfiles?.nombre ?? '' })));
+  }, [sede]);
+  useEnVivo('tortas-dia-' + sede, [{ tabla: 'movimientos_stock', filtro: 'sede_id=eq.' + sede }], cargar);
+  useEffect(() => { cargar(); }, [cargar]);
+  const t = (m: string) => regs.filter((r) => r.motivo === m).reduce((a, r) => a + r.cantidad, 0);
+  return (
+    <div className="tarjeta pila" style={{ gap: 8 }}>
+      <h2>Mi producción de hoy</h2>
+      <div className="cifras cuatro">
+        <div><span>Monjes recibidos</span><b>{cant(t('Monjes recibidos'), 'und')}</b></div>
+        <div><span>Monjes usados</span><b>{cant(t('Monjes usados'), 'und')}</b></div>
+        <div><span>Tortas grandes</span><b>{cant(t('Tortas grandes'), 'torta')}</b></div>
+        <div><span>Tortas pequeñas</span><b>{cant(t('Tortas pequeñas'), 'torta')}</b></div>
+      </div>
+      {regs.length === 0 && <div className="texto-sec">Todavía no hay registros hoy.</div>}
+      {regs.map((r) => (
+        <div key={r.id} className="fila entre linea" style={{ fontSize: 14 }}>
+          <span><b>{r.motivo}</b> · {r.cantidad.toLocaleString('es-CO')}{r.nombre ? <span className="texto-sec"> · {r.nombre}</span> : null}</span>
+          <span className="texto-sec">{hora(r.creado_en)}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 

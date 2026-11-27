@@ -474,3 +474,13 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 - Migración `20261127000024_compras_v2.sql`: proveedor con contacto, teléfono, categorías, notas y sedes que atiende; por producto: "se compra por" (bloque, paquete) y cuánto trae. `necesidades_compra(sedes[])` sale de las alertas de stock bajo reales (solo lo que se compra afuera), sugiere llegar al doble del mínimo y asigna el proveedor activo que atiende esa sede. `proveedor_eliminar` (con compras → se desactiva y se oculta; sin compras → se borra). `producto_eliminar` (vendido o en un combo → se desactiva; nunca vendido → se borra).
 - Administración → Proveedores: "🛒 Qué hay que comprar" con chips de sedes / Todas mis sedes, tabla producto × sede + total por proveedor y "📲 Enviar pedido por WhatsApp" (mensaje editable; abre WhatsApp, no envía solo). Catálogo: botón "Eliminar producto".
 - Prueba nueva (33/33).
+
+## 2026-11-27 · V2 · Fase G · Gráficas de consumo y Tortas del día (aplicado en Supabase)
+- Migración `20261127000025_analisis_v2.sql`: `analisis_periodo(sedes, desde, hasta, paso)` con usado / comprado (recepciones) / merma y ajustes / producido, por día o mes, sede, área (ubicación), categoría y producto, solo sedes que administra. `analisis_consumo` ya no muestra sedes ajenas. `produccion_tortas_historial` (día/semana/mes/año, sede, persona).
+- Análisis: filtros Semana / Mes / Año con ‹ › a períodos anteriores, categoría, área, producto y "medir en kg / L / und" (no se suman unidades distintas). Cifras con variación vs. período anterior, línea de tendencia usado vs. comprado, barras de mayor y menor consumo, dona por categoría, barras por área, comparación entre sedes, variaciones, tabla completa e historial de tortas. Tocar una barra, punto o pedazo muestra el detalle. Gráficas propias en SVG (`componentes/Graficas.tsx`), paleta validada.
+- Tortas: "Mi producción de hoy" (monjes recibidos/usados, tortas grandes/pequeñas, cada registro con hora y quién). Sin historiales largos; Administración ve el historial completo.
+- Prueba nueva (34/34).
+
+### Pendientes de la actualización V2
+- Probar en celulares reales: avisos (pedido listo, personales, stock bajo, recordatorios) y Caja completa en el computador.
+- Ver las gráficas con datos reales de varias semanas (hoy hay pocos movimientos).

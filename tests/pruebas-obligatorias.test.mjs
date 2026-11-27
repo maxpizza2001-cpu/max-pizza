@@ -883,3 +883,24 @@ test('V2 · Compras: necesidades por sede consolidadas con proveedor; borrar pro
   const nuevo = (await b.uno(`insert into productos (categoria_id, nombre, formato, estacion) values ($1, 'Prueba X', 'unidad', 'ninguna') returning id`, [cat])).id;
   assert.equal(await b.rpc('producto_eliminar', { p_id: nuevo }), 'eliminado');
 });
+
+test('V2 · Análisis: consumo real por período y sede; un admin no ve otras sedes; historial de tortas', async () => {
+  const { b, S, u } = await preparar();
+  const R = b.sedes['El Refugio'];
+  const haw = await b.producto('Porción Hawaiana');
+  await b.como(u.caja);
+  await b.rpc('cobrar_mostrador', { p_op: op(), p_sede: S, p_tipo: 'mostrador', p_lineas: JSON.stringify([linea(haw, 3)]), p_medio: 'efectivo' });
+  await b.como(u.tortas);
+  await b.rpc('registrar_tortas', { p_op: op(), p_sede: S, p_monjes_recibidos: 4, p_monjes_usados: 2, p_grandes: 2, p_pequenas: 1 });
+  await b.como(u.admin);
+  const desde = new Date(Date.now() - 86400000).toISOString(), hasta = new Date(Date.now() + 86400000).toISOString();
+  const filas = await b.q(`select * from analisis_periodo(null, $1, $2, 'dia')`, [desde, hasta]);
+  assert.ok(filas.length > 0);
+  assert.ok(filas.every((f) => f.sede_id === S), 'solo su sede');
+  assert.ok(filas.some((f) => Number(f.comprado) > 0), 'monjes recibidos cuentan como comprado');
+  assert.ok(filas.some((f) => Number(f.producido) > 0));
+  const t = await b.q(`select tipo, sum(cantidad)::float c from produccion_tortas_historial(null, $1, $2, 'dia') group by tipo`, [desde, hasta]);
+  assert.ok(t.length > 0);
+  await b.como(await b.usuario('AdminR', [[R, 'admin']]));
+  assert.ok((await b.q(`select sede_id from analisis_periodo(null, $1, $2, 'dia')`, [desde, hasta])).every((f) => f.sede_id === R), 'el admin de El Refugio no ve la Principal');
+});
