@@ -432,3 +432,11 @@ APK "Max Pizza" (Capacitor + GitHub Actions), publicar la web (Vercel), instrucc
   `icono-tienda-512.png`, `icono-tienda-maskable-512.png` (con margen para Android) y `apple-touch-icon-tienda.png`
   (180, iPhone); usados en `tienda.webmanifest`, `pedir.html` y la ventana "APP". El ícono de la app del equipo no cambia.
   En el iPhone hay que borrar y volver a agregar el ícono para ver el nuevo.
+
+## 2026-11-26 · Actualización V2 · Fase A (operación)
+Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D notificaciones · E stock bajo · F compras · G gráficas/tortas.
+- **Caja "repetía el pedido anterior" y "no enviaba"**: el borrador se guardaba en el celular DENTRO de React; al cerrarse la ventana justo después de enviar, el borrador vacío nunca se guardaba. Al volver a abrir salía el pedido viejo con su mismo `operacion_id`, y el servidor (idempotente) lo daba por "ya hecho" sin crear nada nuevo. Arreglado en `useGuardado` (guarda al instante). Además, al abrir, si el borrador tiene productos se pregunta `consultar_operacion`: si ya se envió, arranca vacío.
+- Doble toque en Enviar/Cobrar bloqueado (también en Venta rápida). Aviso verde "✓ Pedido de la mesa 02 enviado a preparación".
+- Login: ojito para mostrar/ocultar la clave.
+- Sedes: cada quien ve solo sus sedes asignadas. Con una sola sede entra directo y no se le pregunta. Con varias hay una barra de cambio rápido de sede y, en Insumos, Tortas, Armado y Rápidas, la vista "Todas mis sedes" (cada sede por separado; para registrar se entra a la sede). El servidor ya valida la sede (RLS `puede_ver_sede`/`tiene_rol`).
+- Pendiente de probar con usuario real: flujo completo de Caja en el computador (no inicio sesión con cuentas en la base real).

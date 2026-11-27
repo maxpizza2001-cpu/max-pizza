@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { nuevaOperacion, rpc, sb } from '../lib/supabase';
 import { hora, mesa2, plata } from '../lib/formato';
 import { pitar, useCatalogo, useComandas, useEnVivo, useGuardado, type LineaCarrito, type Producto } from '../lib/datos';
@@ -40,6 +40,8 @@ export function Caja({ sede, perfil }: { sede: string; perfil: string }) {
   const [vistas, setVistas] = useState(0);
   useEffect(() => { if (horno.length > vistas) pitar(); setVistas(horno.length); }, [horno.length]);
 
+  const [enviado, setEnviado] = useState('');
+  useEffect(() => { if (!enviado) return; const t = setTimeout(() => setEnviado(''), 4000); return () => clearTimeout(t); }, [enviado]);
   const cuentaAbierta = porCobrar.find((p) => p.cuenta_id === abierta);
 
   return (
@@ -61,6 +63,7 @@ export function Caja({ sede, perfil }: { sede: string; perfil: string }) {
         </div>
       </div>
 
+      {enviado && <div className="ok" style={{ marginBottom: 14 }}>{enviado}</div>}
       {!turnoCaja && (
         <div className="aviso" style={{ marginBottom: 14 }}>
           Falta registrar la base de este turno. <button className="enlace" onClick={() => setVentana('base')}>Registrar base</button>
@@ -95,7 +98,7 @@ export function Caja({ sede, perfil }: { sede: string; perfil: string }) {
           <ColaHorno comandas={horno} />
         </Ventana>
       )}
-      {ventana === 'pedido' && <NuevoPedido sede={sede} productos={productos} onCerrar={() => setVentana(null)} />}
+      {ventana === 'pedido' && <NuevoPedido sede={sede} productos={productos} onCerrar={() => setVentana(null)} onEnviado={setEnviado} />}
       {ventana === 'base' && <Base sede={sede} turno={turnoCaja} onCerrar={() => setVentana(null)} />}
       {ventana === 'gastos' && <Gastos sede={sede} onCerrar={() => setVentana(null)} />}
       {ventana === 'tareas' && (
@@ -192,13 +195,18 @@ function VentaRapida({ sede, productos, todos }: { sede: string; productos: Prod
   const [estado, setEstado] = useState<'' | 'enviando' | 'ok'>('');
   const [error, setError] = useState('');
   const total = totalCarrito(v.lineas, todos);
+  const ocupado = useRef(false);
+  useEffect(() => { borradorYaEnviado(v.op, v.lineas.length).then((ya) => { if (ya) setV(ventaVacia()); }); }, []);
 
   async function cobrar() {
+    if (ocupado.current) return;
+    ocupado.current = true;
     setError(''); setEstado('enviando');
     try {
       await rpc('cobrar_mostrador', { p_op: v.op, p_sede: sede, p_tipo: v.tipo, p_lineas: v.lineas, p_medio: v.medio });
       setV(ventaVacia()); setEstado('ok'); setTimeout(() => setEstado(''), 2500);
     } catch (e) { setEstado(''); setError((e as Error).message + ' · La venta sigue aquí; puedes reintentar sin que se duplique.'); }
+    finally { ocupado.current = false; }
   }
 
   return (
@@ -227,8 +235,11 @@ function VentaRapida({ sede, productos, todos }: { sede: string; productos: Prod
 }
 
 // ───────── Nuevo pedido desde Caja (mesa = se prepara y queda la cuenta abierta; mostrador = se cobra primero) ─────────
-function NuevoPedido({ sede, productos, onCerrar }: { sede: string; productos: Producto[]; onCerrar: () => void }) {
+function NuevoPedido({ sede, productos, onCerrar, onEnviado }: { sede: string; productos: Producto[]; onCerrar: () => void; onEnviado: (m: string) => void }) {
   const [p, setP] = useGuardado<Pedido>(`mp.caja.pedido.${sede}`, pedidoVacio());
+  const ocupado = useRef(false);
+  // Si quedó un borrador viejo, se pregunta al servidor si YA se había enviado: si sí, se empieza vacío.
+  useEffect(() => { borradorYaEnviado(p.op, p.lineas.length).then((ya) => { if (ya) setP(pedidoVacio()); }); }, []);
   const [mesas, setMesas] = useState<number[]>([]);
   const [tipo, setTipo] = useState<'pizza' | 'rapida' | 'bebida'>('pizza');
   const [estado, setEstado] = useState<'' | 'enviando'>('');
@@ -241,12 +252,16 @@ function NuevoPedido({ sede, productos, onCerrar }: { sede: string; productos: P
   const total = totalCarrito(p.lineas, productos);
 
   async function enviar() {
+    if (ocupado.current) return; // doble toque: no se manda dos veces
+    ocupado.current = true;
     setError(''); setEstado('enviando');
     try {
       if (esMesa) await rpc('enviar_pedido_mesa', { p_op: p.op, p_sede: sede, p_mesa: Number(p.destino.slice(5)), p_lineas: p.lineas });
       else await rpc('cobrar_mostrador', { p_op: p.op, p_sede: sede, p_tipo: p.destino, p_lineas: p.lineas, p_medio: p.medio });
-      setP(pedidoVacio()); onCerrar();
-    } catch (e) { setEstado(''); setError((e as Error).message + ' · El pedido sigue guardado: Pendiente de envío.'); }
+      const aviso = esMesa ? `✓ Pedido de la mesa ${mesa2(Number(p.destino.slice(5)))} enviado a preparación` : '✓ Cobrado y enviado a preparación';
+      setP(pedidoVacio()); onEnviado(aviso); onCerrar();
+    } catch (e) { setEstado(''); setError((e as Error).message + ' · El pedido sigue guardado: Pendiente de envío. Reintentar no lo duplica.'); }
+    finally { ocupado.current = false; }
   }
 
   return (
@@ -275,6 +290,12 @@ function NuevoPedido({ sede, productos, onCerrar }: { sede: string; productos: P
       </div>
     </Ventana>
   );
+}
+
+/** ¿Ese borrador ya se había enviado antes (p. ej. se cerró la ventana justo al enviar)? */
+async function borradorYaEnviado(op: string, lineas: number) {
+  if (!lineas) return false;
+  try { return !!(await rpc('consultar_operacion', { p_op: op })); } catch { return false; }
 }
 
 // ───────── Cola del horno ─────────

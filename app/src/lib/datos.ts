@@ -145,15 +145,19 @@ export function useGuardado<T>(clave: string, inicial: T) {
   const [v, setV] = useState<T>(() => {
     try { const s = localStorage.getItem(clave); return s ? JSON.parse(s) : inicial; } catch { return inicial; }
   });
+  const actual = useRef(v);
+  actual.current = v;
   useEffect(() => {
-    try { setV(JSON.parse(localStorage.getItem(clave) ?? 'null') ?? inicial); } catch { setV(inicial); }
+    let n: T; try { n = JSON.parse(localStorage.getItem(clave) ?? 'null') ?? inicial; } catch { n = inicial; }
+    actual.current = n; setV(n);
   }, [clave]);
+  // Se guarda en el celular AL INSTANTE (no dentro de React): así, si la ventana se cierra justo después
+  // de enviar, el borrador vacío sí queda guardado y no reaparece el pedido anterior.
   const guardar = useCallback((n: T | ((p: T) => T)) => {
-    setV((prev) => {
-      const val = typeof n === 'function' ? (n as (p: T) => T)(prev) : n;
-      try { localStorage.setItem(clave, JSON.stringify(val)); } catch { /* lleno */ }
-      return val;
-    });
+    const val = typeof n === 'function' ? (n as (p: T) => T)(actual.current) : n;
+    actual.current = val;
+    try { localStorage.setItem(clave, JSON.stringify(val)); } catch { /* lleno */ }
+    setV(val);
   }, [clave]);
   return [v, guardar] as const;
 }

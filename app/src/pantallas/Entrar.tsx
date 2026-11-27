@@ -7,6 +7,7 @@ export function Entrar() {
   const [clave, setClave] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
+  const [ver, setVer] = useState(false);
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
@@ -36,8 +37,18 @@ export function Entrar() {
           </div>
           <div className="campo">
             <label htmlFor="clave">Clave</label>
-            <input id="clave" type="password" autoComplete="current-password" value={clave}
-              onChange={(e) => setClave(e.target.value)} required />
+            <div style={{ position: 'relative' }}>
+              <input id="clave" type={ver ? 'text' : 'password'} autoComplete="current-password" value={clave}
+                onChange={(e) => setClave(e.target.value)} required style={{ width: '100%', paddingRight: 48 }} />
+              <button type="button" onClick={() => setVer(!ver)} aria-label={ver ? 'Ocultar clave' : 'Mostrar clave'} aria-pressed={ver}
+                style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40,
+                  border: 0, background: 'transparent', color: '#6B665D', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />
+                  {ver && <path d="M4 4l16 16" />}
+                </svg>
+              </button>
+            </div>
           </div>
           {error && <div className="error">{error}</div>}
           <button className="btn btn-principal btn-ancho" disabled={!configurado || cargando}>
