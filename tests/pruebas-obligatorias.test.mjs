@@ -821,3 +821,31 @@ test('V2 · Avisos: personal va al armador, "lista" avisa solo a quien pidió, a
   assert.deepEqual(rec, { perfil_id: u.insumos, titulo: '⏰ Preparar salsa de ajo' });
   assert.equal((await b.q(`select 1 from tareas where titulo = 'Preparar salsa de ajo'`)).length, 2, 'quedó la de mañana');
 });
+
+test('V2 · Stock bajo: aplicar el mínimo a todas las sedes respeta las excepciones y crea una sola tarea por alerta', async () => {
+  const b = await nuevaBase();
+  const S = b.principal, R = b.sedes['El Refugio'];
+  const jefe = await b.usuario('Jefe', [[S, 'ceo']]);
+  const adm = await b.usuario('AdminP', [[S, 'admin']]);
+  const queso = await b.insumo('queso');
+  const aplicar = (sedes, minimo, excepcion = false) => b.rpc('regla_aplicar', { p_sedes: `{${sedes.join(',')}}`, p_ubicacion: 'bodega',
+    p_insumo: queso, p_minimo: minimo, p_rol: 'insumos', p_prioridad: 'alta', p_texto: 'Reponer queso', p_accion: null, p_excepcion: excepcion });
+  const minimos = async () => (await b.q(`select s.nombre, r.minimo::float m from reglas_stock r join sedes s on s.id = r.sede_id
+    join ubicaciones_stock u on u.id = r.ubicacion_id where r.insumo_id = $1 and u.codigo = 'bodega' and r.rol_destino = 'insumos' order by 1`, [queso]));
+
+  await b.como(jefe);
+  await aplicar([S, R], 5000);
+  assert.deepEqual(await minimos(), [{ nombre: 'El Refugio', m: 5000 }, { nombre: 'Sede Principal', m: 5000 }]);
+  await aplicar([R], 2000, true);                       // El Refugio con mínimo propio
+  const r = await aplicar([S, R], 8000);                 // "todas": no pisa la excepción
+  assert.deepEqual(r.saltadas, ['El Refugio']);
+  assert.deepEqual(await minimos(), [{ nombre: 'El Refugio', m: 2000 }, { nombre: 'Sede Principal', m: 8000 }]);
+  // Una sola alerta y una sola tarea aunque se reevalúe varias veces (saldo de queso en bodega = 0 < mínimo)
+  await aplicar([S], 9000);
+  const al = await b.q(`select a.id from alertas_stock a join reglas_stock r on r.id = a.regla_id where r.sede_id = $1 and r.insumo_id = $2 and a.estado = 'activa'`, [S, queso]);
+  assert.equal(al.length, 1);
+  assert.equal((await b.q(`select 1 from tareas t join reglas_stock r on r.id = t.regla_id where r.sede_id = $1 and r.insumo_id = $2 and t.estado = 'pendiente'`, [S, queso])).length, 1);
+  // Un admin de la Principal no toca El Refugio
+  await b.como(adm);
+  await assert.rejects(aplicar([S, R], 1), /tus sedes/);
+});

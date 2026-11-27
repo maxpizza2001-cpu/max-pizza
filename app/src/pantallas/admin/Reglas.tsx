@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { sb } from '../../lib/supabase';
+import { rpc, sb } from '../../lib/supabase';
 import { cant, ROLES } from '../../lib/formato';
 import { Ventana } from '../../componentes/Piezas';
 import { factor, unidadEscrita } from '../../componentes/Inventario';
@@ -21,7 +21,7 @@ export function Reglas({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
   const [soloBajos, setSoloBajos] = useState(false);
   const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? '';
   const { datos } = useConsulta('reglas', async () => {
-    let r = sb.from('reglas_stock').select(`id, sede_id, ubicacion_id, insumo_id, minimo, rol_destino, responsable_id, prioridad, texto, accion, activa,
+    let r = sb.from('reglas_stock').select(`id, sede_id, ubicacion_id, insumo_id, minimo, rol_destino, responsable_id, prioridad, texto, accion, activa, excepcion,
       insumos(nombre, unidad, codigo), ubicaciones_stock(codigo), perfiles(nombre)`).order('texto');
     let s = sb.from('saldos_stock').select('ubicacion_id, insumo_id, fisico, reservado');
     if (sede !== 'todas') { r = r.eq('sede_id', sede); s = s.eq('sede_id', sede); }
@@ -47,7 +47,7 @@ export function Reglas({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
             <div className="fila entre" style={{ alignItems: 'flex-start' }}>
               <div>
                 <b>{r.insumos?.nombre}</b>
-                <div className="texto-sec" style={{ fontSize: 13 }}>{UBICACIONES[r.ubicaciones_stock?.codigo]}{sede === 'todas' ? ` · ${nombreSede(r.sede_id)}` : ''}</div>
+                <div className="texto-sec" style={{ fontSize: 13 }}>{UBICACIONES[r.ubicaciones_stock?.codigo]}{sede === 'todas' ? ` · ${nombreSede(r.sede_id)}` : ''}{r.excepcion ? ' · mínimo propio' : ''}</div>
               </div>
               {!r.activa ? <span className="estado estado-proceso">Pausada</span> : r.bajo ? <span className="estado estado-alta">Stock bajo</span> : <span className="estado estado-baja">OK</span>}
             </div>
@@ -77,6 +77,7 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
     minimo: regla ? String(Number(regla.minimo) / factor(unidad0)) : '',
     rol: regla?.rol_destino ?? 'insumos', responsable: regla?.responsable_id ?? '',
     prioridad: regla?.prioridad ?? 'alta', texto: regla?.texto ?? '',
+    sedes: [regla?.sede_id ?? (sede !== 'todas' ? sede : sedes[0]?.id ?? '')] as string[], excepcion: !!regla?.excepcion,
   });
   const { datos: insumos } = useConsulta('insumos-todos', () => q<any[]>(sb.from('insumos').select('id, nombre, unidad, codigo').eq('activo', true).order('nombre')), []);
   const { datos: personas } = useConsulta('resp-' + f.sede + f.rol, () =>
@@ -85,17 +86,18 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
 
   async function guardarRegla() {
     try {
-      const { data: u } = await sb.from('ubicaciones_stock').select('id').eq('sede_id', f.sede).eq('codigo', f.ubicacion).single();
-      if (!u) throw new Error('Esa sede no tiene esa ubicación');
-      const fila = {
-        sede_id: f.sede, ubicacion_id: u.id, insumo_id: f.insumo,
-        minimo: Number(f.minimo.replace(',', '.')) * factor(ins?.unidad ?? ''), rol_destino: f.rol,
-        responsable_id: f.responsable || null, prioridad: f.prioridad,
-        texto: f.texto.trim() || `${f.rol === 'insumos' ? 'Preparar' : f.rol === 'admin' ? 'Revisar compra ·' : 'Reponer'} ${ins?.nombre.toLowerCase()}`,
-        accion: accionSugerida(f.rol, ins?.codigo ?? ''),
-      };
-      if (regla) await guardar(sb.from('reglas_stock').update(fila).eq('id', regla.id));
-      else await guardar(sb.from('reglas_stock').insert(fila));
+      const texto = f.texto.trim() || `${f.rol === 'insumos' ? 'Preparar' : f.rol === 'admin' ? 'Revisar compra ·' : 'Reponer'} ${ins?.nombre.toLowerCase()}`;
+      const r = await rpc<{ hechas: number; saltadas: string[] }>('regla_aplicar', {
+        p_sedes: f.sedes, p_ubicacion: f.ubicacion, p_insumo: f.insumo,
+        p_minimo: Number(f.minimo.replace(',', '.')) * factor(ins?.unidad ?? ''), p_rol: f.rol, p_prioridad: f.prioridad,
+        p_texto: texto, p_accion: accionSugerida(f.rol, ins?.codigo ?? ''), p_excepcion: f.excepcion });
+      // La persona responsable es de cada sede: solo se guarda cuando es una sola sede
+      if (f.sedes.length === 1) {
+        const { data: u } = await sb.from('ubicaciones_stock').select('id').eq('sede_id', f.sedes[0]).eq('codigo', f.ubicacion).single();
+        if (u) await guardar(sb.from('reglas_stock').update({ responsable_id: f.responsable || null })
+          .eq('ubicacion_id', u.id).eq('insumo_id', f.insumo).eq('rol_destino', f.rol));
+      }
+      if (r.saltadas.length) { aviso.ok(`✓ Guardado en ${r.hechas} sede(s). No se cambió ${r.saltadas.join(', ')} porque tiene mínimo propio.`); return; }
       onCerrar();
     } catch (e) { aviso.error(e); }
   }
@@ -104,12 +106,23 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
     <Ventana titulo={regla ? 'Editar regla' : 'Nueva regla de stock bajo'} onCerrar={onCerrar}>
       <div className="pila">
         <div className="fila" style={{ gap: 10 }}>
-          <div className="campo" style={{ flex: 1 }}><label>Sede</label>
-            <select value={f.sede} disabled={!!regla} onChange={(e) => setF({ ...f, sede: e.target.value })}>{sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
           <div className="campo" style={{ flex: 1 }}><label>Ubicación</label>
             <select value={f.ubicacion} disabled={!!regla} onChange={(e) => setF({ ...f, ubicacion: e.target.value })}>
               {Object.entries(UBICACIONES).map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
         </div>
+        <div className="campo"><label>Aplicar en</label>
+          <div className="fila envolver" style={{ gap: 6 }}>
+            {sedes.filter((x) => x.activa).map((x) => (
+              <button key={x.id} type="button" className={'pastilla' + (f.sedes.includes(x.id) ? ' activa' : '')}
+                onClick={() => setF({ ...f, sedes: f.sedes.includes(x.id) ? f.sedes.filter((y) => y !== x.id) : [...f.sedes, x.id], sede: x.id })}>📍 {x.nombre}</button>
+            ))}
+            {sedes.filter((x) => x.activa).length > 1 && <button type="button" className="enlace" onClick={() => setF({ ...f, sedes: sedes.filter((x) => x.activa).map((x) => x.id) })}>Todas mis sedes</button>}
+          </div>
+          {f.sedes.length > 1 && <div className="texto-sec" style={{ fontSize: 13 }}>Se aplica el mismo mínimo en {f.sedes.length} sedes. Las que tengan "mínimo propio" no se cambian.</div>}
+        </div>
+        {f.sedes.length === 1 && <label className="fila" style={{ gap: 8, fontSize: 14 }}>
+          <input type="checkbox" checked={f.excepcion} onChange={(e) => setF({ ...f, excepcion: e.target.checked })} />
+          Mínimo propio de esta sede (no lo cambia "aplicar a todas")</label>}
         <div className="campo"><label>Insumo o producto</label>
           <select value={f.insumo} disabled={!!regla} onChange={(e) => setF({ ...f, insumo: e.target.value })}>
             <option value="">Elige…</option>{(insumos ?? []).map((i) => <option key={i.id} value={i.id}>{i.nombre}</option>)}</select></div>
@@ -132,7 +145,7 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
               <option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option></select></div>
         </div>
         {aviso.vista}
-        <button className="btn btn-principal btn-ancho" disabled={!f.insumo || !f.minimo || !f.sede} onClick={guardarRegla}>Guardar regla</button>
+        <button className="btn btn-principal btn-ancho" disabled={!f.insumo || !f.minimo || !f.sedes.length} onClick={guardarRegla}>{f.sedes.length > 1 ? `Guardar en ${f.sedes.length} sedes` : 'Guardar regla'}</button>
         {regla && <button className="btn btn-negro btn-ancho" onClick={async () => {
           if (!confirm('¿Borrar esta regla? Si tiene historial, mejor páusala.')) return;
           try { await guardar(sb.from('reglas_stock').delete().eq('id', regla.id)); onCerrar(); }

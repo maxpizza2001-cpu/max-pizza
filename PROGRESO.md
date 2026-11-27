@@ -463,3 +463,9 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
   - Avisos con TTL 1 h (pedido listo) / 24 h (lo demás): si el celular está apagado, le llega al prenderlo.
 - App: "Activar avisos" aparece en todas las áreas hasta que se active; el aviso abre directo el pedido (Armado), la tarea (resaltada) o Inventario/Domicilios (Admin). Armado tiene pestaña "🍕 Pedidos". Administración → Tareas: fecha, hora, recordatorio y repetición.
 - Prueba nueva (31/31). Falta probar en celulares reales.
+
+## 2026-11-27 · V2 · Fase E · Stock bajo unificado (aplicado en Supabase)
+- Ya existía y sigue igual: una sola alerta y una sola tarea por regla; se actualizan con el saldo y se cierran al reponer; funciona para cualquier insumo/producto en cualquier ubicación (producción, nevera, armado, tortas, servicio, bodega).
+- Nuevo: `regla_aplicar(sedes[], …)` aplica el mismo mínimo en una, varias o todas mis sedes. Columna `excepcion` ("mínimo propio"): al aplicar a varias sedes no se pisa. Solo en sedes donde se es admin (o CEO).
+- Pantalla Stock bajo: "Aplicar en" con chips de sedes + "Todas mis sedes", casilla "Mínimo propio", etiqueta "mínimo propio" en la lista.
+- Prueba nueva (32/32).
