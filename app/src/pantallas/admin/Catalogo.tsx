@@ -30,7 +30,7 @@ export function Catalogo({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
             const ps = datos.precios.find((x) => x.producto_id === p.id && x.sede_id === sedeVer);
             return (
               <button key={p.id} className="fila entre linea fila-boton" onClick={() => setEditar(p.id)} style={{ opacity: p.activo ? 1 : 0.5 }}>
-                <span><b>{p.nombre}</b> <span className="texto-sec">· {FORMATOS[p.formato]} · {ESTACIONES[p.estacion].split(' (')[0]}</span>
+                <span><b>{p.nombre}</b> <span className="texto-sec">· {FORMATOS[p.formato]} · {(ESTACIONES[p.estacion] ?? p.estacion).split(' (')[0]}</span>
                   {p.destacado && <span className="estado estado-lista"> ★ Portada</span>}
                   {ps && !ps.online && <span className="estado estado-proceso"> No sale en la tienda</span>}
                   {!p.activo && <span className="estado estado-proceso"> Desactivado</span>}
