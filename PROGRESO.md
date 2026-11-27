@@ -469,3 +469,8 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 - Nuevo: `regla_aplicar(sedes[], …)` aplica el mismo mínimo en una, varias o todas mis sedes. Columna `excepcion` ("mínimo propio"): al aplicar a varias sedes no se pisa. Solo en sedes donde se es admin (o CEO).
 - Pantalla Stock bajo: "Aplicar en" con chips de sedes + "Todas mis sedes", casilla "Mínimo propio", etiqueta "mínimo propio" en la lista.
 - Prueba nueva (32/32).
+
+## 2026-11-27 · V2 · Fase F · Proveedores, compras por WhatsApp, borrar sin perder historia (aplicado en Supabase)
+- Migración `20261127000024_compras_v2.sql`: proveedor con contacto, teléfono, categorías, notas y sedes que atiende; por producto: "se compra por" (bloque, paquete) y cuánto trae. `necesidades_compra(sedes[])` sale de las alertas de stock bajo reales (solo lo que se compra afuera), sugiere llegar al doble del mínimo y asigna el proveedor activo que atiende esa sede. `proveedor_eliminar` (con compras → se desactiva y se oculta; sin compras → se borra). `producto_eliminar` (vendido o en un combo → se desactiva; nunca vendido → se borra).
+- Administración → Proveedores: "🛒 Qué hay que comprar" con chips de sedes / Todas mis sedes, tabla producto × sede + total por proveedor y "📲 Enviar pedido por WhatsApp" (mensaje editable; abre WhatsApp, no envía solo). Catálogo: botón "Eliminar producto".
+- Prueba nueva (33/33).

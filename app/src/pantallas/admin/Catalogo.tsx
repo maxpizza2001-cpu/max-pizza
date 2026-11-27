@@ -182,6 +182,14 @@ function FormProducto({ id, datos, cats, sedes, insumos, aviso, onCerrar }: any)
         <label className="fila" style={{ gap: 8, fontWeight: 700 }}><input type="checkbox" checked={f.activo} onChange={(e) => setF({ ...f, activo: e.target.checked })} /> Producto activo</label>
         {aviso.vista}
         <button className="btn btn-principal btn-ancho" disabled={!f.nombre.trim()} onClick={guardarTodo}>Guardar producto</button>
+        {id && <button className="btn btn-negro btn-ancho" onClick={async () => {
+          if (!confirm(`¿Eliminar "${f.nombre}"?\n\nSi ya tuvo ventas, no se borra: se DESACTIVA para que no salga en pedidos nuevos, y sus ventas, recetas y precios viejos se conservan.`)) return;
+          try {
+            const r = await rpc<string>('producto_eliminar', { p_id: id });
+            alert(r === 'eliminado' ? '✓ Producto eliminado (nunca se había vendido)' : '✓ Producto desactivado: ya tenía ventas, su historial se conserva');
+            onCerrar();
+          } catch (e) { aviso.error(e); }
+        }}>Eliminar producto</button>}
 
         {datos?.hist?.length > 0 && <div>
           <b>Historial de precios</b>

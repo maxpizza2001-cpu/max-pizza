@@ -6,40 +6,144 @@ import { factor, unidadEscrita } from '../../componentes/Inventario';
 import { ElegirSede, guardar, q, Titulo, UBICACIONES, useAviso, useConsulta, type Sede, type SedeSel } from './comun';
 
 // ═════════ Proveedores ═════════
-export function Proveedores(_: { sede: SedeSel; sedes: Sede[] }) {
+export function Proveedores({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
   const [editar, setEditar] = useState<any | 'nuevo' | null>(null);
+  const [vista, setVista] = useState<'pedir' | 'lista'>('pedir');
   const { datos } = useConsulta('proveedores', () =>
-    q<any[]>(sb.from('proveedores').select('*, proveedor_insumos(insumo_id, precio, actualizado, insumos(nombre, unidad))').order('nombre')), []);
+    q<any[]>(sb.from('proveedores').select('*, proveedor_insumos(insumo_id, precio, unidad_compra, contenido, actualizado, insumos(nombre, unidad))')
+      .eq('eliminado', false).order('nombre')), []);
+  const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? '';
   return (
     <div className="pila">
       <Titulo accion={<button className="btn btn-principal" onClick={() => setEditar('nuevo')}>＋ Nuevo proveedor</button>}>Proveedores</Titulo>
-      <div className="tabla-tarjetas">
+      <div className="fila envolver" style={{ gap: 6 }}>
+        <button className={'pastilla' + (vista === 'pedir' ? ' activa' : '')} onClick={() => setVista('pedir')}>🛒 Qué hay que comprar</button>
+        <button className={'pastilla' + (vista === 'lista' ? ' activa' : '')} onClick={() => setVista('lista')}>🚚 Mis proveedores · {(datos ?? []).length}</button>
+      </div>
+      {vista === 'pedir' && <Necesidades sede={sede} sedes={sedes} />}
+      {vista === 'lista' && <div className="tabla-tarjetas">
         {(datos ?? []).map((p) => (
           <button key={p.id} className="tarjeta fila-boton" style={{ display: 'grid', gap: 4, textAlign: 'left', opacity: p.activo ? 1 : 0.5 }} onClick={() => setEditar(p)}>
-            <b style={{ fontSize: 16 }}>{p.nombre}</b>
-            <span className="texto-sec" style={{ fontSize: 13 }}>{p.whatsapp ? `WhatsApp ${p.whatsapp}` : 'Sin WhatsApp'} · {p.dias_entrega || 'días sin definir'}</span>
+            <b style={{ fontSize: 16 }}>{p.nombre}{!p.activo && ' · inactivo'}</b>
+            <span className="texto-sec" style={{ fontSize: 13 }}>{p.contacto ? p.contacto + ' · ' : ''}{p.whatsapp ? `WhatsApp ${p.whatsapp}` : 'Sin WhatsApp'} · {p.dias_entrega || 'días sin definir'}</span>
+            <span className="texto-sec" style={{ fontSize: 13 }}>{p.sedes?.length ? 'Atiende: ' + p.sedes.map(nombreSede).join(', ') : 'Atiende todas las sedes'}</span>
             <span style={{ fontSize: 13 }}>{p.proveedor_insumos.map((x: any) => x.insumos?.nombre).join(' · ') || 'Sin productos'}</span>
           </button>
         ))}
-      </div>
-      {editar && <EditarProveedor p={editar === 'nuevo' ? null : editar} onCerrar={() => setEditar(null)} />}
+      </div>}
+      {editar && <EditarProveedor p={editar === 'nuevo' ? null : editar} sedes={sedes} onCerrar={() => setEditar(null)} />}
     </div>
   );
 }
 
-function EditarProveedor({ p, onCerrar }: { p: any | null; onCerrar: () => void }) {
+/** Cuánto comprar: en la unidad del proveedor si la tiene (bloques, paquetes), si no en la del inventario */
+function cuantoComprar(n: { sugerido: number; unidad: string; unidad_compra: string | null; contenido: number | null }) {
+  if (n.unidad_compra && n.contenido) {
+    const c = Math.ceil(n.sugerido / n.contenido);
+    return { numero: c, texto: `${c} ${n.unidad_compra}${c === 1 ? '' : (/[aeiou]$/i.test(n.unidad_compra) ? 's' : 'es')}` };
+  }
+  const v = Math.ceil(n.sugerido / factor(n.unidad) * 10) / 10;
+  return { numero: v, texto: `${String(v).replace('.', ',')} ${unidadEscrita(n.unidad)}` };
+}
+
+/** Necesidades reales de compra de las sedes elegidas, consolidadas por producto y agrupadas por proveedor */
+function Necesidades({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
+  const activas = sedes.filter((s) => s.activa);
+  const [elegidas, setElegidas] = useState<string[]>(() => sede !== 'todas' ? [sede] : activas.map((s) => s.id));
+  const [mensaje, setMensaje] = useState<null | { proveedor: string; whatsapp: string | null; texto: string }>(null);
+  const { datos } = useConsulta('necesidades-' + elegidas.join(','), () =>
+    elegidas.length ? q<any[]>(sb.rpc('necesidades_compra', { p_sedes: elegidas }) as any) : Promise.resolve([]), [elegidas.join(',')], ['alertas_stock', 'saldos_stock']);
+
+  // Agrupa: proveedor → producto → cantidad por sede
+  type Fila = { insumo: string; unidad: string; unidad_compra: string | null; contenido: number | null; porSede: Record<string, number>; total: number };
+  const grupos = new Map<string, { nombre: string; whatsapp: string | null; filas: Map<string, Fila> }>();
+  for (const n of datos ?? []) {
+    const k = n.proveedor_id ?? '';
+    const g = grupos.get(k) ?? { nombre: n.proveedor ?? 'Sin proveedor asignado', whatsapp: n.whatsapp, filas: new Map() };
+    const f = g.filas.get(n.insumo_id) ?? { insumo: n.insumo, unidad: n.unidad, unidad_compra: n.unidad_compra, contenido: n.contenido ? Number(n.contenido) : null, porSede: {}, total: 0 };
+    f.porSede[n.sede_id] = (f.porSede[n.sede_id] ?? 0) + Number(n.sugerido);
+    f.total += Number(n.sugerido);
+    g.filas.set(n.insumo_id, f); grupos.set(k, g);
+  }
+  const verSede = activas.filter((s) => elegidas.includes(s.id));
+  const cuanto = (f: Fila, v: number) => cuantoComprar({ sugerido: v, unidad: f.unidad, unidad_compra: f.unidad_compra, contenido: f.contenido });
+
+  function prepararMensaje(g: { nombre: string; whatsapp: string | null; filas: Map<string, Fila> }) {
+    const lineas = [...g.filas.values()].map((f) => `- ${f.insumo}: ${cuanto(f, f.total).texto}.`).join('\n');
+    const h = Number(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota', hour: 'numeric', hour12: false }));
+    const saludo = h < 12 ? 'buenos días' : h < 19 ? 'buenas tardes' : 'buenas noches';
+    setMensaje({ proveedor: g.nombre, whatsapp: g.whatsapp, texto:
+      `Hola, ${saludo}. 😊\n\nQuisiera realizar el siguiente pedido para MAX PIZZA:\n\n${lineas}\n\n` +
+      `Pedido calculado según las necesidades de nuestras sedes${verSede.length ? ' (' + verSede.map((s) => s.nombre).join(', ') + ')' : ''}.\n\n` +
+      `¿Me confirmas disponibilidad y precio, por favor?\n\nMuchas gracias.` });
+  }
+
+  return (
+    <div className="pila">
+      <div className="fila envolver" style={{ gap: 6 }}>
+        {activas.map((s) => (
+          <button key={s.id} className={'pastilla' + (elegidas.includes(s.id) ? ' activa' : '')}
+            onClick={() => setElegidas(elegidas.includes(s.id) ? elegidas.filter((x) => x !== s.id) : [...elegidas, s.id])}>📍 {s.nombre}</button>
+        ))}
+        {activas.length > 1 && <button className="enlace" onClick={() => setElegidas(activas.map((s) => s.id))}>Todas mis sedes</button>}
+      </div>
+      <div className="texto-sec" style={{ fontSize: 13 }}>Sale de lo que está en stock bajo en el inventario real. Se sugiere comprar hasta el doble del mínimo.</div>
+      {datos && grupos.size === 0 && <div className="ok">No hay nada por comprar en estas sedes. 🎉</div>}
+      {[...grupos.entries()].map(([k, g]) => (
+        <div key={k} className="tarjeta pila" style={{ gap: 8 }}>
+          <div className="fila entre envolver"><b style={{ fontSize: 17 }}>{g.nombre}</b>
+            {k && <button className="btn btn-principal" style={{ padding: '8px 14px' }} onClick={() => prepararMensaje(g)}>📲 Enviar pedido por WhatsApp</button>}</div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="tabla-simple">
+              <thead><tr><th>Producto</th>{verSede.map((s) => <th key={s.id}>{s.nombre}</th>)}<th>Total sugerido</th></tr></thead>
+              <tbody>
+                {[...g.filas.values()].map((f) => (
+                  <tr key={f.insumo}><td><b>{f.insumo}</b></td>
+                    {verSede.map((s) => <td key={s.id}>{f.porSede[s.id] ? cuanto(f, f.porSede[s.id]).texto : '—'}</td>)}
+                    <td><b>{cuanto(f, f.total).texto}</b></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!k && <div className="texto-sec" style={{ fontSize: 13 }}>Asígnales un proveedor en "Mis proveedores" para poder pedirlos por WhatsApp.</div>}
+        </div>
+      ))}
+      {mensaje && (
+        <Ventana titulo={`Pedido a ${mensaje.proveedor}`} onCerrar={() => setMensaje(null)} ancho={560}>
+          <div className="pila">
+            <div className="texto-sec">Revisa y corrige el mensaje antes de enviarlo. No se manda nada hasta que tú lo envíes en WhatsApp.</div>
+            <textarea rows={14} value={mensaje.texto} onChange={(e) => setMensaje({ ...mensaje, texto: e.target.value })}
+              style={{ width: '100%', font: 'inherit', padding: 12, borderRadius: 12, border: '1px solid var(--borde)' }} />
+            {!mensaje.whatsapp && <div className="aviso">Este proveedor no tiene WhatsApp guardado: WhatsApp te dejará elegir el chat.</div>}
+            <a className="btn btn-principal btn-ancho" target="_blank" rel="noreferrer"
+              href={`https://wa.me/${mensaje.whatsapp ?? ''}?text=${encodeURIComponent(mensaje.texto)}`}>Abrir WhatsApp con el pedido</a>
+          </div>
+        </Ventana>
+      )}
+    </div>
+  );
+}
+
+function EditarProveedor({ p, sedes, onCerrar }: { p: any | null; sedes: Sede[]; onCerrar: () => void }) {
   const aviso = useAviso();
-  const [f, setF] = useState({ nombre: p?.nombre ?? '', whatsapp: p?.whatsapp ?? '', dias_entrega: p?.dias_entrega ?? '', condiciones: p?.condiciones ?? '', activo: p?.activo ?? true });
-  const [items, setItems] = useState<{ insumo_id: string; precio: string; antes?: number }[]>(
-    () => (p?.proveedor_insumos ?? []).map((x: any) => ({ insumo_id: x.insumo_id, precio: String(Number(x.precio ?? 0)), antes: Number(x.precio ?? 0) })));
+  const [f, setF] = useState({ nombre: p?.nombre ?? '', contacto: p?.contacto ?? '', whatsapp: p?.whatsapp ?? '', telefono: p?.telefono ?? '',
+    categorias: p?.categorias ?? '', dias_entrega: p?.dias_entrega ?? '', condiciones: p?.condiciones ?? '', notas: p?.notas ?? '',
+    activo: p?.activo ?? true, sedes: (p?.sedes ?? []) as string[] });
+  const [items, setItems] = useState<{ insumo_id: string; precio: string; unidad_compra: string; contenido: string; antes?: number }[]>(
+    () => (p?.proveedor_insumos ?? []).map((x: any) => ({ insumo_id: x.insumo_id, precio: String(Number(x.precio ?? 0)), antes: Number(x.precio ?? 0),
+      unidad_compra: x.unidad_compra ?? '', contenido: x.contenido ? String(Number(x.contenido)) : '' })));
   const { datos: insumos } = useConsulta('ins-prov', () => q<any[]>(sb.from('insumos').select('id, nombre, unidad').eq('activo', true).order('nombre')), []);
   const { datos: hist } = useConsulta('hist-prov-' + p?.id, () => p ? q<any[]>(sb.from('proveedor_precios_historial')
     .select('precio, creado_en, insumos(nombre, unidad)').eq('proveedor_id', p.id).order('creado_en', { ascending: false }).limit(15)) : Promise.resolve([]), [p?.id]);
+  const { datos: compras } = useConsulta('compras-prov-' + p?.id, () => p ? q<any[]>(sb.from('ordenes_compra').select('id').eq('proveedor_id', p.id)) : Promise.resolve([]), [p?.id]);
+  const unidadDe = (id: string) => (insumos ?? []).find((x) => x.id === id)?.unidad ?? '';
 
   async function guardarTodo() {
     try {
       let id = p?.id;
-      const fila = { ...f, nombre: f.nombre.trim(), whatsapp: f.whatsapp.replace(/\D/g, '') || null };
+      const fila = { nombre: f.nombre.trim(), contacto: f.contacto.trim() || null, whatsapp: f.whatsapp.replace(/\D/g, '') || null,
+        telefono: f.telefono.replace(/\D/g, '') || null, categorias: f.categorias.trim() || null, dias_entrega: f.dias_entrega.trim() || null,
+        condiciones: f.condiciones.trim() || null, notas: f.notas.trim() || null, activo: f.activo, sedes: f.sedes.length ? f.sedes : null };
       if (id) await guardar(sb.from('proveedores').update(fila).eq('id', id));
       else { const { data, error } = await sb.from('proveedores').insert(fila).select('id').single(); if (error) throw new Error(error.message); id = data.id; }
       const actuales = items.filter((i) => i.insumo_id);
@@ -47,37 +151,75 @@ function EditarProveedor({ p, onCerrar }: { p: any | null; onCerrar: () => void 
         await guardar(sb.from('proveedor_insumos').delete().eq('proveedor_id', id).eq('insumo_id', x.insumo_id));
       for (const i of actuales) {
         const precio = Number(i.precio || 0);
-        await guardar(sb.from('proveedor_insumos').upsert({ proveedor_id: id, insumo_id: i.insumo_id, precio, actualizado: new Date().toISOString() }));
+        // "contenido" se escribe en la unidad que ve la persona (kg, litros, und) y se guarda en la del inventario
+        const contenido = i.contenido ? Number(i.contenido.replace(',', '.')) * factor(unidadDe(i.insumo_id)) : null;
+        await guardar(sb.from('proveedor_insumos').upsert({ proveedor_id: id, insumo_id: i.insumo_id, precio, actualizado: new Date().toISOString(),
+          unidad_compra: i.unidad_compra.trim() || null, contenido }));
         if (i.antes !== precio && precio > 0) await guardar(sb.from('proveedor_precios_historial').insert({ proveedor_id: id, insumo_id: i.insumo_id, precio }));
       }
       onCerrar();
     } catch (e) { aviso.error(e); }
   }
 
+  async function eliminar() {
+    const tiene = (compras ?? []).length;
+    if (!confirm(tiene
+      ? `${p.nombre} tiene ${tiene} compra(s) en el historial. Se va a DESACTIVAR: no saldrá para pedidos nuevos, pero sus compras viejas se conservan. ¿Seguir?`
+      : `¿Eliminar a ${p.nombre}? No tiene compras registradas.`)) return;
+    try { const r = await rpc<string>('proveedor_eliminar', { p_id: p.id }); alert(r === 'eliminado' ? '✓ Proveedor eliminado' : '✓ Proveedor desactivado (su historial se conserva)'); onCerrar(); }
+    catch (e) { aviso.error(e); }
+  }
+
   return (
-    <Ventana titulo={p ? p.nombre : 'Nuevo proveedor'} onCerrar={onCerrar} ancho={640}>
+    <Ventana titulo={p ? p.nombre : 'Nuevo proveedor'} onCerrar={onCerrar} ancho={680}>
       <div className="pila">
-        <div className="campo"><label>Nombre</label><input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} /></div>
+        <div className="fila" style={{ gap: 10 }}>
+          <div className="campo" style={{ flex: 1 }}><label>Nombre del proveedor</label><input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} /></div>
+          <div className="campo" style={{ flex: 1 }}><label>Nombre de contacto</label><input value={f.contacto} onChange={(e) => setF({ ...f, contacto: e.target.value })} /></div>
+        </div>
         <div className="fila" style={{ gap: 10 }}>
           <div className="campo" style={{ flex: 1 }}><label>WhatsApp (con 57)</label><input inputMode="tel" placeholder="573001234567" value={f.whatsapp} onChange={(e) => setF({ ...f, whatsapp: e.target.value })} /></div>
+          <div className="campo" style={{ flex: 1 }}><label>Teléfono</label><input inputMode="tel" value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} /></div>
+        </div>
+        <div className="fila" style={{ gap: 10 }}>
+          <div className="campo" style={{ flex: 1 }}><label>Categorías</label><input placeholder="Lácteos, cárnicos…" value={f.categorias} onChange={(e) => setF({ ...f, categorias: e.target.value })} /></div>
           <div className="campo" style={{ flex: 1 }}><label>Días de entrega</label><input placeholder="Lunes y jueves" value={f.dias_entrega} onChange={(e) => setF({ ...f, dias_entrega: e.target.value })} /></div>
         </div>
         <div className="campo"><label>Condiciones</label><input placeholder="Contado, crédito 15 días…" value={f.condiciones} onChange={(e) => setF({ ...f, condiciones: e.target.value })} /></div>
-        <b>Productos que vende y precio</b>
-        {items.map((it, i) => (
-          <div key={i} className="fila" style={{ gap: 6 }}>
-            <select style={{ flex: 1 }} value={it.insumo_id} onChange={(e) => { const n = [...items]; n[i] = { ...it, insumo_id: e.target.value }; setItems(n); }}>
-              <option value="">Insumo…</option>{(insumos ?? []).map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}</select>
-            <input className="entrada" style={{ width: 120 }} inputMode="numeric" placeholder="$ por unidad" value={it.precio}
-              onChange={(e) => { const n = [...items]; n[i] = { ...it, precio: e.target.value.replace(/\D/g, '') }; setItems(n); }} />
-            <button className="enlace" onClick={() => setItems(items.filter((_, j) => j !== i))}>✕</button>
-          </div>
-        ))}
-        <button className="enlace" style={{ justifySelf: 'start' }} onClick={() => setItems([...items, { insumo_id: '', precio: '' }])}>＋ Agregar producto</button>
-        <div className="texto-sec" style={{ fontSize: 12.5 }}>El precio es por unidad de inventario (por ml en líquidos, por g en pesos).</div>
+        <div className="campo"><label>Notas</label><input value={f.notas} onChange={(e) => setF({ ...f, notas: e.target.value })} /></div>
+        <div className="campo"><label>Sedes que atiende</label>
+          <div className="fila envolver" style={{ gap: 6 }}>
+            <button type="button" className={'pastilla' + (!f.sedes.length ? ' activa' : '')} onClick={() => setF({ ...f, sedes: [] })}>Todas</button>
+            {sedes.filter((s) => s.activa).map((s) => (
+              <button key={s.id} type="button" className={'pastilla' + (f.sedes.includes(s.id) ? ' activa' : '')}
+                onClick={() => setF({ ...f, sedes: f.sedes.includes(s.id) ? f.sedes.filter((x) => x !== s.id) : [...f.sedes, s.id] })}>{s.nombre}</button>
+            ))}
+          </div></div>
+        <b>Productos que vende</b>
+        {items.map((it, i) => {
+          const cambia = (c: Partial<typeof it>) => { const n = [...items]; n[i] = { ...it, ...c }; setItems(n); };
+          return (
+            <div key={i} className="pila" style={{ gap: 6, borderBottom: '1px solid var(--borde)', paddingBottom: 8 }}>
+              <div className="fila" style={{ gap: 6 }}>
+                <select style={{ flex: 1 }} value={it.insumo_id} onChange={(e) => cambia({ insumo_id: e.target.value })}>
+                  <option value="">Insumo…</option>{(insumos ?? []).map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}</select>
+                <button className="enlace" onClick={() => setItems(items.filter((_, j) => j !== i))}>✕</button>
+              </div>
+              <div className="fila envolver" style={{ gap: 6 }}>
+                <input className="entrada" style={{ width: 120 }} placeholder="Se compra por (bloque)" value={it.unidad_compra} onChange={(e) => cambia({ unidad_compra: e.target.value })} />
+                <input className="entrada" style={{ width: 150 }} inputMode="decimal" placeholder={`Trae (${unidadEscrita(unidadDe(it.insumo_id)) || 'cantidad'})`}
+                  value={it.contenido} onChange={(e) => cambia({ contenido: e.target.value.replace(/[^\d.,]/g, '') })} />
+                <input className="entrada" style={{ width: 130 }} inputMode="numeric" placeholder="$ por unidad inv." value={it.precio} onChange={(e) => cambia({ precio: e.target.value.replace(/\D/g, '') })} />
+              </div>
+            </div>
+          );
+        })}
+        <button className="enlace" style={{ justifySelf: 'start' }} onClick={() => setItems([...items, { insumo_id: '', precio: '', unidad_compra: '', contenido: '' }])}>＋ Agregar producto</button>
+        <div className="texto-sec" style={{ fontSize: 12.5 }}>Ej: queso "se compra por" <b>bloque</b>, "trae" <b>2,5 kg</b>. Así el pedido de WhatsApp sale en bloques. El precio es por unidad de inventario.</div>
         <label className="fila" style={{ gap: 8, fontWeight: 600 }}><input type="checkbox" checked={f.activo} onChange={(e) => setF({ ...f, activo: e.target.checked })} /> Proveedor activo</label>
         {aviso.vista}
         <button className="btn btn-principal btn-ancho" disabled={!f.nombre.trim()} onClick={guardarTodo}>Guardar proveedor</button>
+        {p && <button className="btn btn-negro btn-ancho" onClick={eliminar}>Eliminar proveedor</button>}
         {(hist ?? []).length > 0 && <div><b>Historial de precios</b>
           {hist!.map((h, i) => <div key={i} className="texto-sec linea" style={{ fontSize: 13 }}>
             {new Date(h.creado_en).toLocaleDateString('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'short' })} · {h.insumos?.nombre}: {plata(h.precio)}</div>)}

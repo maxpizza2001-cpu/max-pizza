@@ -291,3 +291,9 @@ details summary { list-style: none; }
 .selector-sedes::-webkit-scrollbar { display: none; }
 .selector-sedes button { flex: none; border: 1px solid #3a3a3a; background: transparent; color: #F7F3EA; border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 14px; cursor: pointer; }
 .selector-sedes button.activa { background: #E3A21A; border-color: #E3A21A; color: #141414; }
+
+/* Tabla simple (necesidades de compra por sede) */
+.tabla-simple { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tabla-simple th { text-align: left; color: var(--gris); font-size: 12.5px; font-weight: 700; padding: 6px 8px; border-bottom: 1px solid var(--borde); white-space: nowrap; }
+.tabla-simple td { padding: 8px; border-bottom: 1px solid var(--borde); white-space: nowrap; }
+.tabla-simple tr:last-child td { border-bottom: 0; }

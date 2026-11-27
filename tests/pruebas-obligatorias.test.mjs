@@ -849,3 +849,37 @@ test('V2 · Stock bajo: aplicar el mínimo a todas las sedes respeta las excepci
   await b.como(adm);
   await assert.rejects(aplicar([S, R], 1), /tus sedes/);
 });
+
+test('V2 · Compras: necesidades por sede consolidadas con proveedor; borrar proveedor/producto conserva la historia', async () => {
+  const b = await nuevaBase();
+  const S = b.principal, R = b.sedes['El Refugio'];
+  const jefe = await b.usuario('Jefe', [[S, 'ceo']]);
+  const queso = await b.insumo('queso');
+  await b.como(jefe);
+  await b.rpc('regla_aplicar', { p_sedes: `{${S},${R}}`, p_ubicacion: 'bodega', p_insumo: queso, p_minimo: 5000, p_rol: 'admin',
+    p_prioridad: 'alta', p_texto: 'Comprar queso', p_accion: null, p_excepcion: false });
+  const pv = (await b.uno(`insert into proveedores (nombre, whatsapp) values ('Lácteos Don Pepe', '573001112233') returning id`)).id;
+  await b.q(`insert into proveedor_insumos (proveedor_id, insumo_id, precio, unidad_compra, contenido) values ($1, $2, 20, 'bloque', 2500)`, [pv, queso]);
+  const n = await b.q(`select sede, sugerido::float, proveedor, unidad_compra, contenido::float from necesidades_compra($1) where insumo_id = $2 order by sede`, [`{${S},${R}}`, queso]);
+  assert.equal(n.length, 2, 'una fila por sede');
+  assert.ok(n.every((x) => x.proveedor === 'Lácteos Don Pepe' && x.unidad_compra === 'bloque' && x.sugerido > 0));
+
+  // Proveedor sin compras → se borra; con compras → se desactiva y la orden conserva su proveedor
+  assert.equal(await b.rpc('proveedor_eliminar', { p_id: pv }), 'eliminado');
+  const pv2 = (await b.uno(`insert into proveedores (nombre) values ('Cartones SAS') returning id`)).id;
+  const orden = await b.rpc('crear_orden_compra', { p_sede: S, p_proveedor: pv2, p_lineas: JSON.stringify([{ insumo_id: queso, ubicacion: 'bodega', cantidad: 1000 }]) });
+  assert.equal(await b.rpc('proveedor_eliminar', { p_id: pv2 }), 'desactivado');
+  assert.equal((await b.uno(`select proveedor_id from ordenes_compra where id = $1`, [orden])).proveedor_id, pv2);
+
+  // Producto vendido → se desactiva; producto nuevo sin ventas → se borra
+  const caja = await b.usuario('Caja', [[S, 'caja']]);
+  const haw = await b.producto('Porción Hawaiana');
+  await b.como(caja);
+  await b.rpc('cobrar_mostrador', { p_op: op(), p_sede: S, p_tipo: 'mostrador', p_lineas: JSON.stringify([{ producto_id: haw, cantidad: 1 }]), p_medio: 'efectivo' });
+  await b.como(jefe);
+  assert.equal(await b.rpc('producto_eliminar', { p_id: haw }), 'desactivado');
+  assert.equal((await b.uno(`select activo from productos where id = $1`, [haw])).activo, false);
+  const cat = (await b.uno(`select categoria_id from productos where id = $1`, [haw])).categoria_id;
+  const nuevo = (await b.uno(`insert into productos (categoria_id, nombre, formato, estacion) values ($1, 'Prueba X', 'unidad', 'ninguna') returning id`, [cat])).id;
+  assert.equal(await b.rpc('producto_eliminar', { p_id: nuevo }), 'eliminado');
+});
