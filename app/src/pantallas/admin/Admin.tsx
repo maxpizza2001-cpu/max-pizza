@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useCapa } from '../../lib/atras';
 import { rpc, sb } from '../../lib/supabase';
 import { cant, hora, mesa2, plata, ROLES } from '../../lib/formato';
-import { q, useConsulta, useSedes, type SedeSel } from './comun';
+import { q, useConsulta, usePermisos, useSedes, type SedeSel } from './comun';
+import { useEffect } from 'react';
 import { Sedes } from './Sedes';
 import { Equipo } from './Equipo';
 import { Checklists } from './Checklists';
@@ -30,16 +31,19 @@ export function Admin({ perfil }: { perfil: string }) {
   const ir = (s: Seccion) => { setSeccion(s); sessionStorage.setItem('mp.admin.seccion', s); window.scrollTo(0, 0); };
   useCapa(seccion !== 'inicio', () => ir('inicio'));   // atrás vuelve al inicio de Administración
   const cambiarSede = (s: string) => { setSede(s); localStorage.setItem('mp.admin.sede', s); };
+  const permisos = usePermisos(perfil);
+  // Si la sede guardada ya no es de esta persona, vuelve a "Todas mis sedes"
+  useEffect(() => { if (sedes.length && sede !== 'todas' && !sedes.some((s) => s.id === sede)) cambiarSede('todas'); }, [sedes, sede]);
   const props = { sede, sedes, perfil };
 
   return (
     <main className="contenido pila" style={{ maxWidth: 1180 }}>
       <div className="fila entre envolver">
-        <h1>Administración</h1>
+        <h1>{permisos.esCeo ? 'Administrador CEO' : 'Administración'}</h1>
         <div className="selector-sede">
           <span aria-hidden>🏪</span>
           <select value={sede} onChange={(e) => cambiarSede(e.target.value)} aria-label="Sede">
-            <option value="todas">Todas las sedes</option>
+            <option value="todas">{permisos.esCeo ? 'Todas las sedes' : 'Todas mis sedes'}</option>
             {sedes.map((s) => <option key={s.id} value={s.id}>{s.nombre}{s.activa ? '' : ' (inactiva)'}</option>)}
           </select>
         </div>
@@ -51,7 +55,7 @@ export function Admin({ perfil }: { perfil: string }) {
       </nav>
 
       {seccion === 'inicio' && <Inicio {...props} ir={ir} />}
-      {seccion === 'equipo' && <Equipo {...props} />}
+      {seccion === 'equipo' && <Equipo {...props} permisos={permisos} />}
       {seccion === 'tareas' && <Checklists {...props} />}
       {seccion === 'stock' && <InventarioAdmin {...props} />}
       {seccion === 'compras' && <Compras {...props} />}
@@ -62,7 +66,7 @@ export function Admin({ perfil }: { perfil: string }) {
       {seccion === 'catalogo' && <Catalogo {...props} />}
       {seccion === 'proveedores' && <Proveedores {...props} />}
       {seccion === 'analisis' && <Analisis {...props} />}
-      {seccion === 'sedes' && <Sedes {...props} />}
+      {seccion === 'sedes' && <Sedes {...props} permisos={permisos} />}
     </main>
   );
 }

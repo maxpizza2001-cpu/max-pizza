@@ -440,3 +440,9 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 - Login: ojito para mostrar/ocultar la clave.
 - Sedes: cada quien ve solo sus sedes asignadas. Con una sola sede entra directo y no se le pregunta. Con varias hay una barra de cambio rápido de sede y, en Insumos, Tortas, Armado y Rápidas, la vista "Todas mis sedes" (cada sede por separado; para registrar se entra a la sede). El servidor ya valida la sede (RLS `puede_ver_sede`/`tiene_rol`).
 - Pendiente de probar con usuario real: flujo completo de Caja en el computador (no inicio sesión con cuentas en la base real).
+
+## 2026-11-26 · V2 · Fase B · Administrador CEO
+- Migración `20261126000020_admin_ceo.sql`: rol `ceo` (ve y maneja todas las sedes, crea/renombra/activa sedes, único que nombra administradores). `admin` ahora es administrador SOLO de sus sedes (`es_admin_de`). `tiene_rol`/`puede_ver_sede` ya no abren todo al admin. Todos los admins que existían quedaron como CEO (el dueño luego ajusta).
+- Servidor: un admin no puede darse acceso a otra sede ni nombrar admins (RLS en `accesos_sede` + `admin_crear_usuario`); solo maneja personal de sus sedes (`puede_manejar`); mesas, compras, tareas, precios, ajustes de stock y mínimos se validan por sede; siempre queda al menos un CEO activo. `ceo_administradores()` lista quién tiene permisos.
+- Pantallas: el CEO entra directo a "Administrador CEO" con "Todas las sedes"; un admin ve "Todas mis sedes" y solo sus sedes. Equipo: el admin solo ve/da roles de personal en sus sedes; el CEO ve el cuadro "🔑 Permisos de administración". Sedes: crear/renombrar/desactivar solo el CEO.
+- Prueba nueva (29/29): CEO vs admin por sede, con RLS real.

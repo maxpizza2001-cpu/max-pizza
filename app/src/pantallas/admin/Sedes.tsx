@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { rpc, sb } from '../../lib/supabase';
 import { Ventana } from '../../componentes/Piezas';
-import { guardar, q, Titulo, UBICACIONES, useAviso, useConsulta, type Sede, type SedeSel } from './comun';
+import { guardar, q, Titulo, UBICACIONES, useAviso, useConsulta, type Permisos, type Sede, type SedeSel } from './comun';
 
-export function Sedes({ sedes }: { sede: SedeSel; sedes: Sede[] }) {
+export function Sedes({ sedes, permisos }: { sede: SedeSel; sedes: Sede[]; permisos: Permisos }) {
+  const ceo = permisos.esCeo;
   const [nueva, setNueva] = useState(false);
   const [abierta, setAbierta] = useState<string | null>(null);
   return (
     <div className="pila">
-      <Titulo accion={<button className="btn btn-principal" onClick={() => setNueva(true)}>＋ Nueva sede</button>}>Sedes</Titulo>
+      <Titulo accion={ceo && <button className="btn btn-principal" onClick={() => setNueva(true)}>＋ Nueva sede</button>}>Sedes</Titulo>
+      {!ceo && <div className="aviso">Ves solo tus sedes. Crear, renombrar o desactivar sedes lo hace el Administrador CEO.</div>}
       <div className="texto-sec">Cada sede tiene sus propias mesas, estaciones, inventario, precios, equipo y mínimos.</div>
       {sedes.map((s) => (
         <div key={s.id} className="tarjeta">
@@ -17,7 +19,7 @@ export function Sedes({ sedes }: { sede: SedeSel; sedes: Sede[] }) {
             <span className="titulo" style={{ fontSize: 19 }}>{s.nombre}</span>
             <span className={'estado ' + (s.activa ? 'estado-baja' : 'estado-proceso')}>{s.activa ? 'Activa' : 'Inactiva'}</span>
           </button>
-          {abierta === s.id && <DetalleSede sede={s} />}
+          {abierta === s.id && <DetalleSede sede={s} ceo={ceo} />}
         </div>
       ))}
       {nueva && <NuevaSede sedes={sedes} onCerrar={() => setNueva(false)} />}
@@ -25,7 +27,7 @@ export function Sedes({ sedes }: { sede: SedeSel; sedes: Sede[] }) {
   );
 }
 
-function DetalleSede({ sede }: { sede: Sede }) {
+function DetalleSede({ sede, ceo }: { sede: Sede; ceo: boolean }) {
   const aviso = useAviso();
   const [nombre, setNombre] = useState(sede.nombre);
   const { datos } = useConsulta('sede-' + sede.id, async () => {
@@ -44,11 +46,11 @@ function DetalleSede({ sede }: { sede: Sede }) {
 
   return (
     <div className="pila" style={{ marginTop: 12 }}>
-      <div className="fila envolver" style={{ gap: 8, alignItems: 'end' }}>
+      {ceo && <div className="fila envolver" style={{ gap: 8, alignItems: 'end' }}>
         <div className="campo" style={{ flex: 1, minWidth: 200 }}><label>Nombre</label><input value={nombre} onChange={(e) => setNombre(e.target.value)} /></div>
         <button className="btn btn-suave" disabled={nombre.trim() === sede.nombre || !nombre.trim()}
           onClick={() => hacer(() => guardar(sb.from('sedes').update({ nombre: nombre.trim() }).eq('id', sede.id)), '✓ Nombre guardado')}>Guardar nombre</button>
-      </div>
+      </div>}
       <div className="fila envolver" style={{ gap: 8, alignItems: 'end' }}>
         <div className="campo"><label>Mesas (hoy {activas})</label><input inputMode="numeric" placeholder={String(activas)} value={mesas} onChange={(e) => setMesas(e.target.value.replace(/\D/g, ''))} /></div>
         <button className="btn btn-suave" disabled={!mesas} onClick={() => hacer(() => rpc('configurar_mesas', { p_sede: sede.id, p_total: Number(mesas) }), `✓ Ahora tiene ${mesas} mesas`)}>Guardar mesas</button>
@@ -77,10 +79,10 @@ function DetalleSede({ sede }: { sede: Sede }) {
       </div>
       <div className="texto-sec">Productos y precios de esta sede: en Catálogo. Mínimos: en Stock bajo.</div>
       {aviso.vista}
-      <button className={'btn ' + (sede.activa ? 'btn-negro' : 'btn-principal')} style={{ justifySelf: 'start' }}
+      {ceo && <button className={'btn ' + (sede.activa ? 'btn-negro' : 'btn-principal')} style={{ justifySelf: 'start' }}
         onClick={() => { if (!sede.activa || confirm(`¿Desactivar ${sede.nombre}? Se conserva todo su historial.`)) hacer(() => guardar(sb.from('sedes').update({ activa: !sede.activa }).eq('id', sede.id)), sede.activa ? '✓ Sede desactivada' : '✓ Sede activada'); }}>
         {sede.activa ? 'Desactivar sede' : 'Activar sede'}
-      </button>
+      </button>}
     </div>
   );
 }

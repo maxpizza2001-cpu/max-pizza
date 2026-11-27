@@ -10,6 +10,7 @@ export const hora = (iso: string | null | undefined) =>
 export const mesa2 = (n: number) => String(n).padStart(2, '0');
 
 export const ROLES: Record<string, string> = {
+  ceo: 'Administrador CEO',
   admin: 'Administración',
   caja: 'Caja',
   mesero: 'Mesero',

@@ -5,6 +5,19 @@ import { useEnVivo } from '../../lib/datos';
 export type Sede = { id: string; nombre: string; activa: boolean };
 export type SedeSel = string | 'todas';
 
+/** Permisos de quien está en Administración: CEO (todo) o admin de ciertas sedes. El servidor lo valida igual. */
+export type Permisos = { esCeo: boolean; adminDe: string[] };
+export function usePermisos(perfil: string): Permisos {
+  const [p, setP] = useState<Permisos>({ esCeo: false, adminDe: [] });
+  useEffect(() => {
+    sb.from('accesos_sede').select('sede_id, rol').eq('perfil_id', perfil).in('rol', ['admin', 'ceo']).then(({ data }) => {
+      const l = data ?? [];
+      setP({ esCeo: l.some((a: any) => a.rol === 'ceo'), adminDe: l.filter((a: any) => a.rol === 'admin').map((a: any) => a.sede_id) });
+    });
+  }, [perfil]);
+  return p;
+}
+
 /** Lista de sedes (activas e inactivas) en vivo */
 export function useSedes() {
   const [sedes, setSedes] = useState<Sede[]>([]);

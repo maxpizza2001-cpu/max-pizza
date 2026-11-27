@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { rpc, sb } from '../../lib/supabase';
 import { hora, ROLES } from '../../lib/formato';
 import { Ventana } from '../../componentes/Piezas';
-import { guardar, q, Titulo, useAviso, useConsulta, type Sede, type SedeSel } from './comun';
+import { guardar, q, Titulo, useAviso, useConsulta, type Permisos, type Sede, type SedeSel } from './comun';
 
 type Persona = { id: string; nombre: string; correo: string; activo: boolean; accesos: { id: string; sede_id: string; rol: string }[] };
 
@@ -11,7 +11,10 @@ const duracion = (a: string, b?: string | null) => {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 };
 
-export function Equipo({ sede, sedes, perfil }: { sede: SedeSel; sedes: Sede[]; perfil: string }) {
+export function Equipo({ sede, sedes, perfil, permisos }: { sede: SedeSel; sedes: Sede[]; perfil: string; permisos: Permisos }) {
+  // Sedes donde esta persona puede dar roles: el CEO en todas; un admin solo en las suyas, y nunca roles de administración
+  const editables = permisos.esCeo ? sedes : sedes.filter((s) => permisos.adminDe.includes(s.id));
+  const sel = { sedes: editables, esCeo: permisos.esCeo };
   const [nuevo, setNuevo] = useState(false);
   const [abierto, setAbierto] = useState<string | null>(null);
   const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? '';
@@ -31,7 +34,7 @@ export function Equipo({ sede, sedes, perfil }: { sede: SedeSel; sedes: Sede[]; 
     return q<any[]>(x);
   }, [sede], ['turnos']);
 
-  const visibles = (gente ?? []).filter((p) => sede === 'todas' || p.accesos.some((a) => a.sede_id === sede));
+  const visibles = (gente ?? []).filter((p) => (permisos.esCeo || p.accesos.length > 0) && (sede === 'todas' || p.accesos.some((a) => a.sede_id === sede)));
   const enTurno = (turnos ?? []).filter((t) => !t.fin);
   const terminaron = (turnos ?? []).filter((t) => t.fin);
 
@@ -61,6 +64,7 @@ export function Equipo({ sede, sedes, perfil }: { sede: SedeSel; sedes: Sede[]; 
         </div>
       </div>
 
+      {permisos.esCeo && <PermisosAdmin />}
       <h2>Integrantes · {visibles.length}</h2>
       {visibles.map((p) => (
         <div key={p.id} className="tarjeta">
@@ -76,15 +80,18 @@ export function Equipo({ sede, sedes, perfil }: { sede: SedeSel; sedes: Sede[]; 
               ))}
             </span>
           </button>
-          {abierto === p.id && <DetallePersona p={p} sedes={sedes} yo={perfil} />}
+          {abierto === p.id && <DetallePersona p={p} sel={sel} yo={perfil} />}
         </div>
       ))}
-      {nuevo && <NuevoIntegrante sedes={sedes} sede={sede} onCerrar={() => setNuevo(false)} />}
+      {nuevo && <NuevoIntegrante sel={sel} sede={sede} onCerrar={() => setNuevo(false)} />}
     </div>
   );
 }
 
-function SelectorAccesos({ sedes, valor, onCambio }: { sedes: Sede[]; valor: { sede_id: string; rol: string }[]; onCambio: (v: { sede_id: string; rol: string }[]) => void }) {
+type Sel = { sedes: Sede[]; esCeo: boolean };
+const ROLES_ADMIN = ['ceo', 'admin'];
+
+function SelectorAccesos({ sel: { sedes, esCeo }, valor, onCambio }: { sel: Sel; valor: { sede_id: string; rol: string }[]; onCambio: (v: { sede_id: string; rol: string }[]) => void }) {
   const tiene = (s: string, r: string) => valor.some((a) => a.sede_id === s && a.rol === r);
   const alternar = (s: string, r: string) => onCambio(tiene(s, r) ? valor.filter((a) => !(a.sede_id === s && a.rol === r)) : [...valor, { sede_id: s, rol: r }]);
   return (
@@ -93,7 +100,7 @@ function SelectorAccesos({ sedes, valor, onCambio }: { sedes: Sede[]; valor: { s
         <div key={s.id}>
           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{s.nombre}</div>
           <div className="fila envolver" style={{ gap: 5 }}>
-            {Object.entries(ROLES).map(([r, n]) => (
+            {Object.entries(ROLES).filter(([r]) => esCeo || !ROLES_ADMIN.includes(r)).map(([r, n]) => (
               <button key={r} type="button" className={'pastilla' + (tiene(s.id, r) ? ' activa' : '')} style={{ padding: '6px 10px', fontSize: 13 }} onClick={() => alternar(s.id, r)}>{n}</button>
             ))}
           </div>
@@ -103,7 +110,7 @@ function SelectorAccesos({ sedes, valor, onCambio }: { sedes: Sede[]; valor: { s
   );
 }
 
-function DetallePersona({ p, sedes, yo }: { p: Persona; sedes: Sede[]; yo: string }) {
+function DetallePersona({ p, sel, yo }: { p: Persona; sel: Sel; yo: string }) {
   const aviso = useAviso();
   const [clave, setClave] = useState('');
   const { datos: actividad } = useConsulta('act-' + p.id, async () => {
@@ -127,7 +134,7 @@ function DetallePersona({ p, sedes, yo }: { p: Persona; sedes: Sede[]; yo: strin
   return (
     <div className="pila" style={{ marginTop: 12 }}>
       <b>Roles y sedes</b>
-      <SelectorAccesos sedes={sedes} valor={p.accesos} onCambio={cambiarAccesos} />
+      <SelectorAccesos sel={sel} valor={p.accesos} onCambio={cambiarAccesos} />
       <div className="fila envolver" style={{ gap: 8, alignItems: 'end' }}>
         <div className="campo"><label>Nueva clave (mínimo 6)</label><input value={clave} onChange={(e) => setClave(e.target.value)} /></div>
         <button className="btn btn-suave" disabled={clave.length < 6}
@@ -161,9 +168,9 @@ function DetallePersona({ p, sedes, yo }: { p: Persona; sedes: Sede[]; yo: strin
   );
 }
 
-function NuevoIntegrante({ sedes, sede, onCerrar }: { sedes: Sede[]; sede: SedeSel; onCerrar: () => void }) {
+function NuevoIntegrante({ sel, sede, onCerrar }: { sel: Sel; sede: SedeSel; onCerrar: () => void }) {
   const [f, setF] = useState({ nombre: '', correo: '', clave: '' });
-  const [accesos, setAccesos] = useState<{ sede_id: string; rol: string }[]>(sede !== 'todas' ? [{ sede_id: sede, rol: 'mesero' }] : []);
+  const [accesos, setAccesos] = useState<{ sede_id: string; rol: string }[]>(sede !== 'todas' && sel.sedes.some((s) => s.id === sede) ? [{ sede_id: sede, rol: 'mesero' }] : []);
   const aviso = useAviso();
   async function crear() {
     try {
@@ -178,10 +185,29 @@ function NuevoIntegrante({ sedes, sede, onCerrar }: { sedes: Sede[]; sede: SedeS
         <div className="campo"><label>Correo (con este entra)</label><input type="email" value={f.correo} onChange={(e) => setF({ ...f, correo: e.target.value })} /></div>
         <div className="campo"><label>Clave inicial (mínimo 6)</label><input value={f.clave} onChange={(e) => setF({ ...f, clave: e.target.value })} /></div>
         <b>Roles y sedes</b>
-        <SelectorAccesos sedes={sedes} valor={accesos} onCambio={setAccesos} />
+        <SelectorAccesos sel={sel} valor={accesos} onCambio={setAccesos} />
         {aviso.vista}
         <button className="btn btn-principal btn-ancho" disabled={!f.nombre || !f.correo || f.clave.length < 6 || !accesos.length} onClick={crear}>Crear cuenta</button>
       </div>
     </Ventana>
+  );
+}
+
+/** Solo para el CEO: quién tiene permisos de administración y en qué sedes */
+function PermisosAdmin() {
+  const { datos } = useConsulta('ceo-admins', () => q<any[]>(sb.rpc('ceo_administradores') as any), [], ['accesos_sede']);
+  return (
+    <div className="tarjeta">
+      <h2 style={{ marginBottom: 6 }}>🔑 Permisos de administración</h2>
+      <div className="texto-sec" style={{ marginBottom: 8 }}>Para nombrar un administrador o cambiar sus sedes, abre a la persona abajo y marca "Administración" en cada sede.</div>
+      {(datos ?? []).map((a) => (
+        <div key={a.perfil_id + a.rol} className="fila entre linea envolver">
+          <span><b>{a.nombre}</b> {!a.activo && <span className="estado estado-proceso">Desactivado</span>}
+            <span className="texto-sec"> · {a.correo}</span></span>
+          <span className={'estado ' + (a.rol === 'ceo' ? 'estado-alta' : 'estado-media')}>
+            {a.rol === 'ceo' ? 'CEO · todas las sedes' : 'Admin · ' + a.sedes.join(', ')}</span>
+        </div>
+      ))}
+    </div>
   );
 }

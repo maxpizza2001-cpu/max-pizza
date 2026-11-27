@@ -21,6 +21,7 @@ type Area = { sede: string; sedeNombre: string; rol: string };
 
 const CLAVE_AREA = 'maxpizza.area';
 const TODAS = 'todas';
+const esAdmin = (rol: string) => rol === 'admin' || rol === 'ceo';
 /** Áreas donde tiene sentido ver "Todas mis sedes" juntas (cada registro sigue quedando en su sede real). */
 const ROLES_TODAS = ['insumos', 'tortas', 'armado', 'rapidas'];
 
@@ -73,7 +74,10 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
         sb.from('accesos_sede').select('sede_id, rol, sedes(nombre)').eq('perfil_id', perfil),
         sb.from('perfiles').select('nombre').eq('id', perfil).single(),
       ]);
-      const lista = (a ?? []) as unknown as Acceso[];
+      let lista = (a ?? []) as unknown as Acceso[];
+      // El CEO entra a Administración global: no se repite como "Administración" de cada sede
+      if (lista.some((l) => l.rol === 'ceo')) lista = [lista.find((l) => l.rol === 'ceo')!, ...lista.filter((l) => !['ceo', 'admin'].includes(l.rol))];
+      else { const adm = lista.find((l) => l.rol === 'admin'); if (adm) lista = [adm, ...lista.filter((l) => l.rol !== 'admin')]; }
       setAccesos(lista);
       setNombre(p?.nombre ?? '');
       // Si solo tiene un área, entra directo; si el área guardada ya no aplica, se borra
@@ -116,13 +120,13 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
           {area && roles.length > 1 && (
             <button className="chip-sede" onClick={() => elegir(null)}>{ROLES[area.rol]} ▾</button>
           )}
-          {area && area.rol !== 'admin' && sedesArea.length === 1 && <span className="chip-sede" style={{ background: 'transparent' }}>📍 {area.sedeNombre}</span>}
+          {area && !esAdmin(area.rol) && sedesArea.length === 1 && <span className="chip-sede" style={{ background: 'transparent' }}>📍 {area.sedeNombre}</span>}
           <button className="chip-sede" onClick={salir}>Salir</button>
         </div>
       </header>
 
       {/* Cambio rápido de sede: solo aparece si esta persona tiene 2 o más sedes en esta área */}
-      {area && area.rol !== 'admin' && sedesArea.length > 1 && (
+      {area && !esAdmin(area.rol) && sedesArea.length > 1 && (
         <nav className="selector-sedes" aria-label="Mis sedes">
           {sedesArea.map((s) => (
             <button key={s.id} className={area.sede === s.id ? 'activa' : ''} onClick={() => elegir({ sede: s.id, sedeNombre: s.nombre, rol: area.rol })}>📍 {s.nombre}</button>
@@ -140,11 +144,11 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
           {accesos.length > 0 && <div className="texto-sec">{unaSola ? `📍 ${accesos[0].sedes?.nombre} · ¿En qué área trabajas hoy?` : '¿Dónde trabajas hoy?'}</div>}
           {roles.map((rol) => {
             const ss = sedesDe(rol);
-            if (unaSola || rol === 'admin' || ss.length === 1) return (
+            if (unaSola || esAdmin(rol) || ss.length === 1) return (
               <button key={rol} className="tarjeta btn" style={{ justifyContent: 'space-between' }}
                 onClick={() => elegir({ sede: ss[0].id, sedeNombre: ss[0].nombre, rol })}>
                 <span className="titulo" style={{ fontSize: 18 }}>{ROLES[rol]}</span>
-                {!unaSola && rol !== 'admin' && <span className="texto-sec">{ss[0].nombre}</span>}
+                {!unaSola && !esAdmin(rol) && <span className="texto-sec">{ss[0].nombre}</span>}
               </button>
             );
             return (
@@ -167,7 +171,7 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
         : area.rol === 'tortas' ? <Tortas key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'insumos' ? <Insumos key={area.sede} sede={area.sede} perfil={perfil} />
         : area.rol === 'domiciliario' ? <Domiciliario key={area.sede} sede={area.sede} perfil={perfil} />
-        : area.rol === 'admin' ? <Admin perfil={perfil} />
+        : esAdmin(area.rol) ? <Admin perfil={perfil} />
         : (
         <main className="contenido pila" style={{ maxWidth: 640 }}>
           <h1>{ROLES[area.rol]}</h1>

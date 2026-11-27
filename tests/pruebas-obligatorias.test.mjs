@@ -244,7 +244,8 @@ test('8 · Se piden 2 L de citronela y llega 1 L: entra 1 L y queda 1 L pendient
 
 test('9 · Administración crea una tercera sede con mesas, estaciones, saldos y reglas propios', async () => {
   const { b, S, u } = await preparar();
-  await b.como(u.admin);
+  const jefe = await b.usuario('Jefe', [[S, 'ceo']]);
+  await b.como(jefe);
   const norte = await b.rpc('crear_sede', { p_nombre: 'Sede Norte', p_mesas: 8 });
   const n = await b.uno(`select
       (select count(*)::int from mesas where sede_id = $1) mesas,
@@ -257,7 +258,7 @@ test('9 · Administración crea una tercera sede con mesas, estaciones, saldos y
 
   // Se asigna un mesero; su Mesa 02 es distinta de la Mesa 02 de Principal
   const meseroNorte = await b.usuario('MeseroNorte', [[norte, 'mesero']]);
-  await b.como(u.admin);
+  await b.como(jefe);
   await b.rpc('ajustar_stock', { p_op: op(), p_sede: norte, p_ubicacion: 'armado', p_insumo: await b.insumo('porc_hawaiana'), p_nuevo: 8, p_motivo: 'Saldo inicial' });
   const haw = await b.producto('Porción Hawaiana');
   await b.como(meseroNorte);
@@ -275,8 +276,8 @@ test('10 · Caja no puede cambiar precios ni ajustar stock; Administración sí 
   const haw = await b.producto('Porción Hawaiana');
   const queso = await b.insumo('queso');
   await b.como(u.caja);
-  await assert.rejects(b.rpc('cambiar_precio', { p_producto: haw, p_sede: S, p_precio: 1000 }), /Solo Administración/);
-  await assert.rejects(b.rpc('ajustar_stock', { p_op: op(), p_sede: S, p_ubicacion: 'armado', p_insumo: queso, p_nuevo: 1, p_motivo: 'robo' }), /Solo Administración/);
+  await assert.rejects(b.rpc('cambiar_precio', { p_producto: haw, p_sede: S, p_precio: 1000 }), /Solo (Administración|el administrador)/);
+  await assert.rejects(b.rpc('ajustar_stock', { p_op: op(), p_sede: S, p_ubicacion: 'armado', p_insumo: queso, p_nuevo: 1, p_motivo: 'robo' }), /Solo (Administración|el administrador)/);
 
   await b.como(u.admin);
   await assert.rejects(b.rpc('ajustar_stock', { p_op: op(), p_sede: S, p_ubicacion: 'armado', p_insumo: queso, p_nuevo: 4000, p_motivo: '' }), /motivo/);
@@ -689,4 +690,42 @@ test('Agotados: la tienda dice cuántas pizzas quedan; sin porciones sale en 0 y
   await b.rpc('enviar_pedido_mesa', { p_op: op(), p_sede: S, p_mesa: 1, p_lineas: JSON.stringify([{ producto_id: pers, cantidad: antes }]) });
   await b.como(null);
   assert.equal(await ver('Personal Hawaiana'), 0);
+});
+
+test('V2 · Administrador CEO: ve todas las sedes y nombra admins; un admin solo ve y maneja sus sedes y no se da permisos', async () => {
+  const b = await nuevaBase();
+  const S = b.principal, R = b.sedes['El Refugio'];
+  const ceo = await b.usuario('Jefe', [[S, 'ceo']]);
+  const adm = await b.usuario('Admin Principal', [[S, 'admin']]);
+  const mes = await b.usuario('Mesero Refugio', [[R, 'mesero']]);
+  const app = async (sql, p = []) => { await b.q('begin'); try { await b.q('set local role authenticated'); const r = await b.q(sql, p); await b.q('commit'); return r; } catch (e) { await b.q('rollback'); throw e; } };
+  const ver = async () => (await app(`select nombre from sedes order by nombre`)).map((x) => x.nombre);
+
+  // CEO: todas las sedes, y puede crear una nueva
+  await b.como(ceo);
+  assert.deepEqual(await ver(), ['El Refugio', 'Sede Principal']);
+  await b.rpc('crear_sede', { p_nombre: 'Sede 3', p_mesas: 5 });
+  // Admin normal: solo su sede; no crea sedes
+  await b.como(adm);
+  assert.deepEqual(await ver(), ['Sede Principal']);
+  await assert.rejects(b.rpc('crear_sede', { p_nombre: 'Sede 4', p_mesas: 5 }), /CEO/);
+  // No se puede dar acceso a otra sede ni nombrarse/nombrar administradores
+  await assert.rejects(app(`insert into accesos_sede (perfil_id, sede_id, rol) values ($1, $2, 'admin')`, [adm, R]));
+  await assert.rejects(app(`insert into accesos_sede (perfil_id, sede_id, rol) values ($1, $2, 'caja')`, [adm, R]));
+  await assert.rejects(b.rpc('admin_crear_usuario', { p_correo: 'otro@x.co', p_clave: '123456', p_nombre: 'Otro', p_accesos: JSON.stringify([{ sede_id: S, rol: 'admin' }]) }), /CEO/);
+  // Sí crea personal en su sede, pero no toca personal de otra sede
+  await b.rpc('admin_crear_usuario', { p_correo: 'cajero@x.co', p_clave: '123456', p_nombre: 'Cajero', p_accesos: JSON.stringify([{ sede_id: S, rol: 'caja' }]) });
+  await assert.rejects(b.rpc('admin_activar_usuario', { p_perfil: mes, p_activo: false }), /No puedes/);
+  await assert.rejects(b.rpc('configurar_mesas', { p_sede: R, p_total: 3 }), /administrador de esta sede/);
+  assert.equal((await b.q(`select 1 from cuentas where sede_id = $1`, [R])).length, 0);
+
+  // CEO nombra al admin también en El Refugio → ahora ve las dos
+  await b.como(ceo);
+  await app(`insert into accesos_sede (perfil_id, sede_id, rol) values ($1, $2, 'admin')`, [adm, R]);
+  assert.equal((await b.q(`select * from ceo_administradores() where rol = 'admin'`))[0].sedes.length, 2);
+  await b.como(adm);
+  assert.deepEqual(await ver(), ['El Refugio', 'Sede Principal']);
+  // Siempre queda al menos un CEO
+  await b.como(ceo);
+  await assert.rejects(app(`delete from accesos_sede where perfil_id = $1 and rol = 'ceo'`, [ceo]), /al menos un/);
 });
