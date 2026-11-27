@@ -729,3 +729,36 @@ test('V2 · Administrador CEO: ve todas las sedes y nombra admins; un admin solo
   await b.como(ceo);
   await assert.rejects(app(`delete from accesos_sede where perfil_id = $1 and rol = 'ceo'`, [ceo]), /al menos un/);
 });
+
+test('V2 · Caja: resumen del turno separa efectivo y Nequi, calcula el esperado y el descuadre al cerrar', async () => {
+  const { b, S, u } = await preparar();
+  const haw = await b.producto('Porción Hawaiana');
+  await b.como(u.caja);
+  await b.rpc('registrar_base', { p_op: op(), p_sede: S, p_base: 100000 });
+  const v = (n, m) => b.rpc('cobrar_mostrador', { p_op: op(), p_sede: S, p_tipo: 'mostrador', p_lineas: JSON.stringify([linea(haw, n)]), p_medio: m });
+  await v(5, 'efectivo');   // 35.000
+  await v(2, 'nequi');      // 14.000
+  await b.rpc('registrar_gasto', { p_op: op(), p_sede: S, p_categoria: 'Aseo', p_concepto: 'Jabón', p_valor: 5000, p_responsable: null, p_medio: 'efectivo' });
+  await b.rpc('registrar_gasto', { p_op: op(), p_sede: S, p_categoria: 'Aseo', p_concepto: 'Bolsas', p_valor: 3000, p_responsable: null, p_medio: 'nequi' });
+  const opS = op();
+  await b.rpc('caja_movimiento', { p_op: opS, p_sede: S, p_tipo: 'salida', p_monto: 10000, p_concepto: 'Retiro del dueño' });
+  await b.rpc('caja_movimiento', { p_op: opS, p_sede: S, p_tipo: 'salida', p_monto: 10000, p_concepto: 'Retiro del dueño' }); // doble toque
+  const mesa = await b.rpc('enviar_pedido_mesa', { p_op: op(), p_sede: S, p_mesa: 3, p_lineas: JSON.stringify([linea(haw, 1)]) });
+
+  const r = await b.rpc('caja_resumen', { p_sede: S });
+  assert.equal(+r.efectivo.ventas, 35000);
+  assert.equal(+r.efectivo.gastos, 5000);
+  assert.equal(+r.efectivo.salidas, 10000);
+  assert.equal(+r.efectivo.esperado, 100000 + 35000 - 5000 - 10000, 'Nequi no entra al efectivo');
+  assert.equal(r.nequi.length, 1);
+  assert.equal(+r.nequi[0].monto, 14000);
+  assert.equal(+r.vendido, 8 * 7000);
+  assert.equal(+r.pendiente, 7000, 'la mesa 03 sin cobrar');
+  assert.ok(mesa.cuenta_id);
+
+  await assert.rejects(b.rpc('cerrar_caja', { p_sede: S, p_contado: 115000 }), /observación/);
+  const c = await b.rpc('cerrar_caja', { p_sede: S, p_contado: 115000, p_observacion: 'Faltó un billete' });
+  assert.equal(+c.diferencia, -5000);
+  const t = await b.uno(`select efectivo_contado::float c, diferencia::float d, observacion from turnos_caja where sede_id = $1`, [S]);
+  assert.deepEqual(t, { c: 115000, d: -5000, observacion: 'Faltó un billete' });
+});

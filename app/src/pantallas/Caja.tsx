@@ -50,7 +50,7 @@ export function Caja({ sede, perfil }: { sede: string; perfil: string }) {
         <div>
           <h1>Caja</h1>
           <div className="fila accesos">
-            <button onClick={() => setVentana('base')}>Base{turnoCaja ? ` · ${plata(turnoCaja.base)}` : ''}</button>·
+            <button onClick={() => setVentana('base')}>{turnoCaja ? '💵 Resumen y cierre' : 'Base'}</button>·
             <button onClick={() => setVentana('gastos')}>Gastos</button>·
             <button onClick={() => setVentana('tareas')}>Tareas</button>
           </div>
@@ -316,7 +316,17 @@ function ColaHorno({ comandas }: { comandas: ReturnType<typeof useComandas>['com
   );
 }
 
-// ───────── Base del turno de caja ─────────
+// ───────── Base del turno de caja · resumen financiero · cierre con conteo ─────────
+type Resumen = {
+  base: number; abierto_en: string;
+  efectivo: { ventas: number; gastos: number; entradas: number; salidas: number; esperado: number };
+  medios: { medio: string; total: number; pagos: number }[];
+  nequi: { hora: string; monto: number; detalle: string }[];
+  gastos_otros: number; vendido: number; cancelado: number; cobrado: number; pendiente: number;
+  movimientos: { tipo: 'entrada' | 'salida'; monto: number; concepto: string; hora: string }[];
+};
+const MEDIOS: Record<string, string> = { efectivo: 'Efectivo', nequi: 'Nequi', daviplata: 'Daviplata', tarjeta: 'Tarjeta', transferencia: 'Transferencia' };
+
 function Base({ sede, turno, onCerrar }: { sede: string; turno: { base: number; efectivo_esperado: number; cobrado: number; gastos: number; abierto_en: string } | null; onCerrar: () => void }) {
   const [valor, setValor] = useState('');
   const [op] = useState(nuevaOperacion);
@@ -326,32 +336,150 @@ function Base({ sede, turno, onCerrar }: { sede: string; turno: { base: number; 
     try { await rpc('registrar_base', { p_op: op, p_sede: sede, p_base: Number(valor) }); onCerrar(); }
     catch (e) { setError((e as Error).message); }
   }
-  async function cerrarCaja() {
-    if (!confirm('¿Cerrar el turno de caja? Después se registra una base nueva.')) return;
-    try { await rpc('cerrar_caja', { p_sede: sede }); onCerrar(); } catch (e) { setError((e as Error).message); }
-  }
+  if (turno) return <ResumenTurno sede={sede} onCerrar={onCerrar} />;
   return (
     <Ventana titulo="Base de caja" onCerrar={onCerrar}>
-      {turno ? (
-        <div className="pila">
-          <div className="texto-sec">Turno de caja abierto desde {hora(turno.abierto_en)}</div>
-          <div className="cifras">
-            <div><span>Base</span><b>{plata(turno.base)}</b></div>
-            <div><span>Cobrado</span><b>{plata(turno.cobrado)}</b></div>
-            <div><span>Gastos</span><b>{plata(turno.gastos)}</b></div>
-            <div><span>Efectivo esperado</span><b>{plata(turno.efectivo_esperado)}</b></div>
-          </div>
-          {error && <div className="error">{error}</div>}
-          <button className="btn btn-negro" onClick={cerrarCaja}>Cerrar turno de caja</button>
+      <div className="pila">
+        <div className="campo">
+          <label>Efectivo inicial para dar cambio</label>
+          <input inputMode="numeric" autoFocus placeholder="$0" value={valor} onChange={(e) => setValor(e.target.value.replace(/\D/g, ''))} />
         </div>
-      ) : (
+        {error && <div className="error">{error}</div>}
+        <button className="btn btn-principal btn-ancho" disabled={!valor} onClick={guardar}>Registrar base · {plata(Number(valor))}</button>
+      </div>
+    </Ventana>
+  );
+}
+
+function ResumenTurno({ sede, onCerrar }: { sede: string; onCerrar: () => void }) {
+  const [r, setR] = useState<Resumen | null>(null);
+  const [error, setError] = useState('');
+  const [contado, setContado] = useState('');
+  const [obs, setObs] = useState('');
+  const [mov, setMov] = useState<{ tipo: 'entrada' | 'salida'; monto: string; concepto: string; op: string } | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+  const [cerrado, setCerrado] = useState<null | { diferencia: number }>(null);
+
+  const cargar = useCallback(async () => {
+    try { setR(await rpc<Resumen>('caja_resumen', { p_sede: sede })); } catch (e) { setError((e as Error).message); }
+  }, [sede]);
+  useEnVivo(`caja-resumen-${sede}`, [{ tabla: 'pagos', filtro: `sede_id=eq.${sede}` }, { tabla: 'gastos_caja', filtro: `sede_id=eq.${sede}` }], cargar);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const n = (x: unknown) => Number(x ?? 0);
+  const esperado = n(r?.efectivo.esperado);
+  const dif = contado === '' ? null : Number(contado) - esperado;
+  const textoDif = (d: number) => d === 0 ? '✓ Cuadra' : d < 0 ? `Faltan ${plata(-d)}` : `Sobran ${plata(d)}`;
+  const claseDif = (d: number) => d === 0 ? 'estado-baja' : d < 0 ? 'estado-alta' : 'estado-media';
+
+  async function guardarMov() {
+    if (!mov) return;
+    setError('');
+    try {
+      await rpc('caja_movimiento', { p_op: mov.op, p_sede: sede, p_tipo: mov.tipo, p_monto: Number(mov.monto), p_concepto: mov.concepto });
+      setMov(null); cargar();
+    } catch (e) { setError((e as Error).message); }
+  }
+  async function cerrar() {
+    if (cerrando) return;
+    setError(''); setCerrando(true);
+    try {
+      const c = await rpc<{ diferencia: number }>('cerrar_caja', { p_sede: sede, p_contado: Number(contado), p_observacion: obs || null });
+      setCerrado({ diferencia: n(c.diferencia) });
+    } catch (e) { setError((e as Error).message); } finally { setCerrando(false); }
+  }
+
+  const Fila = ({ t, v, fuerte, signo }: { t: string; v: number; fuerte?: boolean; signo?: '+' | '−' }) => (
+    <div className={'fila entre linea' + (fuerte ? ' total' : '')}><span>{t}</span><span>{signo && v ? signo + ' ' : ''}{plata(v)}</span></div>
+  );
+
+  if (cerrado) return (
+    <Ventana titulo="Caja cerrada" onCerrar={onCerrar}>
+      <div className="pila" style={{ textAlign: 'center' }}>
+        <div className={'estado ' + claseDif(cerrado.diferencia)} style={{ fontSize: 22, padding: '12px 18px', justifySelf: 'center' }}>{textoDif(cerrado.diferencia)}</div>
+        <div className="texto-sec">El turno quedó cerrado y guardado. Para el siguiente turno se registra una base nueva.</div>
+        <button className="btn btn-principal btn-ancho" onClick={onCerrar}>Listo</button>
+      </div>
+    </Ventana>
+  );
+
+  return (
+    <Ventana titulo="Resumen del turno de caja" onCerrar={onCerrar} ancho={720}>
+      {!r ? <div className="texto-sec">{error || 'Cargando…'}</div> : (
         <div className="pila">
-          <div className="campo">
-            <label>Efectivo inicial para dar cambio</label>
-            <input inputMode="numeric" autoFocus placeholder="$0" value={valor} onChange={(e) => setValor(e.target.value.replace(/\D/g, ''))} />
+          <div className="texto-sec">Turno abierto desde {hora(r.abierto_en)}</div>
+
+          <div className="cifras">
+            <div><span>Total vendido</span><b>{plata(n(r.vendido))}</b></div>
+            <div><span>Total cobrado</span><b>{plata(n(r.cobrado))}</b></div>
+            <div><span>Pendiente por cobrar</span><b>{plata(n(r.pendiente))}</b></div>
+            <div><span>Ventas canceladas</span><b className="texto-sec">{plata(n(r.cancelado))}</b></div>
           </div>
-          {error && <div className="error">{error}</div>}
-          <button className="btn btn-principal btn-ancho" disabled={!valor} onClick={guardar}>Registrar base · {plata(Number(valor))}</button>
+
+          <div className="tarjeta">
+            <h2 style={{ marginBottom: 6 }}>💵 Efectivo</h2>
+            <Fila t="Base inicial" v={n(r.base)} />
+            <Fila t="Ventas en efectivo" v={n(r.efectivo.ventas)} signo="+" />
+            <Fila t="Gastos en efectivo" v={n(r.efectivo.gastos)} signo="−" />
+            {n(r.efectivo.entradas) > 0 && <Fila t="Entradas de efectivo" v={n(r.efectivo.entradas)} signo="+" />}
+            {n(r.efectivo.salidas) > 0 && <Fila t="Salidas de efectivo" v={n(r.efectivo.salidas)} signo="−" />}
+            <Fila t="Efectivo esperado" v={esperado} fuerte />
+            {r.movimientos.map((m, i) => (
+              <div key={i} className="texto-sec" style={{ fontSize: 13 }}>{m.tipo === 'entrada' ? '↓ Entró' : '↑ Salió'} {plata(n(m.monto))} · {m.concepto} · {hora(m.hora)}</div>
+            ))}
+            {!mov ? (
+              <div className="fila envolver" style={{ gap: 8, marginTop: 8 }}>
+                <button className="enlace" onClick={() => setMov({ tipo: 'entrada', monto: '', concepto: '', op: nuevaOperacion() })}>＋ Entrada de efectivo</button>
+                <button className="enlace" onClick={() => setMov({ tipo: 'salida', monto: '', concepto: '', op: nuevaOperacion() })}>－ Salida de efectivo</button>
+              </div>
+            ) : (
+              <div className="pila" style={{ gap: 8, marginTop: 10 }}>
+                <b>{mov.tipo === 'entrada' ? 'Entrada de efectivo' : 'Salida de efectivo'}</b>
+                <div className="fila" style={{ gap: 8 }}>
+                  <input inputMode="numeric" placeholder="$0" style={{ flex: 1 }} value={mov.monto} onChange={(e) => setMov({ ...mov, monto: e.target.value.replace(/\D/g, '') })} />
+                  <input placeholder="Motivo (ej: más cambio)" style={{ flex: 2 }} value={mov.concepto} onChange={(e) => setMov({ ...mov, concepto: e.target.value })} />
+                </div>
+                <div className="fila" style={{ gap: 8 }}>
+                  <button className="btn btn-principal" disabled={!Number(mov.monto) || mov.concepto.trim().length < 3} onClick={guardarMov}>Registrar · {plata(Number(mov.monto))}</button>
+                  <button className="btn btn-suave" onClick={() => setMov(null)}>Cancelar</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="tarjeta">
+            <h2 style={{ marginBottom: 6 }}>📱 Nequi y otros medios</h2>
+            <div className="texto-sec" style={{ fontSize: 13, marginBottom: 4 }}>No se suman al efectivo de la caja.</div>
+            {r.medios.filter((m) => m.medio !== 'efectivo').length === 0 && <div className="texto-sec">Sin pagos por otros medios.</div>}
+            {r.medios.filter((m) => m.medio !== 'efectivo').map((m) => (
+              <div key={m.medio} className="fila entre linea"><span><b>{MEDIOS[m.medio] ?? m.medio}</b> <span className="texto-sec">· {m.pagos} {m.pagos === 1 ? 'pago' : 'pagos'}</span></span><span>{plata(n(m.total))}</span></div>
+            ))}
+            {r.nequi.length > 0 && <details style={{ marginTop: 6 }}>
+              <summary className="texto-sec" style={{ cursor: 'pointer', fontWeight: 700 }}>Ver pagos por Nequi</summary>
+              {r.nequi.map((x, i) => <div key={i} className="fila entre texto-sec" style={{ fontSize: 13 }}><span>{hora(x.hora)} · {x.detalle}</span><span>{plata(n(x.monto))}</span></div>)}
+            </details>}
+            {n(r.gastos_otros) > 0 && <div className="texto-sec" style={{ fontSize: 13, marginTop: 6 }}>Gastos pagados por otros medios: {plata(n(r.gastos_otros))}</div>}
+          </div>
+
+          <div className="tarjeta pila">
+            <h2>🔒 Cerrar caja</h2>
+            <div className="campo">
+              <label>Efectivo real contado</label>
+              <input inputMode="numeric" placeholder="$0" value={contado} onChange={(e) => setContado(e.target.value.replace(/\D/g, ''))} />
+            </div>
+            {dif !== null && (
+              <div className="fila entre"><span className="texto-sec">Esperado {plata(esperado)} · Contado {plata(Number(contado))}</span>
+                <span className={'estado ' + claseDif(dif)} style={{ fontSize: 16 }}>{textoDif(dif)}</span></div>
+            )}
+            {dif !== null && dif !== 0 && (
+              <div className="campo"><label>Observación (obligatoria si no cuadra)</label>
+                <input placeholder="Ej: se dio mal un cambio" value={obs} onChange={(e) => setObs(e.target.value)} /></div>
+            )}
+            {error && <div className="error">{error}</div>}
+            <button className="btn btn-negro btn-ancho" disabled={contado === '' || cerrando || (dif !== 0 && obs.trim().length < 3)} onClick={cerrar}>
+              {cerrando ? 'Cerrando…' : 'Confirmar cierre de caja'}
+            </button>
+          </div>
         </div>
       )}
     </Ventana>

@@ -446,3 +446,9 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 - Servidor: un admin no puede darse acceso a otra sede ni nombrar admins (RLS en `accesos_sede` + `admin_crear_usuario`); solo maneja personal de sus sedes (`puede_manejar`); mesas, compras, tareas, precios, ajustes de stock y mínimos se validan por sede; siempre queda al menos un CEO activo. `ceo_administradores()` lista quién tiene permisos.
 - Pantallas: el CEO entra directo a "Administrador CEO" con "Todas las sedes"; un admin ve "Todas mis sedes" y solo sus sedes. Equipo: el admin solo ve/da roles de personal en sus sedes; el CEO ve el cuadro "🔑 Permisos de administración". Sedes: crear/renombrar/desactivar solo el CEO.
 - Prueba nueva (29/29): CEO vs admin por sede, con RLS real.
+
+## 2026-11-26 · V2 · Fase C · Resumen financiero de Caja (aplicado en Supabase)
+- Migración `20261126000021_caja_resumen.sql`: `caja_resumen(sede)` devuelve efectivo (base, ventas, gastos, entradas, salidas, esperado), Nequi y otros medios con detalle, total vendido, cobrado, pendiente y cancelado. `caja_movimiento` registra entradas/salidas de efectivo (idempotente). `cerrar_caja(sede, contado, observación)` guarda contado y diferencia; si no cuadra, exige observación.
+- Efectivo esperado = base + cobros en efectivo − gastos en efectivo + entradas − salidas. Nequi nunca suma al efectivo.
+- Caja: "💵 Resumen y cierre" con tarjetas Efectivo / Nequi y otros / Totales, y cierre que muestra en vivo "✓ Cuadra / Faltan $X / Sobran $X".
+- Prueba nueva (30/30).
