@@ -25,6 +25,7 @@ jobs:
         env:
           DB: ${{ secrets.SUPABASE_DB_URL }}
         run: |
+          DB=$(printf '%s' "$DB" | tr -d '\r\n\t ')   # quita espacios o "Enter" pegados por error
           if [ -z "$DB" ]; then echo "Falta el secreto SUPABASE_DB_URL"; exit 1; fi
           F=maxpizza-$(TZ=America/Bogota date +%Y-%m-%d_%H%M)
           echo "F=$F" >> $GITHUB_ENV
