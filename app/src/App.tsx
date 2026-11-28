@@ -15,7 +15,8 @@ import { Rapidas } from './pantallas/Rapidas';
 import { Armado } from './pantallas/Armado';
 import { Insumos, Tortas } from './pantallas/Produccion';
 import { Admin } from './pantallas/admin/Admin';
-import { ActivarAvisos } from './componentes/Avisos';
+import { ActivarAvisos, EstadoAvisos } from './componentes/Avisos';
+import { TarjetaSaldo, useSaldos } from './componentes/Inventario';
 
 type Acceso = { sede_id: string; rol: string; sedes: { nombre: string } | null };
 type Area = { sede: string; sedeNombre: string; rol: string };
@@ -27,6 +28,22 @@ const esAdmin = (rol: string) => rol === 'admin' || rol === 'ceo';
 const ROLES_TODAS = ['insumos', 'tortas', 'armado', 'rapidas'];
 
 /** Vista "Todas mis sedes": un resumen por sede, bien separado. Para registrar algo se entra a la sede. */
+/** Saldos del área en UNA sede (nunca se mezclan con los de otra) */
+const UBIC_AREA: Record<string, string[]> = { insumos: ['produccion'], tortas: ['tortas'], armado: ['armado'], rapidas: ['nevera_rapidas'] };
+function InventarioSede({ sede, rol }: { sede: string; rol: string }) {
+  const { saldos } = useSaldos(sede, UBIC_AREA[rol] ?? []);
+  const bajos = saldos.filter((x) => x.bajo).length;
+  if (!saldos.length) return null;
+  return (
+    <details open={bajos > 0}>
+      <summary style={{ cursor: 'pointer', fontWeight: 700 }}>📦 Inventario de esta sede{bajos ? ` · ${bajos} en stock bajo` : ' · todo bien'}</summary>
+      <div className="rejilla-saldos" style={{ marginTop: 8 }}>
+        {[...saldos].sort((a, b) => Number(b.bajo) - Number(a.bajo)).map((x) => <TarjetaSaldo key={x.insumo_id} s={x} />)}
+      </div>
+    </details>
+  );
+}
+
 function TodasMisSedes({ rol, sedes, perfil, onElegir }: { rol: string; sedes: { id: string; nombre: string }[]; perfil: string; onElegir: (s: { id: string; nombre: string }) => void }) {
   return (
     <main className="contenido pila" style={{ maxWidth: 760 }}>
@@ -38,6 +55,7 @@ function TodasMisSedes({ rol, sedes, perfil, onElegir }: { rol: string; sedes: {
             <h2>📍 {s.nombre}</h2>
             <button className="btn btn-principal" onClick={() => onElegir(s)}>Entrar a {s.nombre}</button>
           </div>
+          <InventarioSede sede={s.id} rol={rol} />
           <MisTareas sede={s.id} rol={rol} perfil={perfil} compacto />
         </section>
       ))}
@@ -124,6 +142,7 @@ function AreaDeTrabajo({ perfil }: { perfil: string }) {
             <button className="chip-sede" onClick={() => elegir(null)}>{ROLES[area.rol]} ▾</button>
           )}
           {area && !esAdmin(area.rol) && sedesArea.length === 1 && <span className="chip-sede" style={{ background: 'transparent' }}>📍 {area.sedeNombre}</span>}
+          {area && <EstadoAvisos />}
           <button className="chip-sede" onClick={salir}>Salir</button>
         </div>
       </header>

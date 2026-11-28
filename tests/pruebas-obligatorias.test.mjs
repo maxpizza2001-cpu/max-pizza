@@ -904,3 +904,34 @@ test('V2 · Análisis: consumo real por período y sede; un admin no ve otras se
   await b.como(await b.usuario('AdminR', [[R, 'admin']]));
   assert.ok((await b.q(`select sede_id from analisis_periodo(null, $1, $2, 'dia')`, [desde, hasta])).every((f) => f.sede_id === R), 'el admin de El Refugio no ve la Principal');
 });
+
+test('V2 · Pendientes: editar usuario, actividad por sede, probar aviso y quién tomó la comanda', async () => {
+  const { b, S, u } = await preparar();
+  const R = b.sedes['El Refugio'];
+  await b.como(u.admin);
+  await b.rpc('admin_editar_usuario', { p_perfil: u.mesero, p_nombre: 'Mesero Nuevo', p_correo: 'mesero.nuevo@maxpizza.test' });
+  assert.deepEqual(await b.uno(`select p.nombre, u.email from perfiles p join auth.users u on u.id = p.id where p.id = $1`, [u.mesero]),
+    { nombre: 'Mesero Nuevo', email: 'mesero.nuevo@maxpizza.test' });
+  const otro = await b.usuario('MeseroR', [[R, 'mesero']]);
+  await assert.rejects(b.rpc('admin_editar_usuario', { p_perfil: otro, p_nombre: 'X Y', p_correo: 'x@y.co' }), /No puedes/);
+
+  // Comanda personal: queda quién la tomó; la actividad la muestra solo para la sede del admin
+  const pers = await b.producto('Personal Hawaiana');
+  await b.como(u.mesero);
+  const e = await b.rpc('enviar_pedido_mesa', { p_op: op(), p_sede: S, p_mesa: 2, p_lineas: JSON.stringify([{ producto_id: pers, cantidad: 1 }]) });
+  const c = await b.uno(`select id from comandas where pedido_id = $1`, [e.pedido_id]);
+  await b.como(u.armado);
+  await b.rpc('comanda_estado', { p_comanda: c.id, p_estado: 'en_preparacion' });
+  assert.equal((await b.uno(`select tomada_por from comandas where id = $1`, [c.id])).tomada_por, u.armado);
+  await b.como(u.admin);
+  const act = await b.q(`select tipo, sede from actividad_reciente(null, 50)`);
+  assert.ok(act.some((a) => a.tipo === 'pedido'));
+  assert.ok(act.every((a) => a.sede === null || a.sede === 'Sede Principal'));
+
+  // Probar aviso: sin celular suscrito no manda nada; con celular, le llega solo a uno mismo
+  assert.equal(await b.rpc('push_probar', {}), 0);
+  await b.rpc('push_guardar', { p_sede: S, p_rol: 'admin', p_endpoint: 'https://push.test/yo', p_p256dh: 'k', p_auth: 'a' });
+  assert.equal(await b.rpc('push_probar', {}), 1);
+  const n = await b.uno(`select id from notificaciones where tipo = 'prueba'`);
+  assert.deepEqual((await b.q(`select endpoint from push_destinos($1)`, [n.id])).map((x) => x.endpoint), ['https://push.test/yo']);
+});

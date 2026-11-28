@@ -484,3 +484,13 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 ### Pendientes de la actualización V2
 - Probar en celulares reales: avisos (pedido listo, personales, stock bajo, recordatorios) y Caja completa en el computador.
 - Ver las gráficas con datos reales de varias semanas (hoy hay pocos movimientos).
+
+## 2026-11-27 · V2 · Lo que faltaba (migración 026 — PENDIENTE aplicar en Supabase antes del push)
+- Tareas: al EDITAR también hay fecha, hora, recordatorio, repetición, persona y estado (Pendiente / En proceso / Lista).
+- Equipo: editar nombre y correo (`admin_editar_usuario`, respeta permisos por sede).
+- Administración → 📰 Actividad: cobros, pedidos, tareas, stock bajo, turnos y cambios de Administración de los últimos 3 días, solo de sus sedes (`actividad_reciente`).
+- "Todas mis sedes" (Insumos, Tortas, Armado, Rápidas) muestra el inventario de cada sede por separado.
+- Avisos: el de stock bajo abre y resalta esa regla; el de pedido listo resalta el pedido en Mesero; campanita 🔔/🔕 arriba con estado y "Probar aviso" (`push_probar`). Fecha y hora en el aviso.
+- Comandas: "Pidió X · La tomó Y" (columna `comandas.tomada_por`).
+- Stock bajo: se puede escoger qué abre la tarea.
+- Prueba nueva (35/35). OJO: el código lee `comandas.tomada_por`; si se publica sin la migración, las comandas no cargan.

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAbrir } from '../../lib/abrir';
 import { rpc, sb } from '../../lib/supabase';
 import { cant, ROLES } from '../../lib/formato';
 import { Ventana } from '../../componentes/Piezas';
@@ -16,9 +17,27 @@ function accionSugerida(rol: string, codigo: string) {
   return null;
 }
 
+/** Qué abre la tarea cuando el trabajador la toca */
+const ACCIONES_TAREA: [string, string][] = [
+  ['auto', 'Lo sugerido según el área'], ['', 'Solo marcar como lista'], ['produccion:', 'Registrar producción'],
+  ['subir_nevera:', 'Subir a la nevera'], ['retirar:', 'Retirar insumo'], ['rueda:', 'Registrar rueda'],
+  ['tortas', 'Registrar tortas'], ['portapizzas', 'Armar portapizzas'], ['compra:', 'Revisar compra'],
+];
+const prefijoDe = (a: string | null) => (a ? (a.includes(':') ? a.split(':')[0] + ':' : a) : '');
+
 export function Reglas({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
   const [editar, setEditar] = useState<any | 'nueva' | null>(null);
   const [soloBajos, setSoloBajos] = useState(false);
+  // Viene del aviso de stock bajo: se resalta la regla de esa alerta
+  const [alerta, listoAlerta] = useAbrir('stock');
+  const [resaltar, setResaltar] = useState<string | null>(null);
+  useEffect(() => {
+    if (!alerta || alerta === 'stock') { if (alerta) { setSoloBajos(true); listoAlerta(); } return; }
+    sb.from('alertas_stock').select('regla_id').eq('id', alerta).maybeSingle().then(({ data }) => {
+      if (data) { setResaltar(data.regla_id); setTimeout(() => document.getElementById('regla-' + data.regla_id)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 400); }
+      listoAlerta();
+    });
+  }, [alerta]);
   const nombreSede = (id: string) => sedes.find((s) => s.id === id)?.nombre ?? '';
   const { datos } = useConsulta('reglas', async () => {
     let r = sb.from('reglas_stock').select(`id, sede_id, ubicacion_id, insumo_id, minimo, rol_destino, responsable_id, prioridad, texto, accion, activa, excepcion,
@@ -43,7 +62,7 @@ export function Reglas({ sede, sedes }: { sede: SedeSel; sedes: Sede[] }) {
       </label>
       <div className="tabla-tarjetas">
         {lista.map((r) => (
-          <div key={r.id} className={'tarjeta regla' + (r.bajo ? ' bajo' : '') + (r.activa ? '' : ' pausada')}>
+          <div key={r.id} id={'regla-' + r.id} style={resaltar === r.id ? { outline: '3px solid #E3A21A' } : undefined} className={'tarjeta regla' + (r.bajo ? ' bajo' : '') + (r.activa ? '' : ' pausada')}>
             <div className="fila entre" style={{ alignItems: 'flex-start' }}>
               <div>
                 <b>{r.insumos?.nombre}</b>
@@ -77,6 +96,7 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
     minimo: regla ? String(Number(regla.minimo) / factor(unidad0)) : '',
     rol: regla?.rol_destino ?? 'insumos', responsable: regla?.responsable_id ?? '',
     prioridad: regla?.prioridad ?? 'alta', texto: regla?.texto ?? '',
+    accion: regla ? prefijoDe(regla.accion) : 'auto',
     sedes: [regla?.sede_id ?? (sede !== 'todas' ? sede : sedes[0]?.id ?? '')] as string[], excepcion: !!regla?.excepcion,
   });
   const { datos: insumos } = useConsulta('insumos-todos', () => q<any[]>(sb.from('insumos').select('id, nombre, unidad, codigo').eq('activo', true).order('nombre')), []);
@@ -90,7 +110,7 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
       const r = await rpc<{ hechas: number; saltadas: string[] }>('regla_aplicar', {
         p_sedes: f.sedes, p_ubicacion: f.ubicacion, p_insumo: f.insumo,
         p_minimo: Number(f.minimo.replace(',', '.')) * factor(ins?.unidad ?? ''), p_rol: f.rol, p_prioridad: f.prioridad,
-        p_texto: texto, p_accion: accionSugerida(f.rol, ins?.codigo ?? ''), p_excepcion: f.excepcion });
+        p_texto: texto, p_accion: f.accion === 'auto' ? accionSugerida(f.rol, ins?.codigo ?? '') : f.accion === '' ? null : f.accion.endsWith(':') ? f.accion + (ins?.codigo ?? '') : f.accion, p_excepcion: f.excepcion });
       // La persona responsable es de cada sede: solo se guarda cuando es una sola sede
       if (f.sedes.length === 1) {
         const { data: u } = await sb.from('ubicaciones_stock').select('id').eq('sede_id', f.sedes[0]).eq('codigo', f.ubicacion).single();
@@ -144,6 +164,10 @@ function EditarRegla({ regla, sede, sedes, onCerrar }: { regla: any | null; sede
             <select value={f.prioridad} onChange={(e) => setF({ ...f, prioridad: e.target.value })}>
               <option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option></select></div>
         </div>
+        <div className="campo"><label>Al tocar la tarea, abre</label>
+          <select value={f.accion} onChange={(e) => setF({ ...f, accion: e.target.value })}>
+            {ACCIONES_TAREA.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
+        <div className="texto-sec" style={{ fontSize: 12.5 }}>La alerta guarda sede, producto, saldo, mínimo, fecha y hora. Avisa al celular del área y de Administración.</div>
         {aviso.vista}
         <button className="btn btn-principal btn-ancho" disabled={!f.insumo || !f.minimo || !f.sedes.length} onClick={guardarRegla}>{f.sedes.length > 1 ? `Guardar en ${f.sedes.length} sedes` : 'Guardar regla'}</button>
         {regla && <button className="btn btn-negro btn-ancho" onClick={async () => {

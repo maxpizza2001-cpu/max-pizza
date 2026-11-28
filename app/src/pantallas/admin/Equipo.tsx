@@ -113,6 +113,7 @@ function SelectorAccesos({ sel: { sedes, esCeo }, valor, onCambio }: { sel: Sel;
 function DetallePersona({ p, sel, yo }: { p: Persona; sel: Sel; yo: string }) {
   const aviso = useAviso();
   const [clave, setClave] = useState('');
+  const [datosP, setDatosP] = useState({ nombre: p.nombre, correo: p.correo });
   const { datos: actividad } = useConsulta('act-' + p.id, async () => {
     const [ts, tareas] = await Promise.all([
       q<any[]>(sb.from('turnos').select('id, rol, sede_id, inicio, fin').eq('perfil_id', p.id).order('inicio', { ascending: false }).limit(8)),
@@ -133,6 +134,12 @@ function DetallePersona({ p, sel, yo }: { p: Persona; sel: Sel; yo: string }) {
 
   return (
     <div className="pila" style={{ marginTop: 12 }}>
+      <div className="fila envolver" style={{ gap: 8, alignItems: 'end' }}>
+        <div className="campo" style={{ flex: 1, minWidth: 160 }}><label>Nombre</label><input value={datosP.nombre} onChange={(e) => setDatosP({ ...datosP, nombre: e.target.value })} /></div>
+        <div className="campo" style={{ flex: 1, minWidth: 200 }}><label>Correo (con este entra)</label><input type="email" value={datosP.correo} onChange={(e) => setDatosP({ ...datosP, correo: e.target.value })} /></div>
+        <button className="btn btn-suave" disabled={datosP.nombre.trim() === p.nombre && datosP.correo.trim().toLowerCase() === p.correo}
+          onClick={async () => { try { await rpc('admin_editar_usuario', { p_perfil: p.id, p_nombre: datosP.nombre, p_correo: datosP.correo }); aviso.ok('✓ Datos guardados'); window.dispatchEvent(new Event('mp:cambio')); } catch (e) { aviso.error(e); } }}>Guardar datos</button>
+      </div>
       <b>Roles y sedes</b>
       <SelectorAccesos sel={sel} valor={p.accesos} onCambio={cambiarAccesos} />
       <div className="fila envolver" style={{ gap: 8, alignItems: 'end' }}>

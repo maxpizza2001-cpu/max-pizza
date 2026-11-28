@@ -16,13 +16,14 @@ import { Analisis } from './Analisis';
 import { CajaAdmin } from './CajaAdmin';
 import { Domicilios } from './Domicilios';
 import { TiendaAdmin } from './TiendaAdmin';
+import { Actividad } from './Actividad';
 
-type Seccion = 'inicio' | 'equipo' | 'tareas' | 'stock' | 'compras' | 'caja' | 'sedes' | 'reglas' | 'catalogo' | 'proveedores' | 'analisis' | 'domicilios' | 'tienda';
+type Seccion = 'inicio' | 'equipo' | 'tareas' | 'stock' | 'compras' | 'caja' | 'sedes' | 'reglas' | 'catalogo' | 'proveedores' | 'analisis' | 'domicilios' | 'tienda' | 'actividad';
 
 const SECCIONES: [Seccion, string, string][] = [
   ['inicio', '🏠', 'Inicio'], ['equipo', '👥', 'Equipo'], ['tareas', '☑', 'Tareas'], ['stock', '📦', 'Inventario'],
   ['compras', '🛒', 'Compras'], ['caja', '💵', 'Caja'], ['domicilios', '🛵', 'Domicilios'], ['tienda', '🌐', 'Tienda online'], ['reglas', '⚠', 'Stock bajo'], ['catalogo', '🍕', 'Catálogo'],
-  ['proveedores', '🚚', 'Proveedores'], ['analisis', '📊', 'Análisis'], ['sedes', '🏪', 'Sedes'],
+  ['proveedores', '🚚', 'Proveedores'], ['analisis', '📊', 'Análisis'], ['actividad', '📰', 'Actividad'], ['sedes', '🏪', 'Sedes'],
 ];
 
 export function Admin({ perfil }: { perfil: string }) {
@@ -33,9 +34,9 @@ export function Admin({ perfil }: { perfil: string }) {
   useCapa(seccion !== 'inicio', () => ir('inicio'));   // atrás vuelve al inicio de Administración
   const cambiarSede = (s: string) => { setSede(s); localStorage.setItem('mp.admin.sede', s); };
   const permisos = usePermisos(perfil);
-  const [abrirStock, listoStock] = useAbrir('stock');   // aviso de stock bajo → Inventario
+  const [abrirStock] = useAbrir('stock');   // aviso de stock bajo → Inventario
   const [abrirDom, listoDom] = useAbrir('domicilios');
-  useEffect(() => { if (abrirStock) { ir('stock'); listoStock(); } }, [abrirStock]);
+  useEffect(() => { if (abrirStock) ir('reglas'); }, [abrirStock]);   // Stock bajo resalta esa alerta
   useEffect(() => { if (abrirDom) { ir('domicilios'); listoDom(); } }, [abrirDom]);
   // Si la sede guardada ya no es de esta persona, vuelve a "Todas mis sedes"
   useEffect(() => { if (sedes.length && sede !== 'todas' && !sedes.some((s) => s.id === sede)) cambiarSede('todas'); }, [sedes, sede]);
@@ -71,6 +72,7 @@ export function Admin({ perfil }: { perfil: string }) {
       {seccion === 'catalogo' && <Catalogo {...props} />}
       {seccion === 'proveedores' && <Proveedores {...props} />}
       {seccion === 'analisis' && <Analisis {...props} />}
+      {seccion === 'actividad' && <Actividad {...props} />}
       {seccion === 'sedes' && <Sedes {...props} permisos={permisos} />}
     </main>
   );

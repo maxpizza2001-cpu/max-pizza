@@ -134,6 +134,7 @@ export function TarjetaComanda({ c, grande = false, onEstado, botonesMesero = fa
         <div>
           <div className="comanda-dest">{nombreDestino(c)}</div>
           <div className="texto-sec">Pedido #{c.numero} · {espera === 0 ? 'ahora' : `hace ${espera} min`}</div>
+          {(c.solicitante || c.tomador) && <div className="texto-sec" style={{ fontSize: 12.5 }}>{c.solicitante ? `Pidió ${c.solicitante}` : ''}{c.solicitante && c.tomador ? ' · ' : ''}{c.tomador ? `La tomó ${c.tomador}` : ''}</div>}
         </div>
         <span className={`estado ${cls}`}>{txt}</span>
       </div>

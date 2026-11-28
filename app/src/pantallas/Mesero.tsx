@@ -5,6 +5,7 @@ import { aComanda, pitar, useCatalogo, useComandas, useEnVivo, useGuardado, type
 import { Productos, Resumen, TarjetaComanda, totalCarrito, Ventana } from '../componentes/Piezas';
 import { MisTareas } from '../componentes/MisTareas';
 import { MiTurno } from '../componentes/MiTurno';
+import { useAbrir } from '../lib/abrir';
 
 type Mesa = { numero: number; cuenta: null | { id: string; estado: 'abierta' | 'pagada'; total: number; pagado: number } };
 type Borrador = { lineas: LineaCarrito[]; op: string; pendiente?: boolean };
@@ -15,6 +16,13 @@ export function Mesero({ sede, perfil }: { sede: string; perfil: string }) {
   const [portapizzas, setPortapizzas] = useState(false);
   const { comandas: listos } = useComandas(sede, { estados: ['lista'] });
 
+  const [abrir, listoAbrir] = useAbrir('comanda');   // tocó el aviso "pedido listo"
+  useEffect(() => {
+    if (!abrir || !listos.some((c) => c.id === abrir)) return;
+    setPestana('mesas');
+    setTimeout(() => document.getElementById('listo-' + abrir)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+    const t = setTimeout(listoAbrir, 8000); return () => clearTimeout(t);
+  }, [abrir, listos.length]);
   const [vistos, setVistos] = useState(0);
   useEffect(() => { if (listos.length > vistos) pitar(); setVistos(listos.length); }, [listos.length]);
 
@@ -28,7 +36,7 @@ export function Mesero({ sede, perfil }: { sede: string; perfil: string }) {
         <div className="listos">
           <div className="titulo" style={{ fontSize: 16, marginBottom: 8 }}>🔔 Listos para llevar · {listos.length}</div>
           <div className="pila" style={{ gap: 10 }}>
-            {listos.map((c) => <TarjetaComanda key={c.id} c={c} onEstado={entregar} botonesMesero />)}
+            {listos.map((c) => <div key={c.id} id={'listo-' + c.id} style={abrir === c.id ? { outline: '3px solid #E3A21A', borderRadius: 16 } : undefined}><TarjetaComanda c={c} onEstado={entregar} botonesMesero /></div>)}
           </div>
         </div>
       )}

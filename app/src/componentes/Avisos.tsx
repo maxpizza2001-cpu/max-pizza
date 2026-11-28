@@ -76,3 +76,36 @@ export function ActivarAvisos({ sede, rol, destinos, silencioso }: { sede?: stri
     </div>
   );
 }
+
+/** Campanita en la barra de arriba: dice si los avisos están activos en este celular y deja mandar un aviso de prueba */
+export function EstadoAvisos() {
+  const [abierto, setAbierto] = useState(false);
+  const [msg, setMsg] = useState('');
+  const permiso = typeof Notification !== 'undefined' ? Notification.permission : 'default';
+  const activos = !esApk() && soporta() && permiso === 'granted';
+  async function probar() {
+    setMsg('Enviando…');
+    try {
+      const n = await rpc<number>('push_probar', {});
+      setMsg(n ? `✓ Aviso enviado. Debe llegarte en unos segundos (${n} ${n === 1 ? 'celular' : 'celulares'}).` : 'Este celular todavía no tiene los avisos activos.');
+    } catch (e) { setMsg((e as Error).message); }
+  }
+  return (
+    <>
+      <button className="chip-sede" onClick={() => { setAbierto(!abierto); setMsg(''); }} aria-label="Estado de los avisos">{activos ? '🔔' : '🔕'}</button>
+      {abierto && (
+        <div className="avisos-pop" role="dialog">
+          <b>{activos ? '🔔 Avisos activos en este celular' : '🔕 Avisos apagados en este celular'}</b>
+          <div className="texto-sec" style={{ fontSize: 13 }}>
+            {esApk() ? 'En la APK no llegan con el celular bloqueado: ábrela desde Chrome o agrégala a inicio.'
+              : !soporta() ? (esIphone() && !instalada() ? 'En iPhone primero agrégala a la pantalla de inicio.' : 'Este navegador no recibe avisos.')
+              : permiso === 'denied' ? 'Están bloqueados: actívalos en los ajustes del sitio (candado → Notificaciones).'
+              : activos ? 'Toca "Probar" para comprobar que llegan.' : 'Toca "Activar avisos" en tu pantalla de trabajo.'}
+          </div>
+          {activos && <button className="btn btn-principal" onClick={probar}>Probar aviso</button>}
+          {msg && <div style={{ fontSize: 13 }}>{msg}</div>}
+        </div>
+      )}
+    </>
+  );
+}

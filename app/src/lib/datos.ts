@@ -14,6 +14,7 @@ export type Comanda = {
   id: string; estado: 'nueva' | 'en_preparacion' | 'lista' | 'entregada' | 'cancelada';
   creada_en: string; empezada_en: string | null; lista_en: string | null; estacion: 'horno' | 'rapidas' | 'armado';
   numero: number; tipo: 'mesa' | 'mostrador' | 'llevar'; mesa: number | null; cuenta_id: string;
+  tomador?: string | null; solicitante?: string | null;
   lineas: { id: string; cantidad: number; observacion: string | null; producto: string; cancelada: boolean }[];
 };
 
@@ -75,9 +76,9 @@ export function useCatalogo(sede: string) {
 }
 
 // ───────── Comandas de una estación ─────────
-const SELECT_COMANDA = `id, estado, creada_en, empezada_en, lista_en,
+const SELECT_COMANDA = `id, estado, creada_en, empezada_en, lista_en, tomador:perfiles(nombre),
   estaciones!inner(codigo),
-  pedidos!inner(numero, cuenta_id, cuentas!inner(tipo, mesas(numero))),
+  pedidos!inner(numero, cuenta_id, solicitante:perfiles(nombre), cuentas!inner(tipo, mesas(numero))),
   lineas_comanda(cancelada, lineas_pedido(id, cantidad, observacion, productos(nombre)))`;
 
 export function aComanda(c: any): Comanda {
@@ -85,6 +86,7 @@ export function aComanda(c: any): Comanda {
     id: c.id, estado: c.estado, creada_en: c.creada_en, empezada_en: c.empezada_en, lista_en: c.lista_en,
     estacion: c.estaciones.codigo, numero: c.pedidos.numero, cuenta_id: c.pedidos.cuenta_id,
     tipo: c.pedidos.cuentas.tipo, mesa: c.pedidos.cuentas.mesas?.numero ?? null,
+    tomador: c.tomador?.nombre ?? null, solicitante: c.pedidos.solicitante?.nombre ?? null,
     lineas: (c.lineas_comanda ?? []).map((l: any) => ({
       id: l.lineas_pedido.id, cantidad: Number(l.lineas_pedido.cantidad), observacion: l.lineas_pedido.observacion,
       producto: l.lineas_pedido.productos?.nombre ?? '', cancelada: l.cancelada,
