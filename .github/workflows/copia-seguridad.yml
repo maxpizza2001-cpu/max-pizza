@@ -1,0 +1,40 @@
+# Copia de seguridad diaria de la base de datos de Max Pizza.
+# Corre todos los días a las 3:00 a. m. (hora Colombia) y también se puede correr a mano
+# (pestaña Actions → "Copia de seguridad" → Run workflow).
+# Necesita el secreto SUPABASE_DB_URL (Settings → Secrets and variables → Actions),
+# con la cadena de conexión "Session pooler" de Supabase. Las copias se guardan 90 días.
+name: Copia de seguridad
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # 08:00 UTC = 03:00 Bogotá
+  workflow_dispatch:
+
+jobs:
+  copia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar pg_dump 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Sacar la copia
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB" ]; then echo "Falta el secreto SUPABASE_DB_URL"; exit 1; fi
+          F=maxpizza-$(TZ=America/Bogota date +%Y-%m-%d_%H%M)
+          echo "F=$F" >> $GITHUB_ENV
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --no-owner --no-privileges --schema=public --schema=auth -Fc -f "$F.dump"
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --no-owner --no-privileges --schema=public --data-only --inserts | gzip > "$F-datos.sql.gz"
+          ls -lh
+
+      - name: Guardar la copia
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.F }}
+          path: maxpizza-*
+          retention-days: 90

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useCapa } from '../lib/atras';
 import { plata } from '../lib/formato';
+import { imprimirTicket } from '../lib/imprimir';
 import { emojiProducto, minutosDesde, nombreDestino, useAhora, type Comanda, type LineaCarrito, type Producto } from '../lib/datos';
 
 // ───────── Ventana (hoja que sube en celular, centrada en computador) ─────────
@@ -136,7 +137,11 @@ export function TarjetaComanda({ c, grande = false, onEstado, botonesMesero = fa
           <div className="texto-sec">Pedido #{c.numero} · {espera === 0 ? 'ahora' : `hace ${espera} min`}</div>
           {(c.solicitante || c.tomador) && <div className="texto-sec" style={{ fontSize: 12.5 }}>{c.solicitante ? `Pidió ${c.solicitante}` : ''}{c.solicitante && c.tomador ? ' · ' : ''}{c.tomador ? `La tomó ${c.tomador}` : ''}</div>}
         </div>
-        <span className={`estado ${cls}`}>{txt}</span>
+        <div className="fila" style={{ gap: 6, alignItems: 'center' }}>
+          <button className="enlace" title="Imprimir comanda" aria-label="Imprimir comanda" onClick={() => imprimirTicket(`Pedido #${c.numero}`, [nombreDestino(c), ...(c.solicitante ? [`Pidió ${c.solicitante}`] : [])],
+            c.lineas.filter((l) => !l.cancelada).map((l) => ({ izq: `${l.cantidad}x ${l.producto}`, nota: l.observacion ?? undefined, fuerte: true })))}>🖨</button>
+          <span className={`estado ${cls}`}>{txt}</span>
+        </div>
       </div>
       <div className="comanda-lineas">
         {c.lineas.map((l) => (

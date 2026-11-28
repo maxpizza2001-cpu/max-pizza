@@ -494,3 +494,8 @@ Plan V2 por fases: A operación · B Administrador CEO · C resumen de caja · D
 - Comandas: "Pidió X · La tomó Y" (columna `comandas.tomada_por`).
 - Stock bajo: se puede escoger qué abre la tarea.
 - Prueba nueva (35/35). OJO: el código lee `comandas.tomada_por`; si se publica sin la migración, las comandas no cargan.
+
+## 2026-11-27 · Mejoras: impresión, reporte por WhatsApp y copia de seguridad
+- 🖨 Imprimir: cada comanda (botón 🖨) y la cuenta de la mesa en Caja; ticket 80/58 mm con la impresión del sistema (`lib/imprimir.ts`).
+- 📲 Al cerrar caja: "Enviar reporte por WhatsApp" (resumen del turno) e "Imprimir reporte".
+- 💾 `.github/workflows/copia-seguridad.yml`: copia diaria 3:00 a. m. guardada 90 días en GitHub. **Pendiente: el dueño debe crear el secreto `SUPABASE_DB_URL`.**

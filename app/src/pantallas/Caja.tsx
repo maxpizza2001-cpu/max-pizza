@@ -5,6 +5,7 @@ import { pitar, useCatalogo, useComandas, useEnVivo, useGuardado, type LineaCarr
 import { MedioPago, Productos, Resumen, TarjetaComanda, totalCarrito, Ventana } from '../componentes/Piezas';
 import { MisTareas } from '../componentes/MisTareas';
 import { MiTurno } from '../componentes/MiTurno';
+import { cambiarAncho, ancho, imprimirTicket, lineaPlata, type LineaTicket } from '../lib/imprimir';
 import { PedidosOnline } from '../componentes/PedidosOnline';
 
 type PorCobrar = { cuenta_id: string; mesa: number; total: number; pagado: number; saldo: number };
@@ -164,7 +165,13 @@ function CuentaMesa({ c, onCerrar }: { c: PorCobrar; onCerrar: () => void }) {
     <div className="tarjeta pila">
       <div className="fila entre">
         <h2>Mesa {mesa2(c.mesa)}</h2>
-        <button className="btn btn-suave" style={{ padding: '6px 12px' }} onClick={onCerrar}>Cerrar</button>
+        <div className="fila" style={{ gap: 6 }}>
+          <button className="btn btn-suave" style={{ padding: '6px 12px' }} disabled={!agrupadas.length} onClick={() => imprimirTicket(`Cuenta · Mesa ${mesa2(c.mesa)}`, [],
+            [...agrupadas.map((l) => lineaPlata(`${l.cantidad}x ${l.nombre}`, l.valor)), lineaPlata('TOTAL', c.total, true),
+              ...(c.pagado > 0 ? [lineaPlata('Ya pagado', c.pagado), lineaPlata('SALDO', c.saldo, true)] : [])],
+            ['¡Gracias por su visita!'])}>🖨 Imprimir cuenta</button>
+          <button className="btn btn-suave" style={{ padding: '6px 12px' }} onClick={onCerrar}>Cerrar</button>
+        </div>
       </div>
       <div>
         {agrupadas.map((l, i) => (
@@ -359,6 +366,9 @@ function ResumenTurno({ sede, onCerrar }: { sede: string; onCerrar: () => void }
   const [mov, setMov] = useState<{ tipo: 'entrada' | 'salida'; monto: string; concepto: string; op: string } | null>(null);
   const [cerrando, setCerrando] = useState(false);
   const [cerrado, setCerrado] = useState<null | { diferencia: number }>(null);
+  const [papel, setPapel] = useState(ancho());
+  const [nombreSede, setNombreSede] = useState('');
+  useEffect(() => { sb.from('sedes').select('nombre').eq('id', sede).single().then(({ data }) => setNombreSede(data?.nombre ?? '')); }, [sede]);
 
   const cargar = useCallback(async () => {
     try { setR(await rpc<Resumen>('caja_resumen', { p_sede: sede })); } catch (e) { setError((e as Error).message); }
@@ -393,11 +403,50 @@ function ResumenTurno({ sede, onCerrar }: { sede: string; onCerrar: () => void }
     <div className={'fila entre linea' + (fuerte ? ' total' : '')}><span>{t}</span><span>{signo && v ? signo + ' ' : ''}{plata(v)}</span></div>
   );
 
+  // Reporte del turno (para WhatsApp y para imprimir)
+  function lineasReporte(): LineaTicket[] {
+    if (!r) return [];
+    const otros = r.medios.filter((m) => m.medio !== 'efectivo');
+    return [
+      lineaPlata('Total vendido', n(r.vendido), true), lineaPlata('Total cobrado', n(r.cobrado)),
+      ...(n(r.pendiente) ? [lineaPlata('Pendiente por cobrar', n(r.pendiente))] : []),
+      ...(n(r.cancelado) ? [lineaPlata('Ventas canceladas', n(r.cancelado))] : []),
+      { izq: '— EFECTIVO —' }, lineaPlata('Base inicial', n(r.base)), lineaPlata('Ventas en efectivo', n(r.efectivo.ventas)),
+      lineaPlata('Gastos en efectivo', n(r.efectivo.gastos)),
+      ...(n(r.efectivo.entradas) ? [lineaPlata('Entradas', n(r.efectivo.entradas))] : []),
+      ...(n(r.efectivo.salidas) ? [lineaPlata('Salidas', n(r.efectivo.salidas))] : []),
+      lineaPlata('Efectivo esperado', esperado, true),
+      ...(contado !== '' ? [lineaPlata('Efectivo contado', Number(contado)), { izq: 'Resultado', der: textoDif(Number(contado) - esperado), fuerte: true }] : []),
+      ...(obs.trim() ? [{ izq: 'Obs: ' + obs.trim() }] : []),
+      ...(otros.length ? [{ izq: '— OTROS MEDIOS —' }, ...otros.map((m) => lineaPlata(`${MEDIOS[m.medio] ?? m.medio} (${m.pagos})`, n(m.total)))] : []),
+      ...(n(r.gastos_otros) ? [lineaPlata('Gastos otros medios', n(r.gastos_otros))] : []),
+    ];
+  }
+  const tituloReporte = () => `Cierre de caja${nombreSede ? ' · ' + nombreSede : ''}`;
+  const subReporte = () => r ? [`Turno desde ${hora(r.abierto_en)}`] : [];
+  function enviarWhatsApp() {
+    const txt = `*MAX PIZZA · ${tituloReporte()}*\n${new Date().toLocaleDateString('es-CO', { timeZone: 'America/Bogota', weekday: 'long', day: 'numeric', month: 'long' })} · ${subReporte().join('')}\n\n`
+      + lineasReporte().map((l) => l.der ? `${l.fuerte ? '*' : ''}${l.izq}: ${l.der}${l.fuerte ? '*' : ''}` : `\n${l.izq}`).join('\n');
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  }
+  const BotonesReporte = () => (
+    <div className="pila" style={{ gap: 8 }}>
+      <button className="btn btn-principal btn-ancho" onClick={enviarWhatsApp}>📲 Enviar reporte por WhatsApp</button>
+      <div className="fila" style={{ gap: 8 }}>
+        <button className="btn btn-suave" style={{ flex: 1 }} onClick={() => imprimirTicket(tituloReporte(), subReporte(), lineasReporte())}>🖨 Imprimir reporte</button>
+        <select value={papel} onChange={(e) => { const a = e.target.value as '80' | '58'; cambiarAncho(a); setPapel(a); }} aria-label="Ancho del papel">
+          <option value="80">Papel 80 mm</option><option value="58">Papel 58 mm</option>
+        </select>
+      </div>
+    </div>
+  );
+
   if (cerrado) return (
     <Ventana titulo="Caja cerrada" onCerrar={onCerrar}>
       <div className="pila" style={{ textAlign: 'center' }}>
         <div className={'estado ' + claseDif(cerrado.diferencia)} style={{ fontSize: 22, padding: '12px 18px', justifySelf: 'center' }}>{textoDif(cerrado.diferencia)}</div>
         <div className="texto-sec">El turno quedó cerrado y guardado. Para el siguiente turno se registra una base nueva.</div>
+        <BotonesReporte />
         <button className="btn btn-principal btn-ancho" onClick={onCerrar}>Listo</button>
       </div>
     </Ventana>
